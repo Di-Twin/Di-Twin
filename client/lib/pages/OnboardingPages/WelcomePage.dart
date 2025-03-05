@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/pages/OnboardingPages/OnboardingPage.dart';
 
 class WelcomePage extends StatelessWidget {
   const WelcomePage({super.key});
@@ -63,7 +64,10 @@ class WelcomePage extends StatelessWidget {
                       ),
                     ),
                     onPressed: () {
-                      // Navigate to the next screen
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(builder: (context) => OnboardingPage(onComplete: () {}, onSkip: () {  },)),
+                      );
                     },
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -77,8 +81,7 @@ class WelcomePage extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        //Todo : Change the arrow icon 
-                        const Icon(Icons.arrow_forward, color: Colors.white),
+                        const Icon(Icons.arrow_forward, color: Colors.white), //Todo : Change the arrow icon as per figma
                       ],
                     ),
                   ),

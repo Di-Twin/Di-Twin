@@ -1,5 +1,5 @@
-import 'package:client/components/OnboardingPages/StartPage.dart';
-import 'package:client/components/OnboardingPages/WelcomePage.dart';
+import 'package:client/pages/OnboardingPages/StartPage.dart';
+import 'package:client/pages/OnboardingPages/WelcomePage.dart';
 import 'package:flutter/material.dart';
 
 void main() {
