@@ -1,9 +1,17 @@
-import 'package:flutter/gestures.dart';
+import 'package:client/pages/AuthPages/CustomButton.dart';
+import 'package:client/pages/AuthPages/CustomTextField.dart';
+import 'package:client/pages/AuthPages/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+
+final emailProvider = StateProvider<String>((ref) => '');
+final passwordProvider = StateProvider<String>((ref) => '');
+final showPasswordProvider = StateProvider<bool>((ref) => false);
+final loadingProvider = StateProvider<bool>((ref) => false);
 
 class SignUpScreen extends ConsumerStatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -13,235 +21,227 @@ class SignUpScreen extends ConsumerStatefulWidget {
 }
 
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
-  final _formKey = GlobalKey<FormState>();
+  final FocusNode emailFocusNode = FocusNode();
+  final FocusNode passwordFocusNode = FocusNode();
 
-  // Controllers
-  final TextEditingController _fullNameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
+  @override
+  void dispose() {
+    emailFocusNode.dispose();
+    passwordFocusNode.dispose();
+    super.dispose();
+  }
+
+  void handleSubmit() {
+    ref.read(loadingProvider.notifier).state = true;
+    Future.delayed(const Duration(seconds: 2), () {
+      ref.read(loadingProvider.notifier).state = false;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Signed In Successfully')));
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child: SingleChildScrollView(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(height: 50.h),
-
-                // Title
-                Text(
-                  "Create Account",
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.black87,
-                  ),
+      backgroundColor: Colors.grey[200],
+      resizeToAvoidBottomInset: false,
+      body: GestureDetector(
+        onTap: () {
+          FocusScope.of(context).unfocus();
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final keyboardOpen = MediaQuery.of(context).viewInsets.bottom > 0;
+            final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+            final screenHeight = constraints.maxHeight;
+            final adjustedKeyboardHeight =
+                keyboardHeight > screenHeight * 0.3
+                    ? keyboardHeight * 0.8
+                    : keyboardHeight;
+            return SingleChildScrollView(
+              physics:
+                  keyboardHeight > 0
+                      ? const ClampingScrollPhysics()
+                      : const NeverScrollableScrollPhysics(),
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minHeight: screenHeight,
+                  maxHeight:
+                      keyboardOpen
+                          ? screenHeight + adjustedKeyboardHeight
+                          : screenHeight,
                 ),
-                Text(
-                  "Sign up to get started!",
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16.sp,
-                    color: Colors.black54,
-                  ),
-                ),
-
-                SizedBox(height: 30.h),
-
-                // Sign Up Form
-                Form(
-                  key: _formKey,
-                  child: Column(
+                child: Container(
+                  width: double.infinity,
+                  height:
+                      constraints.maxHeight +
+                      (keyboardOpen ? keyboardHeight : 0),
+                  color: Colors.grey[200],
+                  child: Stack(
                     children: [
-                      // Full Name Field
-                      TextFormField(
-                        controller: _fullNameController,
-                        decoration: InputDecoration(
-                          labelText: "Full Name",
-                          prefixIcon: const Icon(Icons.person),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Enter your full name";
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 15.h),
-
-                      // Email Field
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        decoration: InputDecoration(
-                          labelText: "Email",
-                          prefixIcon: const Icon(Icons.email),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return "Enter your email";
-                          } else if (!RegExp(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$").hasMatch(value)) {
-                            return "Enter a valid email";
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 15.h),
-
-                      // Password Field
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: true,
-                        decoration: InputDecoration(
-                          labelText: "Password",
-                          prefixIcon: const Icon(Icons.lock),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12.r),
-                          ),
-                        ),
-                        validator: (value) {
-                          if (value == null || value.length < 6) {
-                            return "Password must be at least 6 characters";
-                          }
-                          return null;
-                        },
-                      ),
-                      SizedBox(height: 25.h),
-
-                      // Sign Up Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55.h,
-                        child: ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: const Color(0xFF0F67FE),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                          ),
-                          onPressed: () {
-                            if (_formKey.currentState!.validate()) {
-                              // Perform sign-up action
-                            }
-                          },
-                          child: Text(
-                            "Sign Up",
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 20.h),
-
-                      // OR Divider
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
+                      Column(
                         children: [
-                          Expanded(
-                            child: Divider(color: Colors.grey.shade300, thickness: 1),
-                          ),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8.w),
-                            child: Text(
-                              "OR",
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                color: Colors.black54,
+                          Container(
+                            height: 270.h, // Responsive height
+                            width: double.infinity,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1A2B50),
+                              borderRadius: BorderRadius.only(
+                                bottomLeft: Radius.circular(30.r),
+                                bottomRight: Radius.circular(30.r),
                               ),
                             ),
-                          ),
-                          Expanded(
-                            child: Divider(color: Colors.grey.shade300, thickness: 1),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 20.h),
-
-                      // Social Login Buttons
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          _socialLoginButton(FontAwesomeIcons.google, Colors.red, "Google"),
-                          SizedBox(width: 15.w),
-                          _socialLoginButton(FontAwesomeIcons.facebook, Colors.blue, "Facebook"),
-                        ],
-                      ),
-
-                      SizedBox(height: 20.h),
-
-                      // Already have an account? Sign In
-                      Center(
-                        child: RichText(
-                          text: TextSpan(
-                            text: "Already have an account? ",
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16.sp,
-                              color: Colors.black87,
-                            ),
-                            children: [
-                              TextSpan(
-                                text: "Sign In.",
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.red,
-                                  decoration: TextDecoration.underline,
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Image.asset(
+                                  'images/WhiteDtwinLogo.png',
+                                  height: 50.h, // Responsive height
                                 ),
-                                recognizer: TapGestureRecognizer()
-                                  ..onTap = () {
-                                    Navigator.pop(context); // Navigate back to Sign In screen
-                                  },
-                              ),
-                            ],
+                                SizedBox(height: 5.h),
+                                Text(
+                                  'Sign Up For Free!',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 35.sp, // Responsive font size
+                                    fontWeight: FontWeight.w800,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      // Sign-in form card
+                      Positioned(
+                        top: 280.h,
+                        left: 20.w,
+                        right: 20.w,
+                        child: Card(
+                          color: Colors.grey[200],
+                          elevation: 0,
+                          child: Padding(
+                            padding: EdgeInsets.all(15.w),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                // Custom Text label and field
+                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope),
+                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
+                                CustomTextField(label: "Confirm Password", hintText: "Re enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
+                                
+                                // Sign up Button
+                                CustomButton(text: "Continue", iconPath: 'images/SignInAddIcon.png', onPressed: () { Navigator.pushNamed(context, '/dashbord'); },), 
+
+                                // OR Divider
+                                Row(
+                                  children: [
+                                    Expanded(
+                                      child: Divider(
+                                        thickness: 1,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                    Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 8.0.w,
+                                      ),
+                                      child: Text(
+                                        'OR',
+                                        style: TextStyle(
+                                          fontSize: 12.sp,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ),
+                                    Expanded(
+                                      child: Divider(
+                                        thickness: 1,
+                                        color: Colors.grey.shade400,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                SizedBox(height: 25.h),
+
+                                // Google Sign In Button
+                                ElevatedButton(
+                                  onPressed: () {},
+                                  style: ElevatedButton.styleFrom(
+                                    minimumSize: Size(double.infinity, 40.h),
+                                    backgroundColor: Colors.white,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12.r),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      FaIcon(
+                                        FontAwesomeIcons.google,
+                                        color: Colors.black,
+                                        size: 18.sp,
+                                      ),
+                                      SizedBox(width: 10.w),
+                                      Text(
+                                        'Sign up with Google',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                SizedBox(height: 25.h),
+                                Center(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      text: "Already have an account? ",
+                                      style: TextStyle(
+                                        color:
+                                            Colors.grey, // Gray color for text
+                                        fontSize: 14.sp, // Responsive font size
+                                      ),
+                                      children: [
+                                        TextSpan(
+                                          text: "Sign In",
+                                          style: TextStyle(
+                                            color:
+                                                Colors
+                                                    .red,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize:
+                                                14.sp,
+                                            decoration:
+                                                TextDecoration.underline,
+                                            decorationColor: Colors.red,
+                                          ),
+                                          recognizer: TapGestureRecognizer()
+                                          ..onTap = () {
+                                            Navigator.push(context, MaterialPageRoute(builder: (context) => const SignInScreen()));
+                                          }
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
-                      SizedBox(height: 20.h),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Social Login Button Widget
-  Widget _socialLoginButton(IconData icon, Color color, String label) {
-    return ElevatedButton.icon(
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.white,
-        side: BorderSide(color: color, width: 2),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12.r),
-        ),
-        padding: EdgeInsets.symmetric(vertical: 12.h, horizontal: 20.w),
-      ),
-      onPressed: () {
-        // Handle social login
-      },
-      icon: FaIcon(icon, color: color, size: 20.sp),
-      label: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 16.sp,
-          fontWeight: FontWeight.w600,
-          color: color,
+              ),
+            );
+          },
         ),
       ),
     );

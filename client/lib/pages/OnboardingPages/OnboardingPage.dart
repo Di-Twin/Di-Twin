@@ -3,11 +3,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:client/components/ProgressBar.dart';
 
-// todo: fix images, remove the skip from last step
-
 class OnboardingPage extends StatefulWidget {
   final VoidCallback onSkip;
-  final VoidCallback onComplete; // Changed from onNext to onComplete for final step
+  final VoidCallback onComplete;
 
   const OnboardingPage({
     super.key,
@@ -23,21 +21,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
   int currentStep = 0;
   final int totalSteps = 5;
 
-  // Array of onboarding content
   final List<Map<String, String>> onboardingContent = [
     {
       'heading': 'Personalize Your Health with Smart AI',
-      'subheading': 'Achieve your wellness goals with our AI-powered platform to your unique needs',
+      'subheading':
+          'Achieve your wellness goals with our AI-powered platform to your unique needs',
       'image': 'images/onboardingDoc.png',
     },
     {
       'heading': 'Your Intelligent Fitness Companion.',
-      'subheading': 'Track your calory & fitness nutrition with AI and get special recommendations.',
+      'subheading':
+          'Track your calory & fitness nutrition with AI and get special recommendations.',
       'image': 'images/onboardingFitness.png',
     },
     {
       'heading': 'Emphatic AI Wellness Chatbot For All.',
-      'subheading': 'Experience compassionate and personalized care with our AI chatbot.',
+      'subheading':
+          'Experience compassionate and personalized care with our AI chatbot.',
       'image': 'images/onboardingChatBot.png',
     },
     {
@@ -46,8 +46,9 @@ class _OnboardingPageState extends State<OnboardingPage> {
       'image': 'images/onboardingNutrition.png',
     },
     {
-      'heading': 'Helpful Resources &  Community.',
-      'subheading': 'Join a community of 5,000+ users dedicating to healthy life with AI/ML.',
+      'heading': 'Helpful Resources & Community.',
+      'subheading':
+          'Join a community of 5,000+ users dedicating to healthy life with AI/ML.',
       'image': 'images/onboardingCommunity.png',
     },
   ];
@@ -58,9 +59,10 @@ class _OnboardingPageState extends State<OnboardingPage> {
         currentStep++;
       });
     } else {
-      widget.onComplete(); // Call onComplete when reaching the last step
+      Navigator.pushReplacementNamed(context, '/signup');
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -86,21 +88,28 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             width: 0.5.sw,
                             child: ProgressBar(
                               totalSteps: totalSteps,
-                              currentStep: currentStep + 1, // +1 since it starts from 0
+                              currentStep: currentStep + 1,
                             ),
                           ),
                           const Spacer(),
-                          TextButton(
-                            onPressed: widget.onSkip,
-                            child: Text(
-                              'Skip',
-                              style: TextStyle(
-                                color: const Color(0xFF2D3648),
-                                fontSize: 18.sp,
-                                fontWeight: FontWeight.w500,
+                          if (currentStep <
+                              totalSteps - 1) // Hide Skip on Last Step
+                            TextButton(
+                              onPressed: () {
+                                Navigator.pushReplacementNamed(
+                                  context,
+                                  '/signup',
+                                );
+                              },
+                              child: Text(
+                                'Skip',
+                                style: TextStyle(
+                                  color: const Color(0xFF2D3648),
+                                  fontSize: 18.sp,
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
-                          ),
                         ],
                       ),
                       SizedBox(height: 0.05.sh),
@@ -108,7 +117,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         onboardingContent[currentStep]['heading']!,
                         style: GoogleFonts.plusJakartaSans(
                           color: const Color(0xFF2D3648),
-                          fontSize: ScreenUtil().screenWidth < 600 ? 24.sp : 30.sp,
+                          fontSize:
+                              ScreenUtil().screenWidth < 600 ? 24.sp : 30.sp,
                           fontWeight: FontWeight.bold,
                           height: 1.25,
                         ),
@@ -118,7 +128,8 @@ class _OnboardingPageState extends State<OnboardingPage> {
                         onboardingContent[currentStep]['subheading']!,
                         style: GoogleFonts.plusJakartaSans(
                           color: const Color(0xFF677489),
-                          fontSize: ScreenUtil().screenWidth < 600 ? 18.sp : 20.sp,
+                          fontSize:
+                              ScreenUtil().screenWidth < 600 ? 18.sp : 20.sp,
                           height: 1.4,
                         ),
                       ),
@@ -151,13 +162,19 @@ class _OnboardingPageState extends State<OnboardingPage> {
                               borderRadius: BorderRadius.circular(12.r),
                             ),
                             child: Center(
-                              child: Icon(
-                                currentStep == totalSteps - 1 
-                                    ? Icons.check 
-                                    : Icons.arrow_forward,
-                                color: Colors.white,
-                                size: 32.sp,
-                              ),
+                              child:
+                                  currentStep == totalSteps - 1
+                                      ? Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 32.sp,
+                                      )
+                                      : Image.asset(
+                                        'images/SignInAddIcon.png', // Ensure the path is correct
+                                        width: 20.sp,
+                                        height: 20.sp,
+                                        fit: BoxFit.contain,
+                                      ),
                             ),
                           ),
                         ),
