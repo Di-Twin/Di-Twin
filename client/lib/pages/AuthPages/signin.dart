@@ -1,3 +1,5 @@
+import 'package:client/pages/AuthPages/CustomButton.dart';
+import 'package:client/pages/AuthPages/CustomTextField.dart';
 import 'package:client/pages/AuthPages/signup.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -126,111 +128,13 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Email Label
-                                Text(
-                                  "Email Address",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 5.h),
-
-                                // Email Field
-                                TextField(
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    prefixIcon: Icon(
-                                      FontAwesomeIcons.envelope,
-                                      size: 20.sp,
-                                      color: Colors.black87,
-                                    ),
-                                    hintText: "Enter your email",
-                                    contentPadding: EdgeInsets.symmetric(
-                                      vertical: 10.h,
-                                      horizontal: 12.w,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
-                                SizedBox(height: 20.h),
-
-                                // Password Label
-                                Text(
-                                  "Password",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 14.sp,
-                                    fontWeight: FontWeight.w800,
-                                    color: Colors.black87,
-                                  ),
-                                ),
-                                SizedBox(height: 5.h),
-
-                                // Password Field
-                                TextField(
-                                  obscureText: true,
-                                  decoration: InputDecoration(
-                                    filled: true,
-                                    fillColor: Colors.white,
-                                    prefixIcon: Icon(
-                                      Icons.lock_outline_rounded,
-                                      size: 20.sp,
-                                    ),
-                                    hintText: "Enter your password",
-                                    contentPadding: EdgeInsets.symmetric(
-                                      vertical: 10.h,
-                                      horizontal: 12.w,
-                                    ),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10.r),
-                                      borderSide: BorderSide.none,
-                                    ),
-                                  ),
-                                ),
+                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope),
+                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
+                                
                                 SizedBox(height: 40.h),
 
                                 // Sign In Button
-                                ElevatedButton(
-                                  onPressed: () {},
-                                  style: ElevatedButton.styleFrom(
-                                    minimumSize: Size(double.infinity, 40.h),
-                                    backgroundColor: const Color(0xFF0F67FE),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize:MainAxisSize.min, // Ensures row takes only necessary space
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment
-                                            .center, // Ensures vertical alignment
-                                    children: [
-                                      Text(
-                                        'Sign In',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 18.sp,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(
-                                        width: 5.w,
-                                      ), // Space between text and image
-                                      Image.asset(
-                                        'images/SignInAddIcon.png',
-                                        height: 24.h,
-                                        width: 24.w,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(height: 25.h),
+                                CustomButton(text: "Sign in", iconPath: 'images/SignInAddIcon.png', onPressed: () { Navigator.pushNamed(context, '/dashbord'); },), 
 
                                 // OR Divider
                                 Row(

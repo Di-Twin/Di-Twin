@@ -1,3 +1,4 @@
+import 'package:client/pages/AuthPages/signup.dart';
 import 'package:client/pages/OnboardingPages/StartPage.dart';
 import 'package:client/pages/OnboardingPages/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class MyApp extends StatelessWidget {
         '/': (context) => const Startpage(),
         '/welcome': (context) => const WelcomePage(),
         '/signin': (context) => const SignInScreen(),
+        '/signup': (context) => const SignUpScreen(),
       },
     );
       }
