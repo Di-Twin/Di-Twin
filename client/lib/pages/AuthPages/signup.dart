@@ -7,6 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:ditwin_alert/input_field_alert.dart';
+
 
 final emailProvider = StateProvider<String>((ref) => '');
 final passwordProvider = StateProvider<String>((ref) => '');
@@ -23,6 +25,11 @@ class SignUpScreen extends ConsumerStatefulWidget {
 class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
+  final TextEditingController passwordController = TextEditingController();
+  final TextEditingController confirmPasswordController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+
+
 
   @override
   void dispose() {
@@ -40,6 +47,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
       ).showSnackBar(const SnackBar(content: Text('Signed In Successfully')));
     });
   }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -129,9 +138,9 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 // Custom Text label and field
-                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope),
-                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
-                                CustomTextField(label: "Confirm Password", hintText: "Re enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
+                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope, controller: emailController,),
+                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true, controller: passwordController,),
+                                CustomTextField(label: "Confirm Password", hintText: "Re enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true, controller: confirmPasswordController, passwordController: passwordController,),
                                 
                                 // Sign up Button
                                 CustomButton(text: "Continue", iconPath: 'images/SignInAddIcon.png', onPressed: () { Navigator.pushNamed(context, '/dashbord'); },), 

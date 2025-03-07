@@ -23,6 +23,9 @@ class SignInScreen extends ConsumerStatefulWidget {
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final FocusNode emailFocusNode = FocusNode();
   final FocusNode passwordFocusNode = FocusNode();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController passwordController = TextEditingController();
+
 
   @override
   void dispose() {
@@ -128,8 +131,8 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope),
-                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true),
+                                CustomTextField(label: "Email Address", hintText: "Enter your email", prefixIcon: FontAwesomeIcons.envelope, controller: emailController,),
+                                CustomTextField(label: "Password", hintText: "Enter your password", prefixIcon: Icons.lock_outline_rounded, obscureText: true, controller: passwordController,),
                                 
                                 SizedBox(height: 40.h),
 
