@@ -233,6 +233,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.1"
+  ditwin_alert:
+    dependency: "direct main"
+    description:
+      name: ditwin_alert
+      sha256: ce58e432891fd09a8e22c42f766c832aecdb1213d04825b5a35baa91a53764c7
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.0.2"
   fake_async:
     dependency: transitive
     description:
