@@ -1,3 +1,4 @@
+import 'package:client/pages/AuthPages/phono_verification.dart';
 import 'package:client/pages/AuthPages/signin.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
@@ -112,7 +113,7 @@ class WelcomePage extends StatelessWidget {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const SignInScreen(),
+                                  builder: (context) => const PhoneVerificationScreen(),
                                 ),
                               );
                             },
