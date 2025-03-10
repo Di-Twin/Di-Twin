@@ -26,7 +26,7 @@ class _StartpageState extends State<Startpage> with SingleTickerProviderStateMix
     _controller.forward();
 
     // Navigate after 5 seconds
-    Timer(const Duration(seconds: 5), () {
+    Timer(const Duration(seconds: 3), () {
       Navigator.pushReplacementNamed(context, '/welcome');
     });
   }

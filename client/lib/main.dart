@@ -1,9 +1,11 @@
-import 'package:client/pages/AuthPages/signup.dart';
-import 'package:client/pages/OnboardingPages/StartPage.dart';
-import 'package:client/pages/OnboardingPages/WelcomePage.dart';
+import 'package:client/features/auth/OtpScreen.dart';
+import 'package:client/features/auth/signup.dart';
+import 'package:client/features/auth/phono_verification.dart';
+import 'package:client/features/welcome/StartPage.dart';
+import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'pages/AuthPages/signin.dart';
+import 'features/auth/signin.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 
@@ -13,7 +15,7 @@ void main() {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -35,6 +37,8 @@ class MyApp extends StatelessWidget {
         '/welcome': (context) => const WelcomePage(),
         '/signin': (context) => const SignInScreen(),
         '/signup': (context) => const SignUpScreen(),
+        '/numberverification': (context) => const PhoneVerificationScreen(),
+        '/otpverify': (context) => const OtpVerificationScreen(),
       },
     );
       }

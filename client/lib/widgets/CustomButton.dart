@@ -8,11 +8,11 @@ class CustomButton extends StatelessWidget {
   final VoidCallback onPressed; // Function for navigation
 
   const CustomButton({
-    Key? key,
+    super.key,
     required this.text,
     required this.iconPath,
     required this.onPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:client/components/ProgressBar.dart';
+import 'package:client/widgets/ProgressBar.dart';
 
 class OnboardingPage extends StatefulWidget {
   final VoidCallback onSkip;
@@ -63,7 +63,6 @@ class _OnboardingPageState extends State<OnboardingPage> {
     }
   }
 
-
   @override
   Widget build(BuildContext context) {
     return ScreenUtilInit(
@@ -92,26 +91,38 @@ class _OnboardingPageState extends State<OnboardingPage> {
                             ),
                           ),
                           const Spacer(),
-                          if (currentStep <
-                              totalSteps - 1) // Hide Skip on Last Step
-                            TextButton(
-                              onPressed: () {
-                                Navigator.pushReplacementNamed(
-                                  context,
-                                  '/signup',
-                                );
-                              },
-                              child: Text(
-                                'Skip',
-                                style: TextStyle(
-                                  color: const Color(0xFF2D3648),
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.w500,
+                          // Keep the Skip button's space even on the last step
+                          currentStep < totalSteps - 1
+                              ? TextButton(
+                                onPressed: () {
+                                  Navigator.pushReplacementNamed(
+                                    context,
+                                    '/signup',
+                                  );
+                                },
+                                child: Text(
+                                  'Skip',
+                                  style: TextStyle(
+                                    color: const Color(0xFF2D3648),
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              )
+                              : Opacity(
+                                opacity:
+                                    0, // Makes it invisible but keeps the space occupied
+                                child: TextButton(
+                                  onPressed: null, // Disable button interaction
+                                  child: Text(
+                                    'Skip',
+                                    style: TextStyle(fontSize: 18.sp),
+                                  ),
                                 ),
                               ),
-                            ),
                         ],
                       ),
+
                       SizedBox(height: 0.05.sh),
                       Text(
                         onboardingContent[currentStep]['heading']!,
@@ -142,12 +153,18 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   child: Stack(
                     alignment: Alignment.bottomRight,
                     children: [
-                      Image.asset(
-                        onboardingContent[currentStep]['image']!,
-                        height: 0.57.sh,
-                        width: 0.56.sh,
-                        fit: BoxFit.fitHeight,
-                        alignment: Alignment.bottomCenter,
+                      SizedBox(
+                        width: double.infinity, // Makes width responsive
+                        height: 0.55.sh, // Adjusts height proportionally
+                        child: FittedBox(
+                          fit:
+                              BoxFit
+                                  .cover, // Ensures the image fits within available space
+                          child: Image.asset(
+                            onboardingContent[currentStep]['image']!,
+                            alignment: Alignment.bottomCenter,
+                          ),
+                        ),
                       ),
                       Positioned(
                         right: 0.04.sw,
@@ -170,7 +187,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                                         size: 32.sp,
                                       )
                                       : Image.asset(
-                                        'images/SignInAddIcon.png', // Ensure the path is correct
+                                        'images/SignInAddIcon.png',
                                         width: 20.sp,
                                         height: 20.sp,
                                         fit: BoxFit.contain,
