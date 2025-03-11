@@ -10,7 +10,7 @@ import 'dart:io';
 import 'package:client/widgets/CustomButton.dart';
 
 class HealthAssessmentAvatar extends StatefulWidget {
-  const HealthAssessmentAvatar({Key? key}) : super(key: key);
+  const HealthAssessmentAvatar({super.key});
 
   @override
   State<HealthAssessmentAvatar> createState() => _HealthAssessmentAvatarState();
