@@ -5,8 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 class HealthAssessmentScore extends StatelessWidget {
   final int score;
 
-  const HealthAssessmentScore({Key? key, required this.score})
-    : super(key: key);
+  const HealthAssessmentScore({super.key, required this.score});
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +177,7 @@ class HealthAssessmentScore extends StatelessWidget {
                   width: 200,
                   height: 50,
                   onPressed: () {
-                    Navigator.pushNamed(context, '/welcome');
+                    Navigator.pushNamed(context, '/avatar');
                   },
                 ),
               ),
