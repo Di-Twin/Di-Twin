@@ -202,7 +202,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           text: "Continue",
                           iconPath: 'images/SignInAddIcon.png',
                           onPressed: () {
-                            Navigator.pushNamed(context, '/otpverify');
+                            // Navigator.pushNamed(context, '/otpverify');
+                            Navigator.pushNamed(context, '/questions');
                           },
                         ),
                         SizedBox(height: 15.h),
