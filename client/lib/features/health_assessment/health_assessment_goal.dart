@@ -5,14 +5,14 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 // import 'package:client/widgets/CustomButton.dart';
 
-class HealthGoalScreen extends StatefulWidget {
-  const HealthGoalScreen({super.key});
+class HealthAssessmentGoal extends StatefulWidget {
+  const HealthAssessmentGoal({super.key});
 
   @override
-  State<HealthGoalScreen> createState() => _HealthGoalScreenState();
+  State<HealthAssessmentGoal> createState() => _HealthAssessmentGoalState();
 }
 
-class _HealthGoalScreenState extends State<HealthGoalScreen> {
+class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
   String? selectedGoal;
 
   final List<Map<String, dynamic>> healthGoals = [
@@ -71,8 +71,13 @@ class _HealthGoalScreenState extends State<HealthGoalScreen> {
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: Center(
-                      child: Icon(Icons.arrow_back_ios_new, size: 20.sp),
+                    child: GestureDetector(
+                      onTap: () {
+                        Navigator.pop(context);
+                      },
+                      child: Center(
+                        child: Icon(Icons.arrow_back_ios_new, size: 20.sp),
+                      ),
                     ),
                   ),
                   SizedBox(width: 16.w),
@@ -186,7 +191,8 @@ class _HealthGoalScreenState extends State<HealthGoalScreen> {
                 padding: EdgeInsets.only(bottom: 24.h),
                 child: ElevatedButton(
                   onPressed: () {
-                    // Handle continue action
+                    // dart(TODO:) should change the route to the next screen not age
+                    Navigator.pushNamed(context, '/questions/age');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF0F67FE),
@@ -220,7 +226,7 @@ class _HealthGoalScreenState extends State<HealthGoalScreen> {
               //       }
               //     )
 
-              // TODO: should use this custom compo after height and width can be customisable
+              // dart(TODO:) should use this custom compo after height and width can be customisable
             ],
           ),
         ),
@@ -228,3 +234,7 @@ class _HealthGoalScreenState extends State<HealthGoalScreen> {
     );
   }
 }
+
+// dart(TODO:) should add a haptic feed on click on an option, and should store the value somewhere
+// Skip button should be disabled in this screen. grey color.
+

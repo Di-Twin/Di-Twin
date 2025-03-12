@@ -203,7 +203,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           iconPath: 'images/SignInAddIcon.png',
                           onPressed: () {
                             // Navigator.pushNamed(context, '/otpverify');
-                            Navigator.pushNamed(context, '/questions');
+                            Navigator.pushNamed(context, '/questions/goal');
                           },
                         ),
                         SizedBox(height: 15.h),

@@ -1,6 +1,7 @@
 import 'package:client/features/auth/OtpScreen.dart';
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/auth/phono_verification.dart';
+import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 import 'package:client/features/health_assessment/health_assessment_goal.dart';
 import 'package:client/features/health_assessment/health_assessment_loading.dart';
@@ -45,7 +46,8 @@ class MyApp extends StatelessWidget {
             '/loading': (context) => const HealthAssessmentLoading(loadingDuration: Duration(seconds: 5), nextScreen: HealthAssessmentScore(score: 22,)),
             '/avatar': (context) => const HealthAssessmentAvatar(),
             '/dashboard': (context) => const HealthAssessmentScore(score: 22,),
-            '/questions': (context) => const HealthAssessmentGoal(),
+            '/questions/goal': (context) => const HealthAssessmentGoal(),
+            '/questions/age': (context) =>  HealthAssessmentAge(onAgeSelected: (int ) {  },),
           },
         );
       },
