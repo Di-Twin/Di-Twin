@@ -198,7 +198,6 @@ class _SymptomsSelectionPageState extends State<SymptomsSelectionPage> {
     return Center(
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.grey.shade200,
           borderRadius: BorderRadius.circular(20),
         ),
         child: ClipRRect(

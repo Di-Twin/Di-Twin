@@ -1,3 +1,4 @@
+import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -186,32 +187,12 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
               // Continue button
               Padding(
                 padding: EdgeInsets.only(bottom: 24.h),
-                child: ElevatedButton(
+                child: CustomButton(
+                  text: "Continue",
+                  iconPath: 'images/SignInAddIcon.png',
                   onPressed: () {
                     Navigator.pushNamed(context, '/questions/weight');
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF0F67FE),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(double.infinity, 56.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Continue',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(Icons.arrow_forward, size: 20.sp),
-                    ],
-                  ),
                 ),
               ),
             ],

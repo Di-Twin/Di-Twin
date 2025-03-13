@@ -1,6 +1,5 @@
 // 🔴ToDo : Add text field to weight
 
-
 import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -105,49 +104,44 @@ class _WeightInputPageState extends State<WeightInputPage>
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Header with navigation and progress
+              // 🔥 Added Top Navigation Bar from HealthAssessmentGoal 🔥
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Back button
+                  // 🔙 Back Button
                   Container(
+                    width: 48.w,
+                    height: 48.h,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      iconSize: 24.sp,
-                      onPressed: () {
+                    child: GestureDetector(
+                      onTap: () {
                         Navigator.pop(context);
                       },
-                      color: Colors.grey[700],
-                    ),
-                  ),
-
-                  // Progress tracker
-                  SizedBox(
-                    width: 0.5.sw,
-                    child: ProgressBar(
-                      totalSteps: totalSteps,
-                      currentStep: currentStep + 1,
-                    ),
-                  ),
-
-                  // Skip button
-                  TextButton(
-                    onPressed: () {
-                      // Handle skip action
-                    },
-                    child: Text(
-                      'Skip',
-                      style: GoogleFonts.plusJakartaSans(
-                        textStyle: TextStyle(
-                          color: Colors.grey[800],
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Center(
+                        child: Icon(Icons.arrow_back_ios_new, size: 20.sp),
                       ),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+
+                  // 📊 Progress Bar (Updated to Step 2)
+                  Expanded(
+                    child: ProgressBar(
+                      totalSteps: 5,
+                      currentStep: 2, // Changed step from 1 to 2
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+
+                  // 🚫 Disabled Skip Button
+                  Text(
+                    'Skip',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey[400], // Greyed out to disable
                     ),
                   ),
                 ],
@@ -388,58 +382,47 @@ class ScalePainter extends CustomPainter {
     final double centerY = size.height / 2;
     final double centerX = size.width / 2;
 
-    // Calculate visible range
-    final double halfWidth = size.width / 2;
-    final double unitsVisible = halfWidth / unitSize;
+    // ✅ Fixed: Correct Weight Limits
+    final double minValue = isLbs ? 44.1 : 20.0;
+    final double maxValue = isLbs ? 330.7 : 150.0;
 
-    final double minUnit = -offset - unitsVisible;
-    final double maxUnit = -offset + unitsVisible;
+    // ✅ Allow Drawing a Few Units Beyond Min/Max
+    final double minTick = (minValue - 1).floor().toDouble();
+    final double maxTick = (maxValue + 1).ceil().toDouble();
 
-    final int minTick = minUnit.floor();
-    final int maxTick = maxUnit.ceil();
-
-    // Weight limits
-    final double minValue = isLbs ? 44.09 : 20.0;
-    final double maxValue = isLbs ? 330.69 : 150.0;
-
-    // Draw ticks and labels
-    for (int i = minTick; i <= maxTick; i++) {
-      if (i < minValue || i > maxValue) continue;
-
+    for (double i = minTick; i <= maxTick; i += 0.5) {
+      // ✅ Increased Step Precision
       final double x = centerX + (i + offset) * unitSize;
 
-      // Tick styling
-      final bool isMajorTick = i % 5 == 0;
-      final bool isSubTick = i % 1 == 0;
+      // ✅ Define Tick Styling
+      bool isMajorTick = i % 5 == 0;
+      bool isSubTick = i % 1 == 0;
+      bool isEdgeTick = (i == 44.1 || i == 330.7); // ✅ Edge markers
 
-      double tickHeight = 10.0;
-      Paint tickPaint = Paint()..color = Colors.grey[400]!;
+      double tickHeight =
+          isMajorTick ? 60.h : (isSubTick ? 30.h : (isEdgeTick ? 20.h : 10.h));
 
-      if (isMajorTick) {
-        tickHeight = 60.h;
-        tickPaint
-          ..color = const Color(0xFF5D6A85)
-          ..strokeWidth = 2.0;
-      } else if (isSubTick) {
-        tickHeight = 30.h;
-        tickPaint
-          ..color = const Color(0xFFBEC5D2)
-          ..strokeWidth = 1.0;
-      }
+      Paint tickPaint =
+          Paint()
+            ..color =
+                isMajorTick
+                    ? const Color(0xFF5D6A85)
+                    : (isEdgeTick
+                        ? const Color(0xFF00BFFF)
+                        : const Color(0xFFBEC5D2))
+            ..strokeWidth = isMajorTick ? 2.0 : 1.0;
 
-      // Draw tick mark
+      // ✅ Draw Tick Mark
       canvas.drawLine(
         Offset(x, centerY - tickHeight / 2),
         Offset(x, centerY + tickHeight / 2),
         tickPaint,
       );
 
-      // Draw labels for major ticks
-      if (isMajorTick) {
-        final String label = i.toString();
-
+      // ✅ Draw Labels for Major & Edge Ticks
+      if (isMajorTick || isEdgeTick) {
         final TextSpan span = TextSpan(
-          text: label,
+          text: i.toStringAsFixed(1), // ✅ Force Decimal Display
           style: TextStyle(
             color: Colors.grey[600],
             fontSize: 12,
@@ -462,7 +445,5 @@ class ScalePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) {
-    return true;
-  }
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
