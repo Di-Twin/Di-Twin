@@ -59,10 +59,10 @@ class MyApp extends StatelessWidget {
                     (context) => const HealthAssessmentScore(score: 22),
                 '/questions/weight': (context) => const WeightInputPage(),
                 '/questions/height': (context) => const HeightInputPage(),
+                '/questions/goal': (context) => const HealthAssessmentGoal(),
+                '/questions/age': (context) =>  HealthAssessmentAge(onAgeSelected: (int ) {  },),
               },
             );
-            '/questions/goal': (context) => const HealthAssessmentGoal(),
-            '/questions/age': (context) =>  HealthAssessmentAge(onAgeSelected: (int ) {  },),
           },
         );
       },
