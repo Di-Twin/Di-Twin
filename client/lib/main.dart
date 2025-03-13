@@ -47,9 +47,6 @@ class MyApp extends StatelessWidget {
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
-                '/numberverification':
-                    (context) => const PhoneVerificationScreen(),
-                '/otpverify': (context) => const OtpVerificationScreen(),
                 '/loading':
                     (context) => const HealthAssessmentLoading(
                       loadingDuration: Duration(seconds: 5),
