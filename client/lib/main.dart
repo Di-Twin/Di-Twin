@@ -1,7 +1,9 @@
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 import 'package:client/features/health_assessment/health_assessment_loading.dart';
+import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
+import 'package:client/features/health_assessment/health_assessment_weight.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -22,27 +24,41 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ScreenUtilInit(
-      designSize: const Size(375, 812), // Base design size (adjust if needed)
-      minTextAdapt: true,
-      splitScreenMode: true,
-      builder: (context, child) {
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'Di-Twin',
-          theme: ThemeData(
-            primarySwatch: Colors.blue,
-            textTheme: GoogleFonts.plusJakartaSansTextTheme(),
-          ),
-          initialRoute: '/',
-          routes: {
-            '/': (context) => const Startpage(),
-            '/welcome': (context) => const WelcomePage(),
-            '/signin': (context) => const SignInScreen(),
-            '/signup': (context) => const SignUpScreen(),
-            '/loading': (context) => const HealthAssessmentLoading(loadingDuration: Duration(seconds: 5), nextScreen: HealthAssessmentScore(score: 22,)),
-            '/avatar': (context) => const HealthAssessmentAvatar(),
-            '/dashboard': (context) => const HealthAssessmentScore(score: 22,),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isTablet =
+            constraints.maxWidth > 600; // Adjust breakpoint as needed
+
+        return ScreenUtilInit(
+          designSize: isTablet ? const Size(768, 1024) : const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Di-Twin',
+              theme: ThemeData(
+                primarySwatch: Colors.blue,
+                textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+              ),
+              initialRoute: '/',
+              routes: {
+                '/': (context) => const Startpage(),
+                '/welcome': (context) => const WelcomePage(),
+                '/signin': (context) => const SignInScreen(),
+                '/signup': (context) => const SignUpScreen(),
+                '/loading':
+                    (context) => const HealthAssessmentLoading(
+                      loadingDuration: Duration(seconds: 5),
+                      nextScreen: HealthAssessmentScore(score: 22),
+                    ),
+                '/avatar': (context) => const HealthAssessmentAvatar(),
+                '/dashboard':
+                    (context) => const HealthAssessmentScore(score: 22),
+                '/questions/weight': (context) => const WeightInputPage(),
+                '/questions/height': (context) => const HeightInputPage(),
+              },
+            );
           },
         );
       },
