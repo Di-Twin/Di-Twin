@@ -275,7 +275,7 @@ class _HeightInputPageState extends State<HeightInputPage>
                     Stack(
                       alignment: Alignment.center,
                       children: [
-                        Container(
+                        SizedBox(
                           width: 120.w,
                           height: 500.h,
                           child: LayoutBuilder(

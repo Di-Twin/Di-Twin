@@ -299,7 +299,7 @@ class _WeightInputPageState extends State<WeightInputPage>
                 alignment: Alignment.center,
                 children: [
                   // Scale widget with drag gesture handling
-                  Container(
+                  SizedBox(
                     height: 120.h,
                     width: double.infinity,
                     child: LayoutBuilder(
