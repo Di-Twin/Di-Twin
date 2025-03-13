@@ -1,7 +1,9 @@
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
+import 'package:client/features/health_assessment/health_assessment_medication.dart';
 import 'package:client/features/health_assessment/health_assessment_symptoms.dart';
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
+import 'package:client/features/health_assessment/health_assessment_gender.dart';
 import 'package:client/features/health_assessment/health_assessment_goal.dart';
 import 'package:client/features/health_assessment/health_assessment_loading.dart';
 import 'package:client/features/health_assessment/health_assessment_height.dart';
@@ -62,7 +64,7 @@ class MyApp extends StatelessWidget {
                     (context) =>
                         PopScope(canPop: false, child: const HeightInputPage()),
                 '/questions/age':
-                    (context) =>
+                    (context) => 
                         PopScope(canPop: false, child: const HealthAssessmentAge()),
                 '/loading':
                     (context) => PopScope(
@@ -79,7 +81,10 @@ class MyApp extends StatelessWidget {
                     ),
                 '/dashboard':
                     (context) => const HealthAssessmentScore(score: 22),
+                
+                '/questions/gender': (context) =>  const HealthAssessmentGender(),
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
+                '/questions/medication': (context) => const HealthAssessmentMedication(),
               },
             );
           },

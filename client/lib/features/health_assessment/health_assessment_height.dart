@@ -395,7 +395,7 @@ class _HeightInputPageState extends State<HeightInputPage>
                 text: "Continue",
                 iconPath: 'images/SignInAddIcon.png',
                 onPressed: () {
-                  Navigator.pushNamed(context, '/loading');
+                  Navigator.pushNamed(context, '/questions/age');
                 },
               ),
             ],

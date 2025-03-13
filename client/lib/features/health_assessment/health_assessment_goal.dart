@@ -193,10 +193,20 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
                   text: "Continue",
                   iconPath: 'images/SignInAddIcon.png',
                   onPressed: () {
-                    Navigator.pushNamed(context, '/questions/weight');
+                    // dart(TODO:) should change the route to the next screen not age
+                    Navigator.pushNamed(context, '/questions/gender');
                   },
                 ),
               ),
+              // child: CustomButton(
+              //       text: "Continue",
+              //       iconPath: 'images/SignInAddIcon.png',
+              //       onPressed: () {
+              //         // should navigate to the next page
+              //       }
+              //     )
+
+              // dart(TODO:) should use this custom compo after height and width can be customisable
             ],
           ),
         ),

@@ -191,7 +191,7 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                   text: "Continue",
                   iconPath: 'images/SignInAddIcon.png',
                   onPressed: () {
-                    Navigator.pushNamed(context, '/questions/weight');
+                    Navigator.pushNamed(context, '/questions/medication');
                   },
                 ),
               ),
