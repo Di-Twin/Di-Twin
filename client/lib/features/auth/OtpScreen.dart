@@ -3,10 +3,18 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:client/widgets/CustomButton.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  const OtpVerificationScreen({super.key});
+  final String verificationId;
+  final String phoneNumber;
+
+  const OtpVerificationScreen({
+    super.key,
+    required this.verificationId,
+    required this.phoneNumber,
+  });
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -14,16 +22,23 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  bool loading = false;
+
   final List<TextEditingController> _controllers = List.generate(
-    4,
+    6,
     (_) => TextEditingController(),
   );
-  final List<FocusNode> _focusNodes = List.generate(4, (_) => FocusNode());
+  final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
+
   int _selectedIndex = 0;
+  late String currentVerificationId;
 
   @override
   void initState() {
     super.initState();
+    currentVerificationId = widget.verificationId;
+
     for (int i = 0; i < _focusNodes.length; i++) {
       _focusNodes[i].addListener(() {
         if (_focusNodes[i].hasFocus) {
@@ -48,179 +63,238 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   void _onDigitChanged(int index, String value) {
     if (value.isNotEmpty) {
-      if (index < 3) {
+      // Move focus to next box if not the last one
+      if (index < 5) {
         _focusNodes[index + 1].requestFocus();
       } else {
         _focusNodes[index].unfocus();
+        _verifyOtp();
       }
     } else {
-      if (index > 0) {
-        _focusNodes[index - 1].requestFocus();
+      // Detect backspace only when the field is empty
+      if (index > 0 && _controllers[index].text.isEmpty) {
+        _controllers[index].clear(); // Clear current field
+        _focusNodes[index - 1].requestFocus(); // Move focus back
+        _controllers[index - 1].clear(); // Clear previous field
       }
     }
   }
 
+  void _verifyOtp() async {
+    String otp = _controllers.map((controller) => controller.text).join();
+    if (otp.length == 6) {
+      setState(() {
+        loading = true;
+      });
+
+      PhoneAuthCredential credential = PhoneAuthProvider.credential(
+        verificationId: currentVerificationId,
+        smsCode: otp,
+      );
+
+      try {
+        await _auth.signInWithCredential(credential);
+        Navigator.pushNamed(context, '/loading');
+      } catch (e) {
+        setState(() {
+          loading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Invalid OTP. Please try again.")),
+        );
+      }
+    }
+  }
+
+  void _resendOtp() async {
+    await _auth.verifyPhoneNumber(
+      phoneNumber: widget.phoneNumber,
+      verificationCompleted: (PhoneAuthCredential credential) {},
+      verificationFailed: (FirebaseAuthException e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message ?? "OTP resend failed")),
+        );
+      },
+      codeSent: (String verificationId, int? resendToken) {
+        setState(() {
+          currentVerificationId = verificationId;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("OTP resent successfully")),
+        );
+      },
+      codeAutoRetrievalTimeout: (String verificationId) {},
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth = MediaQuery.of(context).size.width;
+    final bottomPadding = MediaQuery.of(context).viewInsets.bottom;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
-      // Set to false to prevent keyboard from pushing UI up
       resizeToAvoidBottomInset: false,
       body: SafeArea(
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: EdgeInsets.symmetric(horizontal: 20.h),
-            child: Column(
-              mainAxisSize: MainAxisSize.min, // Prevents overflow issues
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                SizedBox(height: 20.h),
-                Row(
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.black12),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.chevron_left,
-                          color: Color(0xFF1A1D1F),
-                        ),
-                        onPressed: () => Navigator.pop(context),
-                        padding: EdgeInsets.all(8.r),
-                        constraints: const BoxConstraints(),
-                      ),
+        child: Column(
+          children: [
+            // Top navigation bar
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 20.h),
+              child: Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(color: Colors.black12),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
-                    SizedBox(width: 16.w),
-                    Text(
-                      'OTP Security',
-                      style: GoogleFonts.inter(
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1A1D1F),
+                    child: IconButton(
+                      icon: const Icon(
+                        Icons.chevron_left,
+                        color: Color(0xFF1A1D1F),
                       ),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.all(8.r),
+                      constraints: const BoxConstraints(),
                     ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                Text(
-                  'Please enter the 4 digit code you received on\nyour phone!',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
-                    fontSize: 12.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF1A1D1F),
-                    height: 1.5,
                   ),
-                ),
-                SizedBox(height: 20.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: List.generate(4, (index) {
-                    bool isSelected = _selectedIndex == index;
-                    return Container(
-                      margin: EdgeInsets.symmetric(
-                        horizontal: screenWidth * 0.02,
-                      ),
-                      width: screenWidth * 0.15,
-                      height: screenWidth * 0.15,
-                      decoration: BoxDecoration(
-                        color:
-                            isSelected ? const Color(0xFF0066FF) : Colors.white,
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color:
-                              isSelected
-                                  ? const Color.fromARGB(25, 15, 103, 254)
-                                  : Colors.grey.shade300,
-                          width: isSelected ? 3.0 : 2.0,
-                        ),
-                        boxShadow:
-                            isSelected
-                                ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.4),
-                                    blurRadius: 0,
-                                    spreadRadius: 4,
-                                  ),
-                                ]
-                                : [],
-                      ),
-                      child: Center(
-                        child: TextField(
-                          controller: _controllers[index],
-                          focusNode: _focusNodes[index],
-                          textAlign: TextAlign.center,
-                          keyboardType: TextInputType.number,
-                          maxLength: 1,
-                          style: GoogleFonts.inter(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.w600,
-                            color:
-                                isSelected
-                                    ? Colors.white
-                                    : const Color(0xFF1A1D1F),
-                          ),
-                          decoration: const InputDecoration(
-                            counterText: '',
-                            border: InputBorder.none,
-                          ),
-                          inputFormatters: [
-                            FilteringTextInputFormatter.digitsOnly,
-                          ],
-                          onChanged: (value) => _onDigitChanged(index, value),
-                        ),
-                      ),
-                    );
-                  }),
-                ),
-                SizedBox(height: 20.h),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Didn\'t get the OTP? ',
-                      style: GoogleFonts.inter(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w400,
-                        color: const Color(0xFF6F767E),
-                      ),
+                  SizedBox(width: 16.w),
+                  Text(
+                    'OTP Security',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1D1F),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        // TODO: Add resend OTP logic
-                      },
-                      child: Text(
-                        'Resend',
-                        style: GoogleFonts.inter(
+                  ),
+                ],
+              ),
+            ),
+
+            // Main content
+            Expanded(
+              child: Center(
+                child: SingleChildScrollView(
+                  physics: const ClampingScrollPhysics(),
+                  padding: EdgeInsets.only(
+                    bottom: bottomPadding,
+                    left: 20.w,
+                    right: 20.w,
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Please enter the 6-digit code you received on\nyour phone!',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w500,
-                          color: Colors.red,
+                          color: const Color(0xFF1A1D1F),
+                          height: 1.5,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 20.h),
-                SizedBox(
-                  width: double.infinity,
-                  height: screenHeight * 0.06,
-                  child: CustomButton(
-                    text: "Verify",
-                    iconPath: 'images/SignInAddIcon.png',
-                    onPressed: () {
-                      Navigator.pushNamed(context, '/numberverification');
-                    },
+                      SizedBox(height: 30.h),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: List.generate(6, (index) {
+                          bool isSelected = _selectedIndex == index;
+                          return Container(
+                            margin: EdgeInsets.symmetric(horizontal: 6.w),
+                            width: 43.w,
+                            height: 50.w,
+                            decoration: BoxDecoration(
+                              color:
+                                  isSelected
+                                      ? const Color(0xFF0066FF)
+                                      : Colors.white,
+                              borderRadius: BorderRadius.circular(10.r),
+                              border: Border.all(
+                                color:
+                                    isSelected
+                                        ? const Color.fromARGB(25, 15, 103, 254)
+                                        : Colors.grey.shade300,
+                                width: isSelected ? 3.0 : 2.0,
+                              ),
+                              boxShadow:
+                                  isSelected
+                                      ? [
+                                        BoxShadow(
+                                          color: Colors.blue.withOpacity(0.4),
+                                          spreadRadius: 3,
+                                        ),
+                                      ]
+                                      : [],
+                            ),
+                            child: Center(
+                              child: TextField(
+                                controller: _controllers[index],
+                                focusNode: _focusNodes[index],
+                                textAlign: TextAlign.center,
+                                keyboardType: TextInputType.number,
+                                maxLength: 1,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 24.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : const Color(0xFF1A1D1F),
+                                ),
+                                decoration: const InputDecoration(
+                                  counterText: '',
+                                  border: InputBorder.none,
+                                ),
+                                inputFormatters: [
+                                  FilteringTextInputFormatter.digitsOnly,
+                                ],
+                                onChanged:
+                                    (value) => _onDigitChanged(index, value),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                      SizedBox(height: 30.h),
+                      Center(
+                        child: GestureDetector(
+                          onTap: _resendOtp,
+                          child: Text.rich(
+                            TextSpan(
+                              text: "Didn’t get OTP? ",
+                              style: GoogleFonts.plusJakartaSans(
+                                color: Colors.grey.shade700,
+                                fontSize: 12.sp,
+                              ),
+                              children: [
+                                TextSpan(
+                                  text: "Resend OTP",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.red,
+                                    decoration: TextDecoration.underline,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(height: 40.h),
+                      CustomButton(
+                        text: loading ? "Verifying..." : "Verify",
+                        iconPath: 'images/SignInAddIcon.png',
+                        onPressed: loading ? null : () => _verifyOtp(),
+                      ),
+                    ],
                   ),
                 ),
-                SizedBox(height: 20.h),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );

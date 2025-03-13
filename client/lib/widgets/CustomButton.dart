@@ -5,7 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class CustomButton extends StatelessWidget {
   final String text;
   final String iconPath;
-  final VoidCallback onPressed; // Function for navigation
+  final VoidCallback? onPressed; // Function for navigation
 
   const CustomButton({
     super.key,
