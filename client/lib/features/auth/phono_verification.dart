@@ -1,4 +1,4 @@
-import 'package:client/features/auth/OtpScreen.dart';
+import 'package:client/features/auth/signin.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -215,7 +215,7 @@ class _PhoneVerificationScreenState
                               context,
                               MaterialPageRoute(
                                 builder:
-                                    (context) => const OtpVerificationScreen(),
+                                    (context) => const SignInScreen(),
                               ),
                             );
                           } else {

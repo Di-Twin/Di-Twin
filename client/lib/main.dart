@@ -1,6 +1,4 @@
-import 'package:client/features/auth/OtpScreen.dart';
 import 'package:client/features/auth/signup.dart';
-import 'package:client/features/auth/phono_verification.dart';
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 import 'package:client/features/health_assessment/health_assessment_loading.dart';
 import 'package:client/features/health_assessment/health_assessment_height.dart';
@@ -13,8 +11,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/signin.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:firebase_core/firebase_core.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
   runApp(const ProviderScope(child: MyApp()));
 }
 
