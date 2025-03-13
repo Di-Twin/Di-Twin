@@ -1,5 +1,7 @@
 import 'package:client/features/auth/signup.dart';
+import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
+import 'package:client/features/health_assessment/health_assessment_goal.dart';
 import 'package:client/features/health_assessment/health_assessment_loading.dart';
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
@@ -57,6 +59,8 @@ class MyApp extends StatelessWidget {
                     (context) => const HealthAssessmentScore(score: 22),
                 '/questions/weight': (context) => const WeightInputPage(),
                 '/questions/height': (context) => const HeightInputPage(),
+                '/questions/goal': (context) => const HealthAssessmentGoal(),
+                '/questions/age': (context) =>  HealthAssessmentAge(onAgeSelected: (int ) {  },),
               },
             );
           },
