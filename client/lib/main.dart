@@ -22,42 +22,48 @@ class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
-Widget build(BuildContext context) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      bool isTablet = constraints.maxWidth > 600; // Adjust breakpoint as needed
-      
-      return ScreenUtilInit(
-        designSize: isTablet ? const Size(768, 1024) : const Size(375, 812), 
-        minTextAdapt: true,
-        splitScreenMode: true,
-        builder: (context, child) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Di-Twin',
-            theme: ThemeData(
-              primarySwatch: Colors.blue,
-              textTheme: GoogleFonts.plusJakartaSansTextTheme(),
-            ),
-            initialRoute: '/',
-            routes: {
-              '/': (context) => const Startpage(),
-              '/welcome': (context) => const WelcomePage(),
-              '/signin': (context) => const SignInScreen(),
-              '/signup': (context) => const SignUpScreen(),
-              '/numberverification': (context) => const PhoneVerificationScreen(),
-              '/otpverify': (context) => const OtpVerificationScreen(),
-            '/loading': (context) => const HealthAssessmentLoading(loadingDuration: Duration(seconds: 5), nextScreen: HealthAssessmentScore(score: 22,)),
-            '/avatar': (context) => const HealthAssessmentAvatar(),
-            '/dashboard': (context) => const HealthAssessmentScore(score: 22,),
-              '/questions/weight': (context) => const WeightInputPage(),
-              '/questions/height': (context) => const HeightInputPage()
-            },
-          );
-        },
-      );
-    },
-  );
-}
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        bool isTablet =
+            constraints.maxWidth > 600; // Adjust breakpoint as needed
 
+        return ScreenUtilInit(
+          designSize: isTablet ? const Size(768, 1024) : const Size(375, 812),
+          minTextAdapt: true,
+          splitScreenMode: true,
+          builder: (context, child) {
+            return MaterialApp(
+              debugShowCheckedModeBanner: false,
+              title: 'Di-Twin',
+              theme: ThemeData(
+                primarySwatch: Colors.blue,
+                textTheme: GoogleFonts.plusJakartaSansTextTheme(),
+              ),
+              initialRoute: '/',
+              routes: {
+                '/': (context) => const Startpage(),
+                '/welcome': (context) => const WelcomePage(),
+                '/signin': (context) => const SignInScreen(),
+                '/signup': (context) => const SignUpScreen(),
+                '/numberverification':
+                    (context) => const PhoneVerificationScreen(),
+                '/otpverify': (context) => const OtpVerificationScreen(),
+                '/loading':
+                    (context) => const HealthAssessmentLoading(
+                      loadingDuration: Duration(seconds: 5),
+                      nextScreen: HealthAssessmentScore(score: 22),
+                    ),
+                '/avatar': (context) => const HealthAssessmentAvatar(),
+                '/dashboard':
+                    (context) => const HealthAssessmentScore(score: 22),
+                '/questions/weight': (context) => const WeightInputPage(),
+                '/questions/height': (context) => const HeightInputPage(),
+              },
+            );
+          },
+        );
+      },
+    );
+  }
 }
