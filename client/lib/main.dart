@@ -49,18 +49,35 @@ class MyApp extends StatelessWidget {
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
-                '/loading':
-                    (context) => const HealthAssessmentLoading(
-                      loadingDuration: Duration(seconds: 5),
-                      nextScreen: HealthAssessmentScore(score: 22),
+                '/questions/goal':
+                    (context) => PopScope(
+                      canPop: false, // Prevents back navigation
+                      child: const HealthAssessmentGoal(),
                     ),
-                '/avatar': (context) => const HealthAssessmentAvatar(),
+                '/questions/weight':
+                    (context) =>
+                        PopScope(canPop: false, child: const WeightInputPage()),
+                '/questions/height':
+                    (context) =>
+                        PopScope(canPop: false, child: const HeightInputPage()),
+                '/questions/age':
+                    (context) =>
+                        PopScope(canPop: false, child: const HealthAssessmentAge()),
+                '/loading':
+                    (context) => PopScope(
+                      canPop: false,
+                      child: const HealthAssessmentLoading(
+                        loadingDuration: Duration(seconds: 5),
+                        nextScreen: HealthAssessmentScore(score: 22),
+                      ),
+                    ),
+                '/avatar':
+                    (context) => PopScope(
+                      canPop: false,
+                      child: const HealthAssessmentAvatar(),
+                    ),
                 '/dashboard':
                     (context) => const HealthAssessmentScore(score: 22),
-                '/questions/weight': (context) => const WeightInputPage(),
-                '/questions/height': (context) => const HeightInputPage(),
-                '/questions/goal': (context) => const HealthAssessmentGoal(),
-                '/questions/age': (context) =>  HealthAssessmentAge(onAgeSelected: (int ) {  },),
               },
             );
           },

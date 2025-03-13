@@ -2,19 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-
-// Import the progress bar
 import 'package:client/widgets/ProgressBar.dart';
 
 class HealthAssessmentAge extends StatefulWidget {
-  final Function(int) onAgeSelected;
-  final int initialAge;
-
-  const HealthAssessmentAge({
-    Key? key,
-    required this.onAgeSelected,
-    this.initialAge = 19,
-  }) : super(key: key);
+  const HealthAssessmentAge({super.key});
 
   @override
   State<HealthAssessmentAge> createState() => _HealthAssessmentAgeState();
@@ -30,9 +21,8 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
   @override
   void initState() {
     super.initState();
-    _selectedAge = widget.initialAge;
+    _selectedAge = 19; // Default initial age
     _lastSelectedIndex = _selectedAge - _minAge;
-    // Initialize the scroll controller with the initial age position
     _scrollController = FixedExtentScrollController(
       initialItem: _lastSelectedIndex,
     );
@@ -48,24 +38,20 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
     HapticFeedback.lightImpact();
   }
 
-  // Get text size based on distance from selected item
   double _getTextSize(int age) {
     int distance = (age - _selectedAge).abs();
-    
-    if (distance == 0) return 80.sp; // Selected item
+    if (distance == 0) return 80.sp;
     if (distance == 1) return 45.sp;
-    if (distance == 2) return 35.sp; 
-    return 0.sp; 
+    if (distance == 2) return 35.sp;
+    return 0.sp;
   }
 
-  // Get text opacity based on distance from selected item
   double _getTextOpacity(int age) {
     int distance = (age - _selectedAge).abs();
-    
-    if (distance == 0) return 1.0; // Selected item
-    if (distance == 1) return 0.6; // Adjacent items
+    if (distance == 0) return 1.0;
+    if (distance == 1) return 0.6;
     if (distance == 2) return 0.4;
-    return 0.0; // Hide all other items
+    return 0.0;
   }
 
   @override
@@ -99,24 +85,15 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                     ),
                   ),
                   SizedBox(width: 16.w),
-                  Expanded(
-                    child: ProgressBar(
-                      totalSteps: 5,
-                      currentStep: 1,
-                    ),
-                  ),
+                  Expanded(child: ProgressBar(totalSteps: 5, currentStep: 1)),
                   SizedBox(width: 16.w),
-                  GestureDetector(
-                    onTap: () {
-                      // TODO: Handle skip action
-                    },
-                    child: Text(
-                      'Skip',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.black,
-                      ),
+                  // Disabled Skip button (Greyed out)
+                  Text(
+                    'Skip',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey, // Greyed out
                     ),
                   ),
                 ],
@@ -135,19 +112,16 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Central highlighted selection area
                     Positioned(
-                      
                       child: Container(
                         height: 150.h,
-                        width: 150.w, 
+                        width: 150.w,
                         decoration: BoxDecoration(
                           color: const Color(0xFF0066FF),
                           borderRadius: BorderRadius.circular(16.r),
                         ),
                       ),
                     ),
-                    // Custom age selector showing only 3 values
                     NotificationListener<ScrollNotification>(
                       onNotification: (notification) {
                         if (notification is ScrollEndNotification) {
@@ -162,17 +136,15 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                       child: ListWheelScrollView.useDelegate(
                         controller: _scrollController,
                         itemExtent: 90.h,
-                        perspective: 0.001, // Almost flat appearance
-                        diameterRatio: 4.0, // Flattened wheel appearance
+                        perspective: 0.001,
+                        diameterRatio: 4.0,
                         physics: const FixedExtentScrollPhysics(),
                         onSelectedItemChanged: (index) {
                           setState(() {
                             _selectedAge = index + _minAge;
-                            widget.onAgeSelected(_selectedAge);
                             _triggerHapticFeedback();
                           });
                         },
-                        // Create a clipper to show only 3 items
                         clipBehavior: Clip.antiAlias,
                         childDelegate: ListWheelChildBuilderDelegate(
                           childCount: _maxAge - _minAge + 1,
@@ -180,21 +152,26 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                             final age = index + _minAge;
                             final isSelected = age == _selectedAge;
                             final distance = (age - _selectedAge).abs();
-                            
-                            // Only render if it's the selected item or one of the adjacent items
+
                             if (distance > 2) {
                               return const SizedBox.shrink();
                             }
-                            
+
                             return Center(
                               child: AnimatedDefaultTextStyle(
                                 duration: const Duration(milliseconds: 200),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: _getTextSize(age),
-                                  fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
-                                  color: isSelected 
-                                    ? Colors.white 
-                                    : Colors.grey.withOpacity(_getTextOpacity(age)),
+                                  fontWeight:
+                                      isSelected
+                                          ? FontWeight.w800
+                                          : FontWeight.w500,
+                                  color:
+                                      isSelected
+                                          ? Colors.white
+                                          : Colors.grey.withOpacity(
+                                            _getTextOpacity(age),
+                                          ),
                                 ),
                                 child: Text(age.toString()),
                               ),
@@ -211,8 +188,7 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                 padding: EdgeInsets.only(bottom: 24.h),
                 child: ElevatedButton(
                   onPressed: () {
-                    // Navigate to the next screen
-                    Navigator.pushNamed(context, '/questions/goal');
+                    Navigator.pushNamed(context, '/questions/weight');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F67FE),
@@ -223,7 +199,6 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                     ),
                   ),
                   child: Row(
-                    // dart(TODO:): should use this custom compo after height and width can be customisable
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
@@ -246,6 +221,3 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
     );
   }
 }
-
-// dart(TODO:) should store the value somewhere as for now.
-// Skip button should be disabled in this screen. grey color.

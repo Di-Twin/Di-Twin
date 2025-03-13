@@ -5,6 +5,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:client/widgets/CustomButton.dart';
+import 'package:sms_autofill/sms_autofill.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String verificationId;
@@ -39,6 +40,9 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     super.initState();
     currentVerificationId = widget.verificationId;
 
+    // Start listening for OTP
+    _listenForOtp();
+
     for (int i = 0; i < _focusNodes.length; i++) {
       _focusNodes[i].addListener(() {
         if (_focusNodes[i].hasFocus) {
@@ -50,8 +54,29 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
   }
 
+  // Function to start OTP listening
+  void _listenForOtp() async {
+    SmsAutoFill().listenForCode();
+    SmsAutoFill().code.listen((otp) {
+      if (otp.isNotEmpty && otp.length == 6) {
+        _onOtpFilled(otp);
+      }
+    });
+  }
+
+  void _onOtpFilled(String otp) {
+    if (otp.length == 6) {
+      for (int i = 0; i < otp.length; i++) {
+        _controllers[i].text = otp[i]; // Autofill each box
+      }
+      _verifyOtp(); // Automatically verify after autofill
+    }
+  }
+
   @override
   void dispose() {
+    SmsAutoFill()
+        .unregisterListener(); // Stop listening when screen is disposed
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -61,24 +86,26 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     super.dispose();
   }
 
-  void _onDigitChanged(int index, String value) {
-    if (value.isNotEmpty) {
-      // Move focus to next box if not the last one
-      if (index < 5) {
-        _focusNodes[index + 1].requestFocus();
-      } else {
-        _focusNodes[index].unfocus();
-        _verifyOtp();
-      }
-    } else {
-      // Detect backspace only when the field is empty
-      if (index > 0 && _controllers[index].text.isEmpty) {
-        _controllers[index].clear(); // Clear current field
-        _focusNodes[index - 1].requestFocus(); // Move focus back
-        _controllers[index - 1].clear(); // Clear previous field
-      }
+void _onDigitChanged(int index, String value) {
+  if (value.isNotEmpty) {
+    // Overwrite existing digit instead of appending
+    _controllers[index].text = value[value.length - 1];  
+    _controllers[index].selection = TextSelection.fromPosition(
+      TextPosition(offset: 1), // Keep cursor at the end
+    );
+
+    // Move to next field if it's not the last one
+    if (index < _controllers.length - 1) {
+      _focusNodes[index + 1].requestFocus();
+    }
+  } else {
+    // If erased, move to the previous field
+    if (index > 0) {
+      _focusNodes[index - 1].requestFocus();
     }
   }
+}
+  
 
   void _verifyOtp() async {
     String otp = _controllers.map((controller) => controller.text).join();
@@ -199,32 +226,24 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: List.generate(6, (index) {
                           bool isSelected = _selectedIndex == index;
-                          return Container(
+                          return AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
                             margin: EdgeInsets.symmetric(horizontal: 6.w),
                             width: 43.w,
-                            height: 50.w,
+                            height: 55.w,
                             decoration: BoxDecoration(
                               color:
                                   isSelected
                                       ? const Color(0xFF0066FF)
                                       : Colors.white,
-                              borderRadius: BorderRadius.circular(10.r),
+                              borderRadius: BorderRadius.circular(12.r),
                               border: Border.all(
                                 color:
                                     isSelected
-                                        ? const Color.fromARGB(25, 15, 103, 254)
+                                        ? Colors.blueAccent
                                         : Colors.grey.shade300,
                                 width: isSelected ? 3.0 : 2.0,
                               ),
-                              boxShadow:
-                                  isSelected
-                                      ? [
-                                        BoxShadow(
-                                          color: Colors.blue.withOpacity(0.4),
-                                          spreadRadius: 3,
-                                        ),
-                                      ]
-                                      : [],
                             ),
                             child: Center(
                               child: TextField(
@@ -234,12 +253,12 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                                 keyboardType: TextInputType.number,
                                 maxLength: 1,
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 24.sp,
-                                  fontWeight: FontWeight.w600,
+                                  fontSize: 26.sp,
+                                  fontWeight: FontWeight.w700,
                                   color:
                                       isSelected
                                           ? Colors.white
-                                          : const Color(0xFF1A1D1F),
+                                          : Colors.black87,
                                 ),
                                 decoration: const InputDecoration(
                                   counterText: '',
@@ -255,6 +274,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
                           );
                         }),
                       ),
+
                       SizedBox(height: 30.h),
                       Center(
                         child: GestureDetector(
