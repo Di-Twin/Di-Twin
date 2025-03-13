@@ -196,28 +196,6 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
                     // dart(TODO:) should change the route to the next screen not age
                     Navigator.pushNamed(context, '/questions/gender');
                   },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0F67FE),
-                    foregroundColor: Colors.white,
-                    minimumSize: Size(double.infinity, 56.h),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Continue',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(Icons.arrow_forward, size: 20.sp),
-                    ],
-                  ),
                 ),
               ),
               // child: CustomButton(
