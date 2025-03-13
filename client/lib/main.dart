@@ -1,6 +1,8 @@
 import 'package:client/features/auth/OtpScreen.dart';
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/auth/phono_verification.dart';
+import 'package:client/features/health_assessment/health_assessment_avatar.dart';
+import 'package:client/features/health_assessment/health_assessment_loading.dart';
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
@@ -32,7 +34,7 @@ Widget build(BuildContext context) {
         builder: (context, child) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
-            title: 'Flutter Sign In',
+            title: 'Di-Twin',
             theme: ThemeData(
               primarySwatch: Colors.blue,
               textTheme: GoogleFonts.plusJakartaSansTextTheme(),
@@ -45,6 +47,9 @@ Widget build(BuildContext context) {
               '/signup': (context) => const SignUpScreen(),
               '/numberverification': (context) => const PhoneVerificationScreen(),
               '/otpverify': (context) => const OtpVerificationScreen(),
+            '/loading': (context) => const HealthAssessmentLoading(loadingDuration: Duration(seconds: 5), nextScreen: HealthAssessmentScore(score: 22,)),
+            '/avatar': (context) => const HealthAssessmentAvatar(),
+            '/dashboard': (context) => const HealthAssessmentScore(score: 22,),
               '/questions/weight': (context) => const WeightInputPage(),
               '/questions/height': (context) => const HeightInputPage()
             },

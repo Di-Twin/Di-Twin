@@ -3,7 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class HealthAssessmentLoading extends StatefulWidget {
-  const HealthAssessmentLoading({Key? key}) : super(key: key);
+  final Duration loadingDuration;
+  final Function? onLoadingComplete;
+  final Widget? nextScreen;
+
+  const HealthAssessmentLoading({
+    super.key,
+    required this.loadingDuration,
+    this.onLoadingComplete,
+    this.nextScreen,
+  });
 
   @override
   State<HealthAssessmentLoading> createState() =>
@@ -12,25 +21,44 @@ class HealthAssessmentLoading extends StatefulWidget {
 
 class _HealthAssessmentLoadingState extends State<HealthAssessmentLoading> {
   String dots = '...';
-  late Timer _timer;
+  late Timer _dotTimer;
+  late Timer _navigationTimer;
 
   @override
   void initState() {
     super.initState();
     _startDotAnimation();
+    _startNavigationTimer();
   }
 
   void _startDotAnimation() {
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
+    _dotTimer = Timer.periodic(const Duration(milliseconds: 500), (timer) {
       setState(() {
         dots = (dots == '...') ? '.' : (dots == '.') ? '..' : '...';
       });
     });
   }
 
+  void _startNavigationTimer() {
+    _navigationTimer = Timer(widget.loadingDuration, () {
+      // Handle navigation after loading duration completes
+      if (widget.onLoadingComplete != null) {
+        widget.onLoadingComplete!();
+      } else if (widget.nextScreen != null) {
+        Navigator.pushReplacement(
+          context, 
+          MaterialPageRoute(builder: (context) => widget.nextScreen!),
+        );
+      } else {
+        Navigator.pop(context);
+      }
+    });
+  }
+
   @override
   void dispose() {
-    _timer.cancel();
+    _dotTimer.cancel();
+    _navigationTimer.cancel();
     super.dispose();
   }
 

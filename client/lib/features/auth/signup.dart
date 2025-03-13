@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:country_code_picker/country_code_picker.dart';
+import 'package:ditwin_country_code/ditwin_country_code.dart';
 
 final phoneProvider = StateProvider<String>((ref) => '');
 final passwordProvider = StateProvider<String>((ref) => '');
@@ -103,6 +103,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // 📌 Phone Number Input with Country Picker
+                        // 📌 Phone Number Input with DitwinCountryCodePicker
                         Text(
                           "Phone Number",
                           style: GoogleFonts.plusJakartaSans(
@@ -121,23 +122,14 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                           ),
                           child: Row(
                             children: [
-                              // 📌 Country Code Picker
-                              CountryCodePicker(
-                                onChanged: (code) {
+                              // 📌 Ditwin Country Code Picker
+                              DitwinCountryCodePicker(
+                                initialCountryCode: "IN", // Default to India
+                                onChanged: (String dialCode) {
                                   setState(() {
-                                    countryCode = code.dialCode!;
+                                    countryCode = dialCode;
                                   });
                                 },
-                                initialSelection: 'IN',
-                                favorite: ['+91', 'US'],
-                                showCountryOnly: false,
-                                showOnlyCountryWhenClosed: false,
-                                alignLeft: false,
-                                textStyle: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black87,
-                                ),
                               ),
                               SizedBox(width: 5.w), // 🚀 Added small space
                               // 📌 Input Field wrapped in Expanded to prevent overflow
@@ -237,7 +229,6 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                         ),
                         SizedBox(height: 15.h),
 
-                        // 📌 Google Sign-In Button
                         // 📌 Google Sign-In Button
                         ElevatedButton(
                           onPressed: () {},

@@ -6,7 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:country_code_picker/country_code_picker.dart';
+import 'package:ditwin_country_code/ditwin_country_code.dart'; // ✅ Updated import
 
 final phoneProvider = StateProvider<String>((ref) => '');
 final passwordProvider = StateProvider<String>((ref) => '');
@@ -106,23 +106,17 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           ),
                           child: Row(
                             children: [
-                              CountryCodePicker(
-                                onChanged: (code) {
+                              // ✅ Using Ditwin Country Picker
+                              DitwinCountryCodePicker(
+                                initialCountryCode: "IN", // Default to India
+                                onChanged: (String dialCode) {
                                   setState(() {
-                                    countryCode = code.dialCode!;
+                                    countryCode =
+                                        dialCode; // Directly store the selected dial code
                                   });
                                 },
-                                initialSelection: 'IN',
-                                favorite: ['+91', 'US'],
-                                showCountryOnly: false,
-                                showOnlyCountryWhenClosed: false,
-                                alignLeft: false,
-                                textStyle: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w800,
-                                  color: Colors.black87,
-                                ),
                               ),
+
                               SizedBox(width: 5.w),
                               Expanded(
                                 child: TextField(
