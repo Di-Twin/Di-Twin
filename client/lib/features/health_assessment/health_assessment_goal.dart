@@ -191,7 +191,7 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
                 child: ElevatedButton(
                   onPressed: () {
                     // dart(TODO:) should change the route to the next screen not age
-                    Navigator.pushNamed(context, '/questions/age');
+                    Navigator.pushNamed(context, '/questions/gender');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Color(0xFF0F67FE),

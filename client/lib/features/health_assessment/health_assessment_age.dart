@@ -188,7 +188,7 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                 padding: EdgeInsets.only(bottom: 24.h),
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.pushNamed(context, '/questions/weight');
+                    Navigator.pushNamed(context, '/questions/medication');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F67FE),
