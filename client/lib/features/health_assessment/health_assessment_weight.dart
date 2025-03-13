@@ -359,7 +359,7 @@ class _WeightInputPageState extends State<WeightInputPage>
                 text: "Continue",
                 iconPath: 'images/SignInAddIcon.png',
                 onPressed: () {
-                  Navigator.pushNamed(context, '/height');
+                  Navigator.pushNamed(context, '/questions/height');
                 },
               ),
               SizedBox(height: 16.h),

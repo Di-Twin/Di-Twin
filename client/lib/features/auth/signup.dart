@@ -332,7 +332,7 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                                 ..onTap = () {
                                                   Navigator.pushNamed(
                                                     context,
-                                                    '/terms',
+                                                    '/questions/weight',
                                                   );
                                                 },
                                         ),
