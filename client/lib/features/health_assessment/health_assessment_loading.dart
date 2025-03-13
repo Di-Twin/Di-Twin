@@ -8,11 +8,11 @@ class HealthAssessmentLoading extends StatefulWidget {
   final Widget? nextScreen;
 
   const HealthAssessmentLoading({
-    Key? key,
+    super.key,
     required this.loadingDuration,
     this.onLoadingComplete,
     this.nextScreen,
-  }) : super(key: key);
+  });
 
   @override
   State<HealthAssessmentLoading> createState() =>
