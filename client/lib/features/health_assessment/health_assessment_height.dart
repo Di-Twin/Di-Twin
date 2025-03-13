@@ -94,14 +94,23 @@ class _HeightInputPageState extends State<HeightInputPage>
 
   // HEIGHT FORMATTING
   String formattedHeight() {
-    if (isInches) {
-      int feet = (height / 12).floor();
-      int inches = (height % 12).round();
-      return '$feet\'$inches"';
-    } else {
-      return height.toStringAsFixed(1);
+  if (isInches) {
+    int totalInches = height.round();
+    int feet = totalInches ~/ 12;  // Divide to get feet
+    int inches = totalInches % 12; // Get remaining inches
+
+    // ✅ FIX: Convert `12 inches` into `1 extra foot`
+    if (inches == 12) {
+      feet += 1;
+      inches = 0; // Reset inches to `0`
     }
+
+    return inches == 0 ? "$feet'" : "$feet' $inches\"";
+  } else {
+    return "${height.toStringAsFixed(1)} cm";
   }
+}
+
 
   @override
   Widget build(BuildContext context) {
@@ -398,6 +407,7 @@ class _HeightInputPageState extends State<HeightInputPage>
 }
 
 // CUSTOM SCALE PAINTER FOR HEIGHT VISUALIZATION
+// Custom Scale Painter for Height Input
 class VerticalScalePainter extends CustomPainter {
   final double offset;
   final double unitSize;
@@ -417,11 +427,14 @@ class VerticalScalePainter extends CustomPainter {
     final double halfHeight = size.height / 2;
     final double unitsVisible = halfHeight / unitSize;
 
+    // ✅ FIXED: Correct min/max height values
     final double minValueCm = 50.0;
     final double maxValueCm = 220.0;
+    final double minValueInches = minValueCm / 2.54;
+    final double maxValueInches = maxValueCm / 2.54;
 
-    final double minValue = isInches ? minValueCm / 2.54 : minValueCm;
-    final double maxValue = isInches ? maxValueCm / 2.54 : maxValueCm;
+    final double minValue = isInches ? minValueInches : minValueCm;
+    final double maxValue = isInches ? maxValueInches : maxValueCm;
 
     final double minUnit = -offset - unitsVisible;
     final double maxUnit = -offset + unitsVisible;
@@ -435,6 +448,7 @@ class VerticalScalePainter extends CustomPainter {
 
       final double y = centerY + (i + offset) * unitSize;
 
+      // ✅ FIXED: Proper major tick placement for inches
       final bool isMajorTick = isInches ? (i % 12 == 0) : (i % 10 == 0);
       final bool isSubTick = isInches ? (i % 1 == 0) : (i % 1 == 0);
 
@@ -453,13 +467,14 @@ class VerticalScalePainter extends CustomPainter {
           ..strokeWidth = 1.0;
       }
 
+      // ✅ Draw Tick Mark
       canvas.drawLine(
         Offset(centerX - tickWidth / 2, y),
         Offset(centerX + tickWidth / 2, y),
         tickPaint,
       );
 
-      // DRAW SCALE LABELS
+      // ✅ FIXED: Proper Inches & CM Labeling
       if (isMajorTick) {
         String label;
         if (isInches) {

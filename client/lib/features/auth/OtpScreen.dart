@@ -250,7 +250,8 @@ void _onDigitChanged(int index, String value) {
                                 controller: _controllers[index],
                                 focusNode: _focusNodes[index],
                                 textAlign: TextAlign.center,
-                                keyboardType: TextInputType.number,
+                                keyboardType: TextInputType.number, 
+                                autofillHints: [AutofillHints.oneTimeCode],
                                 maxLength: 1,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 26.sp,

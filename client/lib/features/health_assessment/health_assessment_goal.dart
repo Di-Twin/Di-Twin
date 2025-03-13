@@ -1,3 +1,4 @@
+import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/ProgressBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -91,8 +92,8 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
                     'Skip',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
@@ -188,7 +189,9 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
               // Continue button
               Padding(
                 padding: EdgeInsets.only(bottom: 24.h),
-                child: ElevatedButton(
+                child: CustomButton(
+                  text: "Continue",
+                  iconPath: 'images/SignInAddIcon.png',
                   onPressed: () {
                     // dart(TODO:) should change the route to the next screen not age
                     Navigator.pushNamed(context, '/questions/gender');
