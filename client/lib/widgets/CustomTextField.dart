@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ditwin_alert/input_field_alert.dart';
 
 class CustomTextField extends StatefulWidget {
   final String label;
@@ -11,8 +10,9 @@ class CustomTextField extends StatefulWidget {
   final TextEditingController? controller;
   final TextEditingController?
   passwordController; // Reference for confirm password
-  final FocusNode? focusNode; // ✅ Added FocusNode
-  final TextInputType keyboardType; // ✅ Added Keyboard Type
+  final FocusNode? focusNode;
+  final TextInputType keyboardType;
+  final Function(String)? onChanged; // Added onChanged parameter
 
   const CustomTextField({
     super.key,
@@ -22,8 +22,9 @@ class CustomTextField extends StatefulWidget {
     this.obscureText = false,
     this.controller,
     this.passwordController,
-    this.focusNode, // ✅ Initialize
-    this.keyboardType = TextInputType.text, // ✅ Default to text input
+    this.focusNode,
+    this.keyboardType = TextInputType.text,
+    this.onChanged, // Initialize the parameter
   });
 
   @override
@@ -31,7 +32,6 @@ class CustomTextField extends StatefulWidget {
 }
 
 class _CustomTextFieldState extends State<CustomTextField> {
-  String? _errorMessage;
   bool _obscureText = true;
 
   @override
@@ -39,58 +39,13 @@ class _CustomTextFieldState extends State<CustomTextField> {
     super.initState();
     _obscureText = widget.obscureText;
 
-    // Listen for changes in the confirm password field
+    // Listeners for controllers remain but without validation logic
     widget.controller?.addListener(() {
-      if (widget.label.toLowerCase() == "confirm password") {
-        _validateInput();
-      }
+      // No validation logic
     });
 
-    // Listen for changes in the password field (important!)
     widget.passwordController?.addListener(() {
-      if (widget.label.toLowerCase() == "confirm password") {
-        _validateInput();
-      }
-    });
-  }
-
-  void _validateInput() {
-    setState(() {
-      if (widget.controller?.text.isEmpty ?? true) {
-        _errorMessage = "${widget.label} cannot be empty";
-      } else if (widget.label.toLowerCase() == "email address") {
-        if (!RegExp(
-          r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$",
-        ).hasMatch(widget.controller!.text)) {
-          _errorMessage = "Enter a valid email address";
-        } else {
-          _errorMessage = null;
-        }
-      } else if (widget.label.toLowerCase() == "password") {
-        if (widget.controller!.text.length < 6) {
-          _errorMessage = "Password must be at least 6 characters";
-        } else if (!RegExp(r'(?=.*[A-Z])').hasMatch(widget.controller!.text)) {
-          _errorMessage = "Must contain at least one uppercase letter";
-        } else if (!RegExp(r'(?=.*\d)').hasMatch(widget.controller!.text)) {
-          _errorMessage = "Must contain at least one number";
-        } else if (!RegExp(
-          r'(?=.*[@$!%*?&])',
-        ).hasMatch(widget.controller!.text)) {
-          _errorMessage =
-              "Must contain at least one special character (@\$!%*?&)";
-        } else {
-          _errorMessage = null;
-        }
-      } else if (widget.label.toLowerCase() == "confirm password") {
-        if (widget.passwordController != null &&
-            widget.controller!.text != widget.passwordController!.text) {
-          _errorMessage = "Passwords do not match";
-        } else {
-          _errorMessage = null;
-        }
-      } else {
-        _errorMessage = null;
-      }
+      // No validation logic
     });
   }
 
@@ -110,12 +65,14 @@ class _CustomTextFieldState extends State<CustomTextField> {
         SizedBox(height: 5.h),
         TextField(
           controller: widget.controller,
-          focusNode: widget.focusNode, // ✅ Assign focusNode
-          keyboardType: widget.keyboardType, // ✅ Assign keyboardType
+          focusNode: widget.focusNode,
+          keyboardType: widget.keyboardType,
           obscureText:
               widget.label.toLowerCase().contains("password")
                   ? _obscureText
                   : false,
+          onChanged:
+              widget.onChanged, // Pass the onChanged callback to TextField
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
@@ -126,10 +83,9 @@ class _CustomTextFieldState extends State<CustomTextField> {
             ),
             hintText: widget.hintText,
             hintStyle: GoogleFonts.plusJakartaSans(
-              // ✅ Styled hint text
               fontSize: 14.sp,
               fontWeight: FontWeight.w500,
-              color: Colors.black45, // Light gray color
+              color: Colors.black45,
             ),
             contentPadding: EdgeInsets.symmetric(
               vertical: 10.h,
@@ -154,23 +110,7 @@ class _CustomTextFieldState extends State<CustomTextField> {
                     )
                     : null,
           ),
-          onChanged: (value) => _validateInput(),
         ),
-
-        if (_errorMessage != null)
-          Padding(
-            padding: EdgeInsets.only(top: 5.h),
-            child: InputFieldAlert(
-              message: _errorMessage!,
-              alertType: AlertType.error,
-              width: double.infinity,
-              height: 45,
-              borderRadius: 10,
-              fontSize: 14,
-              backgroundColor: Colors.red[100],
-              textColor: Colors.red,
-            ),
-          ),
         SizedBox(height: 20.h),
       ],
     );

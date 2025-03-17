@@ -94,23 +94,22 @@ class _HeightInputPageState extends State<HeightInputPage>
 
   // HEIGHT FORMATTING
   String formattedHeight() {
-  if (isInches) {
-    int totalInches = height.round();
-    int feet = totalInches ~/ 12;  // Divide to get feet
-    int inches = totalInches % 12; // Get remaining inches
+    if (isInches) {
+      int totalInches = height.round();
+      int feet = totalInches ~/ 12; // Divide to get feet
+      int inches = totalInches % 12; // Get remaining inches
 
-    // ✅ FIX: Convert `12 inches` into `1 extra foot`
-    if (inches == 12) {
-      feet += 1;
-      inches = 0; // Reset inches to `0`
+      // ✅ FIX: Convert `12 inches` into `1 extra foot`
+      if (inches == 12) {
+        feet += 1;
+        inches = 0; // Reset inches to `0`
+      }
+
+      return inches == 0 ? "$feet'" : "$feet' $inches\"";
+    } else {
+      return "${height.toStringAsFixed(1)} cm";
     }
-
-    return inches == 0 ? "$feet'" : "$feet' $inches\"";
-  } else {
-    return "${height.toStringAsFixed(1)} cm";
   }
-}
-
 
   @override
   Widget build(BuildContext context) {
@@ -118,55 +117,43 @@ class _HeightInputPageState extends State<HeightInputPage>
       backgroundColor: Colors.grey[100],
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 30.0.w, vertical: 16.0.h),
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // HEADER WITH NAVIGATION AND PROGRESS
+              SizedBox(height: 16.h),
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Container(
+                    width: 48.w,
+                    height: 48.h,
                     decoration: BoxDecoration(
                       border: Border.all(color: Colors.grey[300]!),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
-                    child: IconButton(
-                      icon: const Icon(Icons.chevron_left),
-                      iconSize: 24.sp,
-                      onPressed: () {
+                    child: GestureDetector(
+                      onTap: () {
                         Navigator.pop(context);
                       },
-                      color: Colors.grey[700],
-                    ),
-                  ),
-
-                  SizedBox(
-                    width: 0.5.sw,
-                    child: ProgressBar(
-                      totalSteps: totalSteps,
-                      currentStep: currentStep + 1,
-                    ),
-                  ),
-
-                  TextButton(
-                    onPressed: () {
-                      // Handle skip action
-                    },
-                    child: Text(
-                      'Skip',
-                      style: GoogleFonts.plusJakartaSans(
-                        textStyle: TextStyle(
-                          color: Colors.grey[800],
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
+                      child: Center(
+                        child: Icon(Icons.arrow_back_ios_new, size: 20.sp),
                       ),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(child: ProgressBar(totalSteps: 7, currentStep: 4)),
+                  SizedBox(width: 16.w),
+                  Text(
+                    'Skip',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
               ),
-
               SizedBox(height: 40.h),
 
               // QUESTION HEADER

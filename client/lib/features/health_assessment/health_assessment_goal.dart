@@ -83,7 +83,7 @@ class _HealthAssessmentGoalState extends State<HealthAssessmentGoal> {
                   SizedBox(width: 16.w),
                   Expanded(
                     child: ProgressBar(
-                      totalSteps: 5,
+                      totalSteps: 7,
                       currentStep: 1,
                     ),
                   ),

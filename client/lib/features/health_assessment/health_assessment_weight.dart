@@ -100,14 +100,14 @@ class _WeightInputPageState extends State<WeightInputPage>
       backgroundColor: Colors.grey[100],
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 30.0.w, vertical: 16.0.h),
+          padding: EdgeInsets.symmetric(horizontal: 24.0.w),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               // 🔥 Added Top Navigation Bar from HealthAssessmentGoal 🔥
+              SizedBox(height: 16.h),
               Row(
                 children: [
-                  // 🔙 Back Button
                   Container(
                     width: 48.w,
                     height: 48.h,
@@ -125,23 +125,14 @@ class _WeightInputPageState extends State<WeightInputPage>
                     ),
                   ),
                   SizedBox(width: 16.w),
-
-                  // 📊 Progress Bar (Updated to Step 2)
-                  Expanded(
-                    child: ProgressBar(
-                      totalSteps: 5,
-                      currentStep: 2, // Changed step from 1 to 2
-                    ),
-                  ),
+                  Expanded(child: ProgressBar(totalSteps: 7, currentStep: 3)),
                   SizedBox(width: 16.w),
-
-                  // 🚫 Disabled Skip Button
                   Text(
                     'Skip',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w700,
-                      color: Colors.grey[400], // Greyed out to disable
+                      color: Colors.grey,
                     ),
                   ),
                 ],

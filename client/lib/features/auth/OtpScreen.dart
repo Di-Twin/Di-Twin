@@ -3,19 +3,14 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:client/widgets/CustomButton.dart';
 import 'package:sms_autofill/sms_autofill.dart';
+import 'package:client/data/providers/auth_provider.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
-  final String verificationId;
   final String phoneNumber;
 
-  const OtpVerificationScreen({
-    super.key,
-    required this.verificationId,
-    required this.phoneNumber,
-  });
+  const OtpVerificationScreen({super.key, required this.phoneNumber});
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -23,26 +18,18 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
 }
 
 class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   bool loading = false;
-
   final List<TextEditingController> _controllers = List.generate(
     6,
     (_) => TextEditingController(),
   );
   final List<FocusNode> _focusNodes = List.generate(6, (_) => FocusNode());
-
   int _selectedIndex = 0;
-  late String currentVerificationId;
 
   @override
   void initState() {
     super.initState();
-    currentVerificationId = widget.verificationId;
-
-    // Start listening for OTP
     _listenForOtp();
-
     for (int i = 0; i < _focusNodes.length; i++) {
       _focusNodes[i].addListener(() {
         if (_focusNodes[i].hasFocus) {
@@ -54,9 +41,8 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     }
   }
 
-  // Function to start OTP listening
   void _listenForOtp() async {
-    SmsAutoFill().listenForCode();
+    await SmsAutoFill().listenForCode();
     SmsAutoFill().code.listen((otp) {
       if (otp.isNotEmpty && otp.length == 6) {
         _onOtpFilled(otp);
@@ -65,18 +51,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
   }
 
   void _onOtpFilled(String otp) {
-    if (otp.length == 6) {
-      for (int i = 0; i < otp.length; i++) {
-        _controllers[i].text = otp[i]; // Autofill each box
-      }
-      _verifyOtp(); // Automatically verify after autofill
+    for (int i = 0; i < otp.length; i++) {
+      _controllers[i].text = otp[i];
     }
+    _verifyOtp();
   }
 
   @override
   void dispose() {
-    SmsAutoFill()
-        .unregisterListener(); // Stop listening when screen is disposed
+    SmsAutoFill().unregisterListener();
     for (var controller in _controllers) {
       controller.dispose();
     }
@@ -86,72 +69,72 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
     super.dispose();
   }
 
-void _onDigitChanged(int index, String value) {
-  if (value.isNotEmpty) {
-    // Overwrite existing digit instead of appending
-    _controllers[index].text = value[value.length - 1];  
-    _controllers[index].selection = TextSelection.fromPosition(
-      TextPosition(offset: 1), // Keep cursor at the end
-    );
+  void _onDigitChanged(int index, String value) {
+    if (value.isNotEmpty) {
+      _controllers[index].text = value[value.length - 1];
+      _controllers[index].selection = TextSelection.fromPosition(
+        const TextPosition(offset: 1),
+      );
 
-    // Move to next field if it's not the last one
-    if (index < _controllers.length - 1) {
-      _focusNodes[index + 1].requestFocus();
-    }
-  } else {
-    // If erased, move to the previous field
-    if (index > 0) {
-      _focusNodes[index - 1].requestFocus();
+      if (index < _controllers.length - 1) {
+        _focusNodes[index + 1].requestFocus();
+      } else if (_controllers.every((c) => c.text.isNotEmpty)) {
+        _verifyOtp();
+      }
+    } else {
+      if (index > 0) {
+        _focusNodes[index - 1].requestFocus();
+      }
     }
   }
-}
-  
 
   void _verifyOtp() async {
     String otp = _controllers.map((controller) => controller.text).join();
     if (otp.length == 6) {
-      setState(() {
-        loading = true;
-      });
-
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: currentVerificationId,
-        smsCode: otp,
-      );
+      setState(() => loading = true);
 
       try {
-        await _auth.signInWithCredential(credential);
-        Navigator.pushNamed(context, '/loading');
+        final authService = ref.read(authProvider);
+
+        // Check if access token exists
+        final String? accessToken = authService.getAccessToken();
+
+        if (accessToken == null) {
+          // If no token, it's a sign-in process
+          await authService.signInUser(
+            phoneNumber: widget.phoneNumber,
+            otpCode: otp,
+          );
+        } else {
+          // If token exists, proceed with OTP verification
+          await authService.verifyOtp(otpCode: otp);
+        }
+
+        if (mounted) {
+          Navigator.pushNamed(context, '/loading');
+        }
       } catch (e) {
-        setState(() {
-          loading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("Invalid OTP. Please try again.")),
-        );
+        setState(() => loading = false);
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(e.toString())));
       }
     }
   }
 
   void _resendOtp() async {
-    await _auth.verifyPhoneNumber(
-      phoneNumber: widget.phoneNumber,
-      verificationCompleted: (PhoneAuthCredential credential) {},
-      verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(e.message ?? "OTP resend failed")),
-        );
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        setState(() {
-          currentVerificationId = verificationId;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text("OTP resent successfully")),
-        );
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {},
-    );
+    try {
+      final authService = ref.read(authProvider);
+      await authService.resendOtp(widget.phoneNumber);
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text("OTP resent successfully")));
+    } catch (e) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.toString())));
+    }
   }
 
   @override
@@ -250,8 +233,10 @@ void _onDigitChanged(int index, String value) {
                                 controller: _controllers[index],
                                 focusNode: _focusNodes[index],
                                 textAlign: TextAlign.center,
-                                keyboardType: TextInputType.number, 
-                                autofillHints: [AutofillHints.oneTimeCode],
+                                keyboardType: TextInputType.number,
+                                autofillHints: const [
+                                  AutofillHints.oneTimeCode,
+                                ],
                                 maxLength: 1,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 26.sp,
@@ -277,29 +262,15 @@ void _onDigitChanged(int index, String value) {
                       ),
 
                       SizedBox(height: 30.h),
-                      Center(
-                        child: GestureDetector(
-                          onTap: _resendOtp,
-                          child: Text.rich(
-                            TextSpan(
-                              text: "Didn’t get OTP? ",
-                              style: GoogleFonts.plusJakartaSans(
-                                color: Colors.grey.shade700,
-                                fontSize: 12.sp,
-                              ),
-                              children: [
-                                TextSpan(
-                                  text: "Resend OTP",
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12.sp,
-                                    fontWeight: FontWeight.w500,
-                                    color: Colors.red,
-                                    decoration: TextDecoration.underline,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            textAlign: TextAlign.center,
+                      GestureDetector(
+                        onTap: _resendOtp,
+                        child: Text(
+                          "Didn't get OTP? Resend OTP",
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.red,
+                            decoration: TextDecoration.underline,
                           ),
                         ),
                       ),
@@ -308,7 +279,7 @@ void _onDigitChanged(int index, String value) {
                       CustomButton(
                         text: loading ? "Verifying..." : "Verify",
                         iconPath: 'images/SignInAddIcon.png',
-                        onPressed: loading ? null : () => _verifyOtp(),
+                        onPressed: loading ? null : _verifyOtp,
                       ),
                     ],
                   ),

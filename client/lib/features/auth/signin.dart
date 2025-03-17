@@ -1,10 +1,12 @@
+import 'package:client/features/auth/OtpScreen.dart';
 import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:ditwin_country_code/ditwin_country_code.dart'; // ✅ Updated import
+import 'package:ditwin_country_code/ditwin_country_code.dart';
+import 'package:client/data/providers/auth_provider.dart';
 
 final phoneProvider = StateProvider<String>((ref) => '');
 final loadingProvider = StateProvider<bool>((ref) => false);
@@ -27,6 +29,49 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     phoneController.dispose();
     phoneFocusNode.dispose();
     super.dispose();
+  }
+
+    void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void handleSignIn() async {
+    if (phoneController.text.trim().isEmpty) {
+      _showErrorSnackBar("Please enter your phone number.");
+      return;
+    }
+
+    final authService = ref.read(authProvider);
+    String phoneNumber = "$countryCode${phoneController.text.trim()}";
+
+    // Update phoneProvider with the entered number
+    ref.read(phoneProvider.notifier).state = phoneController.text.trim();
+
+    // Show loading state
+    ref.read(loadingProvider.notifier).state = true;
+
+    try {
+      // Send OTP to the entered phone number
+      await authService.sendOtp(phoneNumber);
+
+      // Hide loading state after OTP is sent
+      ref.read(loadingProvider.notifier).state = false;
+
+      // Navigate to OTP verification screen
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => OtpVerificationScreen(phoneNumber: phoneNumber),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(e.toString());
+        ref.read(loadingProvider.notifier).state = false;
+      }
+    }
   }
 
   @override
@@ -162,9 +207,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                           CustomButton(
                             text: "Continue",
                             iconPath: 'images/SignInAddIcon.png',
-                            onPressed: () {
-                              Navigator.pushNamed(context, '/loading');
-                            },
+                            onPressed: handleSignIn,
                           ),
 
                           SizedBox(height: 10.h),

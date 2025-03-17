@@ -1,3 +1,4 @@
+import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/ProgressBar.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -5,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class HealthAssessmentGender extends StatefulWidget {
-  const HealthAssessmentGender({Key? key}) : super(key: key);
+  const HealthAssessmentGender({super.key});
 
   @override
   State<HealthAssessmentGender> createState() => _HealthAssessmentGenderState();
@@ -14,7 +15,7 @@ class HealthAssessmentGender extends StatefulWidget {
 class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
   int _currentIndex = 1; // Start with male (index 1) as the center item
   String? selectedGender;
-  
+
   final List<Map<String, dynamic>> _genders = [
     {
       'id': 'female',
@@ -41,7 +42,7 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
       'shadowColor': Color(0xFF8A3FFC),
     },
   ];
-  
+
   final PageController _pageController = PageController(
     initialPage: 1,
     viewportFraction: 0.8,
@@ -73,6 +74,7 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
               // Back button and progress bar
               Row(
                 children: [
+                  // 🔙 Back Button
                   Container(
                     width: 48.w,
                     height: 48.h,
@@ -90,26 +92,26 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                     ),
                   ),
                   SizedBox(width: 16.w),
-                  Expanded(
-                    child: ProgressBar(
-                      totalSteps: 5,
-                      currentStep: 1,
-                    ),
-                  ),
+
+                  // 📊 Progress Bar
+                  Expanded(child: ProgressBar(totalSteps: 7, currentStep: 2)),
+
                   SizedBox(width: 16.w),
+
+                  // ❌ Skip Button
                   Text(
                     'Skip',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
               ),
-              
+
               SizedBox(height: 30.h),
-              
+
               // Title
               Text(
                 'What is your Gender?',
@@ -119,9 +121,9 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                   color: const Color(0xFF1E293B),
                 ),
               ),
-              
+
               SizedBox(height: 16.h),
-              
+
               // Subtitle
               Text(
                 'Please select your gender for better\npersonalized health experience.',
@@ -132,9 +134,9 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                   height: 1.4,
                 ),
               ),
-              
+
               SizedBox(height: 40.h),
-              
+
               // Gender selection cards with swipe functionality
               SizedBox(
                 height: 320.h,
@@ -149,7 +151,7 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                   },
                   itemBuilder: (context, index) {
                     final bool isCurrentPage = index == _currentIndex;
-                    
+
                     return AnimatedContainer(
                       duration: const Duration(milliseconds: 300),
                       curve: Curves.easeInOut,
@@ -161,34 +163,47 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                       decoration: BoxDecoration(
                         color: _genders[index]['color'],
                         borderRadius: BorderRadius.circular(16.r),
-                        boxShadow: isCurrentPage ? [
-                          BoxShadow(
-                            color: _genders[index]['shadowColor'].withOpacity(0.3),
-                            blurRadius: 15,
-                            offset: const Offset(0, 10),
-                          ),
-                        ] : null,
+                        boxShadow:
+                            isCurrentPage
+                                ? [
+                                  BoxShadow(
+                                    color: _genders[index]['shadowColor']
+                                        .withOpacity(0.3),
+                                    blurRadius: 15,
+                                    offset: const Offset(0, 10),
+                                  ),
+                                ]
+                                : null,
                       ),
                       child: Stack(
                         children: [
                           // Gender illustration
                           Positioned.fill(
-                            child: Image.asset(
-                              _genders[index]['image'],
-                              fit: BoxFit.contain,
-                              errorBuilder: (context, error, stackTrace) {
-                                // Fallback if image is not found
-                                return Center(
-                                  child: Icon(
-                                    _genders[index]['icon'],
-                                    size: 80.sp,
-                                    color: Colors.white.withOpacity(0.5),
-                                  ),
-                                );
-                              },
+                            child: Align(
+                              alignment:
+                                  Alignment
+                                      .topCenter, // Aligns image to the top
+                              child: Image.asset(
+                                _genders[index]['image'],
+                                fit:
+                                    BoxFit
+                                        .fitHeight, // Ensures image covers height
+                                alignment:
+                                    Alignment
+                                        .topCenter, // Aligns image within its box
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Center(
+                                    child: Icon(
+                                      _genders[index]['icon'],
+                                      size: 80.sp,
+                                      color: Colors.white.withOpacity(0.5),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
                           ),
-                          
+
                           // Gender text and icon
                           Positioned(
                             top: 20.h,
@@ -212,7 +227,7 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                               ],
                             ),
                           ),
-                          
+
                           // Checkmark if selected
                           if (selectedGender == _genders[index]['id'])
                             Positioned(
@@ -240,9 +255,9 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                   },
                 ),
               ),
-              
+
               SizedBox(height: 16.h),
-              
+
               // Gender selection indicators
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -252,19 +267,19 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                     height: 8.h,
                     margin: EdgeInsets.symmetric(horizontal: 4.w),
                     decoration: BoxDecoration(
-                      color: index == _currentIndex 
-                          ? _genders[_currentIndex]['color'] 
-                          : Colors.grey.shade300,
+                      color:
+                          index == _currentIndex
+                              ? _genders[_currentIndex]['color']
+                              : Colors.grey.shade300,
                       borderRadius: BorderRadius.circular(4.r),
                     ),
                   );
                 }),
               ),
-              
-              // const Spacer(),
 
+              // const Spacer(),
               SizedBox(height: 40.h),
-              
+
               // Skip button
               GestureDetector(
                 onTap: () {
@@ -298,43 +313,16 @@ class _HealthAssessmentGenderState extends State<HealthAssessmentGender> {
                   ),
                 ),
               ),
-              
+
               SizedBox(height: 16.h),
-              
+
               // Continue button
-              GestureDetector(
-                onTap: () {
-                  // Handle continue action with selected gender
-                  // print('Selected gender: $selectedGender');
+              CustomButton(
+                text: "Continue",
+                iconPath: 'images/SignInAddIcon.png',
+                onPressed: () {
                   Navigator.pushNamed(context, '/questions/weight');
                 },
-                child: Container(
-                  width: double.infinity,
-                  height: 56.h,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1A73E8),
-                    borderRadius: BorderRadius.circular(16.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        'Continue',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                      SizedBox(width: 8.w),
-                      Icon(
-                        Icons.arrow_forward,
-                        color: Colors.white,
-                        size: 20.sp,
-                      ),
-                    ],
-                  ),
-                ),
               ),
             ],
           ),

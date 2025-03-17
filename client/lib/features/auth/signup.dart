@@ -8,7 +8,7 @@ import 'package:ditwin_country_code/ditwin_country_code.dart';
 import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/CustomTextField.dart';
 import 'package:client/features/auth/signin.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:client/data/providers/auth_provider.dart';
 
 final phoneProvider = StateProvider<String>((ref) => '');
 final firstNameProvider = StateProvider<String>((ref) => '');
@@ -26,61 +26,73 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
   final TextEditingController phoneController = TextEditingController();
   final TextEditingController firstNameController = TextEditingController();
   final TextEditingController lastNameController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   String countryCode = "+91"; // Default country code
-  bool loading = false;
 
-  void sendOTP() async {
-    final auth = FirebaseAuth.instance;
+  bool _validateFields() {
+    if (firstNameController.text.trim().isEmpty) {
+      _showErrorSnackBar("Please enter your first name");
+      return false;
+    }
+    if (lastNameController.text.trim().isEmpty) {
+      _showErrorSnackBar("Please enter your last name");
+      return false;
+    }
+    if (phoneController.text.trim().isEmpty) {
+      _showErrorSnackBar("Please enter a valid phone number");
+      return false;
+    }
+    return true;
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  void handleSignUp() async {
+    if (!_validateFields()) return;
+
+    final authService = ref.read(authProvider);
     String phoneNumber = "$countryCode${phoneController.text.trim()}";
 
-    if (phoneController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Enter a valid phone number")),
+    // Update state providers with latest values
+    ref.read(phoneProvider.notifier).state = phoneController.text.trim();
+    ref.read(firstNameProvider.notifier).state =
+        firstNameController.text.trim();
+    ref.read(lastNameProvider.notifier).state = lastNameController.text.trim();
+
+    // Show loading
+    ref.read(loadingProvider.notifier).state = true;
+
+    try {
+      await authService.registerUser(
+        phoneNumber: phoneNumber,
+        firstName: firstNameController.text.trim(),
+        lastName: lastNameController.text.trim(),
       );
-      return;
+
+      // Navigate to OTP screen if registration is successful
+      ref.read(loadingProvider.notifier).state = false;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder:
+              (context) => OtpVerificationScreen(
+                phoneNumber: phoneNumber
+              ),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        _showErrorSnackBar(e.toString());
+        ref.read(loadingProvider.notifier).state = false;
+      }
     }
-
-    ref.read(loadingProvider.notifier).state = true; // Show loading
-
-    await auth.verifyPhoneNumber(
-      phoneNumber: phoneNumber,
-      timeout: const Duration(seconds: 60),
-      verificationCompleted: (PhoneAuthCredential credential) async {
-        await auth.signInWithCredential(credential);
-      },
-      verificationFailed: (FirebaseAuthException e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Verification Failed: ${e.message}")),
-        );
-        ref.read(loadingProvider.notifier).state = false; // Hide loading
-      },
-      codeSent: (String verificationId, int? resendToken) {
-        ref.read(loadingProvider.notifier).state = false; // Hide loading
-
-        // Navigate to OTP screen with verificationId and phoneNumber
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder:
-                (context) => OtpVerificationScreen(
-                  verificationId: verificationId,
-                  phoneNumber: phoneNumber,
-                ),
-          ),
-        );
-      },
-      codeAutoRetrievalTimeout: (String verificationId) {},
-    );
   }
 
   @override
   void dispose() {
-    ref.read(phoneProvider.notifier).state = '';
-    ref.read(firstNameProvider.notifier).state = '';
-    ref.read(lastNameProvider.notifier).state = '';
-    ref.read(loadingProvider.notifier).state = true;
-
     phoneController.dispose();
     firstNameController.dispose();
     lastNameController.dispose();
@@ -89,6 +101,8 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = ref.watch(loadingProvider);
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
       body: SafeArea(
@@ -154,6 +168,15 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                         hintText: "Enter first name",
                                         prefixIcon: Icons.person_outline,
                                         controller: firstNameController,
+                                        onChanged: (value) {
+                                          if (mounted) {
+                                            ref
+                                                .read(
+                                                  firstNameProvider.notifier,
+                                                )
+                                                .state = value;
+                                          }
+                                        },
                                       ),
                                     ),
                                     SizedBox(width: 10.w),
@@ -163,6 +186,13 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
                                         hintText: "Enter last name",
                                         prefixIcon: Icons.person_outline,
                                         controller: lastNameController,
+                                        onChanged: (value) {
+                                          if (mounted) {
+                                            ref
+                                                .read(lastNameProvider.notifier)
+                                                .state = value;
+                                          }
+                                        },
                                       ),
                                     ),
                                   ],
@@ -237,11 +267,10 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
 
                                 // 📌 Continue Button
                                 CustomButton(
-                                  text: "Continue",
+                                  text:
+                                      isLoading ? "Please wait..." : "Continue",
                                   iconPath: 'images/SignInAddIcon.png',
-                                  onPressed: () {
-                                    sendOTP(); // Call sendOTP() to initiate OTP verification
-                                  },
+                                  onPressed: isLoading ? null : handleSignUp,
                                 ),
                                 SizedBox(height: 15.h),
 

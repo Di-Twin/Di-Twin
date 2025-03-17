@@ -66,7 +66,6 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 16.h),
-              // Back button and progress bar
               Row(
                 children: [
                   Container(
@@ -86,15 +85,14 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                     ),
                   ),
                   SizedBox(width: 16.w),
-                  Expanded(child: ProgressBar(totalSteps: 5, currentStep: 1)),
+                  Expanded(child: ProgressBar(totalSteps: 7, currentStep: 5)),
                   SizedBox(width: 16.w),
-                  // Disabled Skip button (Greyed out)
                   Text(
                     'Skip',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.grey, // Greyed out
+                      fontWeight: FontWeight.w700,
+                      color: Colors.grey,
                     ),
                   ),
                 ],
@@ -113,13 +111,23 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    Positioned(
+                    // Center the blue box on the page
+                    Center(
                       child: Container(
-                        height: 150.h,
-                        width: 150.w,
+                        height: 130.h,
+                        width: 130.w,
                         decoration: BoxDecoration(
                           color: const Color(0xFF0066FF),
                           borderRadius: BorderRadius.circular(16.r),
+                          // Add box shadow
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.blue.withOpacity(0.3),
+                              spreadRadius: 2,
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -134,50 +142,59 @@ class _HealthAssessmentAgeState extends State<HealthAssessmentAge> {
                         }
                         return false;
                       },
-                      child: ListWheelScrollView.useDelegate(
-                        controller: _scrollController,
-                        itemExtent: 90.h,
-                        perspective: 0.001,
-                        diameterRatio: 4.0,
-                        physics: const FixedExtentScrollPhysics(),
-                        onSelectedItemChanged: (index) {
-                          setState(() {
-                            _selectedAge = index + _minAge;
-                            _triggerHapticFeedback();
-                          });
-                        },
-                        clipBehavior: Clip.antiAlias,
-                        childDelegate: ListWheelChildBuilderDelegate(
-                          childCount: _maxAge - _minAge + 1,
-                          builder: (context, index) {
-                            final age = index + _minAge;
-                            final isSelected = age == _selectedAge;
-                            final distance = (age - _selectedAge).abs();
-
-                            if (distance > 2) {
-                              return const SizedBox.shrink();
-                            }
-
-                            return Center(
-                              child: AnimatedDefaultTextStyle(
-                                duration: const Duration(milliseconds: 200),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: _getTextSize(age),
-                                  fontWeight:
-                                      isSelected
-                                          ? FontWeight.w800
-                                          : FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : Colors.grey.withOpacity(
-                                            _getTextOpacity(age),
-                                          ),
-                                ),
-                                child: Text(age.toString()),
-                              ),
-                            );
+                      // Add padding to create gap between numbers and box
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 15.w),
+                        child: ListWheelScrollView.useDelegate(
+                          controller: _scrollController,
+                          itemExtent: 115.h,
+                          perspective: 0.001,
+                          diameterRatio: 5.0, // Increased to create more space
+                          physics: const FixedExtentScrollPhysics(),
+                          onSelectedItemChanged: (index) {
+                            setState(() {
+                              _selectedAge = index + _minAge;
+                              _triggerHapticFeedback();
+                            });
                           },
+                          clipBehavior: Clip.antiAlias,
+                          childDelegate: ListWheelChildBuilderDelegate(
+                            childCount: _maxAge - _minAge + 1,
+                            builder: (context, index) {
+                              final age = index + _minAge;
+                              final isSelected = age == _selectedAge;
+                              final distance = (age - _selectedAge).abs();
+
+                              if (distance > 2) {
+                                return const SizedBox.shrink();
+                              }
+
+                              // Center the text
+                              return Center(
+                                child: AnimatedDefaultTextStyle(
+                                  duration: const Duration(milliseconds: 200),
+                                  textAlign: TextAlign.center, // Ensure text is centered
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: _getTextSize(age),
+                                    fontWeight:
+                                        isSelected
+                                            ? FontWeight.w800
+                                            : FontWeight.w500,
+                                    color:
+                                        isSelected
+                                            ? Colors.white
+                                            : Colors.grey.withOpacity(
+                                              _getTextOpacity(age),
+                                            ),
+                                  ),
+                                  child: Text(
+                                    age.toString(),
+                                    textAlign: TextAlign.center, // Ensure text is centered
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
                         ),
                       ),
                     ),

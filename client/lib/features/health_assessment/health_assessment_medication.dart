@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 // Provider for medication state
@@ -101,7 +100,7 @@ class Medication {
 }
 
 class HealthAssessmentMedication extends ConsumerWidget {
-  const HealthAssessmentMedication({Key? key}) : super(key: key);
+  const HealthAssessmentMedication({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {

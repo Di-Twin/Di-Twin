@@ -5,7 +5,7 @@ import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/ProgressBar.dart';
 
 class SymptomsSelectionPage extends StatefulWidget {
-  const SymptomsSelectionPage({Key? key}) : super(key: key);
+  const SymptomsSelectionPage({super.key});
 
   @override
   State<SymptomsSelectionPage> createState() => _SymptomsSelectionPageState();
@@ -101,13 +101,11 @@ class _SymptomsSelectionPageState extends State<SymptomsSelectionPage> {
         body: SafeArea(
           child: SingleChildScrollView(
             child: Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: 30.0.w,
-                vertical: 16.0.h,
-              ),
+              padding: EdgeInsets.symmetric(horizontal: 24.0.w),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                   SizedBox(height: 16.h),
                   _buildHeader(),
                   SizedBox(height: 40.h),
                   _buildTitle(),
@@ -120,7 +118,7 @@ class _SymptomsSelectionPageState extends State<SymptomsSelectionPage> {
                     text: "Continue",
                     iconPath: 'images/SignInAddIcon.png',
                     onPressed: () {
-                      Navigator.pushNamed(context, '/');
+                      Navigator.pushNamed(context, '/loading');
                     },
                   ),
                   // Add extra space at the bottom to ensure content isn't hidden by keyboard
@@ -136,50 +134,35 @@ class _SymptomsSelectionPageState extends State<SymptomsSelectionPage> {
 
   Widget _buildHeader() {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        // Back button
-        Container(
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(12.r),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.chevron_left),
-            iconSize: 24.sp,
-            onPressed: () {
-              Navigator.pop(context);
-            },
-            color: Colors.grey[700],
-          ),
-        ),
-
-        // Progress tracker
-        SizedBox(
-          width: 0.5.sw,
-          child: ProgressBar(
-            totalSteps: totalSteps,
-            currentStep: currentStep + 1,
-          ),
-        ),
-
-        // Skip button
-        TextButton(
-          onPressed: () {
-            // Handle skip action
-          },
-          child: Text(
-            'Skip',
-            style: GoogleFonts.plusJakartaSans(
-              textStyle: TextStyle(
-                color: Colors.grey[800],
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w500,
+          children: [
+            Container(
+              width: 48.w,
+              height: 48.h,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.grey[300]!),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: Center(
+                  child: Icon(Icons.arrow_back_ios_new, size: 20.sp),
+                ),
               ),
             ),
-          ),
-        ),
-      ],
+            SizedBox(width: 16.w),
+            Expanded(child: ProgressBar(totalSteps: 7, currentStep: 4)),
+            SizedBox(width: 16.w),
+            Text(
+              'Skip',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.grey,
+              ),
+            ),
+          ],
     );
   }
 
@@ -197,9 +180,7 @@ class _SymptomsSelectionPageState extends State<SymptomsSelectionPage> {
   Widget _buildImage() {
     return Center(
       child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(20),
-        ),
+        decoration: BoxDecoration(borderRadius: BorderRadius.circular(20)),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(20),
           child: Image.asset('images/HealthAssessmentSymptoms.png'),
