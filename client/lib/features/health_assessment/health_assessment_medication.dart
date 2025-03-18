@@ -1,3 +1,4 @@
+import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -245,29 +246,13 @@ class HealthAssessmentMedication extends ConsumerWidget {
                 ),
               ),
               // Continue button
-              Container(
-                margin: EdgeInsets.only(bottom: 20.h),
-                width: double.infinity,
-                height: 60.h,
-                decoration: BoxDecoration(
-                  color: Colors.blue,
-                  borderRadius: BorderRadius.circular(15.r),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Continue',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                    SizedBox(width: 10.w),
-                    const Icon(Icons.add, color: Colors.white),
-                  ],
-                ),
+              SizedBox(height: 10.h),
+              CustomButton(
+                text: "Continue",
+                iconPath: 'images/SignInAddIcon.png',
+                onPressed: () {
+                  Navigator.pushNamed(context, '/activity/today');
+                },
               ),
             ],
           ),
