@@ -111,12 +111,12 @@ class _ActivityTodayState extends State<ActivityToday> {
     left: x,
     top: y,
     child: GestureDetector(
-      onPanUpdate: (details) {
-        setState(() {
-          x += details.delta.dx;
-          y += details.delta.dy;
-        });
-      },
+      // onPanUpdate: (details) {
+      //   setState(() {
+      //     x += details.delta.dx;
+      //     y += details.delta.dy;
+      //   });
+      // },
       child: Container(
         width: 80.w,
         height: 80.h,
