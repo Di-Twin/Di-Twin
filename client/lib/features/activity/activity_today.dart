@@ -1,25 +1,41 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'dart:math' show max;
 
 class ActivityToday extends StatefulWidget {
-  const ActivityToday({Key? key}) : super(key: key);
+  const ActivityToday({super.key});
 
   @override
   _ActivityTodayState createState() => _ActivityTodayState();
 }
 
 class _ActivityTodayState extends State<ActivityToday> {
-  double x = 165; // Centered X position
-  double y = 275; // Positioned Y to match design
+  double x = 165; 
+  double y = 275;
 
   @override
   Widget build(BuildContext context) {
     final activityData = [
-      {'hours': '2.5', 'label': 'Jogging', 'color': const Color(0xFF1E293B), 'icon': Icons.directions_run},
-      {'hours': '6.5', 'label': 'Yoga', 'color': Colors.blue, 'icon': Icons.spa},
-      {'hours': '7.8', 'label': 'Biking', 'color': Colors.redAccent, 'icon': Icons.directions_bike},
+      {
+        'hours': '2.5',
+        'label': 'Jogging',
+        'color': const Color(0xFF1E2A3D),
+        'icon': FontAwesomeIcons.personRunning,
+      },
+      {
+        'hours': '6.5',
+        'label': 'Yoga',
+        'color': const Color(0xFF0066FF),
+        'icon': Icons.spa,
+      },
+      {
+        'hours': '7.8',
+        'label': 'Biking',
+        'color': Colors.redAccent,
+        'icon': FontAwesomeIcons.bicycle,
+      },
     ];
 
     return Scaffold(
@@ -32,11 +48,11 @@ class _ActivityTodayState extends State<ActivityToday> {
               children: [
                 _buildHeader(),
                 _buildActivityCount(),
-                SizedBox(height: 80.h), // Add space for the floating button
+                SizedBox(height: 80.h), 
                 Expanded(child: _buildMostHoursSection(activityData)),
               ],
             ),
-            _buildDraggableAddButton(), // Draggable Button on top of everything
+            _buildDraggableAddButton(), 
           ],
         ),
       ),
@@ -59,7 +75,11 @@ class _ActivityTodayState extends State<ActivityToday> {
           SizedBox(width: 12.w),
           Text(
             'Activities',
-            style: GoogleFonts.plusJakartaSans(fontSize: 20.sp, fontWeight: FontWeight.w600, color: Colors.black87),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w600,
+              color: Colors.black87,
+            ),
           ),
           Spacer(),
           Container(
@@ -70,7 +90,11 @@ class _ActivityTodayState extends State<ActivityToday> {
             ),
             child: Text(
               'Normal',
-              style: GoogleFonts.plusJakartaSans(fontSize: 14.sp, fontWeight: FontWeight.w500, color: Colors.blue),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.blue,
+              ),
             ),
           ),
         ],
@@ -79,7 +103,6 @@ class _ActivityTodayState extends State<ActivityToday> {
   }
 
   Widget _buildActivityCount() {
-
     // dart(TODO:) need to add image as per figma
     return Center(
       child: Column(
@@ -88,8 +111,8 @@ class _ActivityTodayState extends State<ActivityToday> {
           Text(
             '16',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 100.sp, 
-              fontWeight: FontWeight.w700, 
+              fontSize: 100.sp,
+              fontWeight: FontWeight.w700,
               color: const Color(0xFF1E293B),
               height: 1,
             ),
@@ -98,7 +121,11 @@ class _ActivityTodayState extends State<ActivityToday> {
           SizedBox(height: 8.h),
           Text(
             'Activities Today.',
-            style: GoogleFonts.plusJakartaSans(fontSize: 24.sp, fontWeight: FontWeight.w400, color: const Color(0xFF1E293B)),
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1E293B),
+            ),
             textAlign: TextAlign.center,
           ),
         ],
@@ -106,51 +133,52 @@ class _ActivityTodayState extends State<ActivityToday> {
     );
   }
 
- Widget _buildDraggableAddButton() {
-  return Positioned(
-    left: x,
-    top: y,
-    child: GestureDetector(
-      // onPanUpdate: (details) {
-      //   setState(() {
-      //     x += details.delta.dx;
-      //     y += details.delta.dy;
-      //   });
-      // },
-      child: Container(
-        width: 80.w,
-        height: 80.h,
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E293B),
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow: [
-            BoxShadow(
-              color: const Color.fromARGB(255, 151, 149, 149).withOpacity(0.2),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+  Widget _buildDraggableAddButton() {
+    return Positioned(
+      left: x,
+      top: y,
+      child: GestureDetector(
+        child: Container(
+          width: 80.w,
+          height: 80.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E293B),
+            borderRadius: BorderRadius.circular(16.r),
+            boxShadow: [
+              BoxShadow(
+                color: const Color.fromARGB(
+                  255,
+                  151,
+                  149,
+                  149,
+                ).withOpacity(0.2),
+                blurRadius: 10,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Image.asset(
+              'images/SignInAddIcon.png',
+              width: 30.w,
+              height: 30.h,
+              fit: BoxFit.contain,
             ),
-          ],
-        ),
-        child: Center(
-          child: Image.asset(
-            'images/SignInAddIcon.png',
-            width: 30.w,
-            height: 30.h,
-            fit: BoxFit.contain,
           ),
         ),
       ),
-    ),
-  );
-}
-
+    );
+  }
 
   Widget _buildMostHoursSection(List<Map<String, dynamic>> activityData) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: Colors.grey[100], // Lighter background color
-        borderRadius: BorderRadius.only(topLeft: Radius.circular(32.r), topRight: Radius.circular(32.r)),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(32.r),
+          topRight: Radius.circular(32.r),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -159,7 +187,11 @@ class _ActivityTodayState extends State<ActivityToday> {
             padding: EdgeInsets.only(left: 16.w, top: 24.h, bottom: 12.h),
             child: Text(
               'Most Hours',
-              style: GoogleFonts.plusJakartaSans(fontSize: 18.sp, fontWeight: FontWeight.w600, color: Colors.black87),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87,
+              ),
             ),
           ),
           Expanded(
@@ -200,8 +232,11 @@ class _ActivityTodayState extends State<ActivityToday> {
   }) {
     double maxHours = 10.0;
     double heightFactor = double.parse(hours) / maxHours;
-    double maxBarHeight = 400.h; 
-    double coloredBarHeight = max(80.h, maxBarHeight * heightFactor); // Add minimum height of 80.h
+    double maxBarHeight = 400.h;
+    double coloredBarHeight = max(
+      80.h,
+      maxBarHeight * heightFactor,
+    ); // Add minimum height of 80.h
 
     // Adjust colors to match design
     if (index == 0) {
@@ -263,12 +298,20 @@ class _ActivityTodayState extends State<ActivityToday> {
                   children: [
                     Text(
                       hours,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 24.sp, fontWeight: FontWeight.w700, color: Colors.white),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
                     ),
                     SizedBox(height: 4.h),
                     Text(
                       label,
-                      style: GoogleFonts.plusJakartaSans(fontSize: 14.sp, fontWeight: FontWeight.w500, color: Colors.white),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.sp,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
                     ),
                   ],
                 ),
@@ -280,4 +323,3 @@ class _ActivityTodayState extends State<ActivityToday> {
     );
   }
 }
-
