@@ -61,22 +61,28 @@ class CustomHeader extends StatelessWidget {
                           Row(
                             children: [
                               // Back Button
-                              Container(
-                                padding: EdgeInsets.all(6.w),
-                                decoration: BoxDecoration(
-                                  color: Colors.transparent,
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  border: Border.all(
-                                    color: Colors.white,
-                                    width: 1.5.w,
-                                  ),
-                                ),
-                                child: Icon(
-                                  Icons.chevron_left,
-                                  color: Colors.white,
-                                  size: 20.sp,
-                                ),
-                              ),
+                              GestureDetector(
+  onTap: () {
+    Navigator.of(context).pop(); // Navigate back to the previous screen
+  },
+  child: Container(
+    padding: EdgeInsets.all(6.w),
+    decoration: BoxDecoration(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(8.r),
+      border: Border.all(
+        color: Colors.white,
+        width: 1.5.w,
+      ),
+    ),
+    child: Icon(
+      Icons.chevron_left,
+      color: Colors.white,
+      size: 20.sp,
+    ),
+  ),
+),
+
                               SizedBox(width: 12.w),
                               // Dynamic Title
                               Text(
