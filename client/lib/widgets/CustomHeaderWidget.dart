@@ -40,7 +40,7 @@ class CustomHeader extends StatelessWidget {
               decoration: BoxDecoration(
                 color: backgroundColor,
                 image: const DecorationImage(
-                  image: AssetImage('images/Group363.png'),
+                  image: AssetImage('images/header_background.png'),
                   fit: BoxFit.cover,
                 ),
                 borderRadius: BorderRadius.only(
