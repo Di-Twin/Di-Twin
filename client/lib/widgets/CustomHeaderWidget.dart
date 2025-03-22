@@ -15,7 +15,7 @@ class CustomHeader extends StatelessWidget {
   final Color backgroundColor;
 
   const CustomHeader({
-    Key? key,
+    super.key,
     required this.title,
     required this.badgeText,
     required this.score,
@@ -23,8 +23,7 @@ class CustomHeader extends StatelessWidget {
     required this.buttonImage,
     required this.onButtonTap,
     Color? backgroundColor, 
-  })  : backgroundColor = backgroundColor ?? const Color(0xFF242E49), 
-        super(key: key);
+  })  : backgroundColor = backgroundColor ?? const Color(0xFF242E49);
 
 
   @override
