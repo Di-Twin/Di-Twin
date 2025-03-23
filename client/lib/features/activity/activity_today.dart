@@ -1,3 +1,4 @@
+import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,8 +13,10 @@ class ActivityToday extends StatefulWidget {
 }
 
 class _ActivityTodayState extends State<ActivityToday> {
-  double x = 165; 
+  double x = 165;
   double y = 275;
+
+  // BoxConstraints get constraints => null;
 
   @override
   Widget build(BuildContext context) {
@@ -41,61 +44,48 @@ class _ActivityTodayState extends State<ActivityToday> {
     return Scaffold(
       backgroundColor: const Color(0xFFD6E4FF),
       body: SafeArea(
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-                _buildActivityCount(),
-                SizedBox(height: 80.h), 
-                Expanded(child: _buildMostHoursSection(activityData)),
-              ],
-            ),
-            _buildDraggableAddButton(), 
-          ],
+        child: GestureDetector(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              return Stack(
+                children: [
+                  SingleChildScrollView(
+                    physics: const BouncingScrollPhysics(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        _buildHeader(constraints),
+                        // _buildActivityCount(),
+                        
+                        _buildMostHoursSection(activityData),
+                        // SizedBox(height: 80.h),
+                      ],
+                    ),
+                  ),
+                  // _buildDraggableAddButton(), // Now inside Stack
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
-      child: Row(
+  Widget _buildHeader(BoxConstraints constrains) {
+    return SizedBox(
+      height: constrains.maxHeight,
+      width: double.infinity,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-            padding: EdgeInsets.all(8.r),
-            child: Icon(Icons.chevron_left, color: Colors.black87, size: 24.sp),
-          ),
-          SizedBox(width: 12.w),
-          Text(
-            'Activities',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w600,
-              color: Colors.black87,
-            ),
-          ),
-          Spacer(),
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.5),
-              borderRadius: BorderRadius.circular(16.r),
-            ),
-            child: Text(
-              'Normal',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.blue,
-              ),
-            ),
+          CustomActivityHeader(
+            title: 'Activities',
+            badgeText: 'Normal',
+            score: '16',
+            subtitle: 'Activities Today.',
+            buttonImage: 'images/header_background.png',
+            onButtonTap: () {},
           ),
         ],
       ),
@@ -194,7 +184,8 @@ class _ActivityTodayState extends State<ActivityToday> {
               ),
             ),
           ),
-          Expanded(
+          SizedBox(
+            height: 400.h, // Fixed height for the bar chart
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 16.w),
               child: Row(

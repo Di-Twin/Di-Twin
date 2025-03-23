@@ -1,3 +1,9 @@
+import 'package:client/features/activity/activity_calories.dart';
+import 'package:client/features/activity/activity_nutrition.dart';
+import 'package:client/features/activity/activity_stats.dart';
+import 'package:client/features/activity/activity_steps.dart';
+import 'package:client/features/activity/activity_today.dart';
+import 'package:client/features/activity/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
@@ -79,12 +85,15 @@ class MyApp extends StatelessWidget {
                       canPop: false,
                       child: const HealthAssessmentAvatar(),
                     ),
-                '/dashboard':
-                    (context) => const HealthAssessmentScore(score: 22),
-                
                 '/questions/gender': (context) =>  const HealthAssessmentGender(),
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
+                '/dashboard/activity/today': (context) => const ActivityToday(),
+                '/dashboard/activity/stats': (context) => ActivityStats(),
+                '/dashboard/activity/calories': (context) => const ActivityCalories(),
+                '/dashboard/activity/calroies_tracker': (context) =>  ActivityCaloriesTracker(),
+                '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
+                '/dashboard/activity/steps': (context) => const ActivitySteps(),
               },
             );
           },

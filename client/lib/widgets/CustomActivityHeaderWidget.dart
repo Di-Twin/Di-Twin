@@ -1,11 +1,10 @@
 // Header background color default : 0xFF242E49
 
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class CustomHeader extends StatelessWidget {
+class CustomActivityHeader extends StatelessWidget {
   final String title;
   final String badgeText;
   final String score;
@@ -14,8 +13,8 @@ class CustomHeader extends StatelessWidget {
   final VoidCallback onButtonTap;
   final Color backgroundColor;
 
-  const CustomHeader({
-    Key? key,
+  const CustomActivityHeader({
+    super.key,
     required this.title,
     required this.badgeText,
     required this.score,
@@ -23,8 +22,7 @@ class CustomHeader extends StatelessWidget {
     required this.buttonImage,
     required this.onButtonTap,
     Color? backgroundColor, 
-  })  : backgroundColor = backgroundColor ?? const Color(0xFF242E49), 
-        super(key: key);
+  })  : backgroundColor = backgroundColor ?? const Color(0xFF242E49);
 
 
   @override
