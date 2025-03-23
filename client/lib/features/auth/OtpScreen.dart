@@ -111,7 +111,7 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
         }
 
         if (mounted) {
-          Navigator.pushNamed(context, '/loading');
+          Navigator.pushNamed(context, '/questions/goal');
         }
       } catch (e) {
         setState(() => loading = false);

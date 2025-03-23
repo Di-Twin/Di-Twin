@@ -1,258 +1,254 @@
 import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
+import 'package:client/widgets/CustomButton.dart';
+import 'package:client/widgets/ProgressBar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/data/providers/onboarding_provider.dart';
 
-// Provider for medication state
-final medicationsProvider = StateNotifierProvider<MedicationsNotifier, MedicationsState>((ref) {
-  return MedicationsNotifier();
-});
-
-// State class for medications
-class MedicationsState {
-  final List<Medication> medications;
-  final List<String> selectedMedications;
-  final bool isSearching;
-  
-  MedicationsState({
-    required this.medications,
-    required this.selectedMedications,
-    this.isSearching = false,
-  });
-
-  MedicationsState copyWith({
-    List<Medication>? medications,
-    List<String>? selectedMedications,
-    bool? isSearching,
-  }) {
-    return MedicationsState(
-      medications: medications ?? this.medications,
-      selectedMedications: selectedMedications ?? this.selectedMedications,
-      isSearching: isSearching ?? this.isSearching,
-    );
-  }
-}
-
-// Notifier for medication state
-class MedicationsNotifier extends StateNotifier<MedicationsState> {
-  MedicationsNotifier() : super(MedicationsState(
-    medications: [
-      Medication(name: 'Abilify', isSelected: false),
-      Medication(name: 'Abilify Maintena', isSelected: true),
-      Medication(name: 'Abiraterone', isSelected: false),
-      Medication(name: 'Acetaminophen', isSelected: true),
-      Medication(name: 'Actemra', isSelected: false),
-      Medication(name: 'Axpelliarmus', isSelected: false),
-      Medication(name: 'Aspirin', isSelected: true),
-      Medication(name: 'Ibuprofen', isSelected: true),
-    ],
-    selectedMedications: ['Aspirin', 'Ibuprofen'],
-  ));
-
-  void toggleMedication(String name) {
-    final updatedMedications = state.medications.map((med) {
-      if (med.name == name) {
-        return Medication(name: med.name, isSelected: !med.isSelected);
-      }
-      return med;
-    }).toList();
-
-    final selectedMeds = updatedMedications
-        .where((med) => med.isSelected)
-        .map((med) => med.name)
-        .toList();
-
-    state = state.copyWith(
-      medications: updatedMedications,
-      selectedMedications: selectedMeds,
-    );
-  }
-
-  void removeMedication(String name) {
-    final updatedMedications = state.medications.map((med) {
-      if (med.name == name) {
-        return Medication(name: med.name, isSelected: false);
-      }
-      return med;
-    }).toList();
-
-    final selectedMeds = state.selectedMedications
-        .where((med) => med != name)
-        .toList();
-
-    state = state.copyWith(
-      medications: updatedMedications,
-      selectedMedications: selectedMeds,
-    );
-  }
-
-  void toggleSearch() {
-    state = state.copyWith(isSearching: !state.isSearching);
-  }
-}
-
-// Medication model
-class Medication {
-  final String name;
-  final bool isSelected;
-
-  Medication({required this.name, required this.isSelected});
-}
-
-class HealthAssessmentMedication extends ConsumerWidget {
+class HealthAssessmentMedication extends ConsumerStatefulWidget {
   const HealthAssessmentMedication({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(medicationsProvider);
-    
+  ConsumerState<HealthAssessmentMedication> createState() =>
+      _HealthAssessmentMedicationState();
+}
+
+class _HealthAssessmentMedicationState
+    extends ConsumerState<HealthAssessmentMedication> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  Widget build(BuildContext context) {
+    // Get screen dimensions for responsive layout
+    final size = MediaQuery.of(context).size;
+    final screenWidth = size.width;
+    final screenHeight = size.height;
+
+    // Determine if it's a small device
+    final isSmallDevice = screenWidth < 360 || screenHeight < 600;
+
+    // Responsive spacing
+    final horizontalPadding = screenWidth * 0.06;
+    final verticalSpacing = screenHeight * 0.02;
+    final titleSpacing = screenHeight * 0.03;
+
+    // Responsive font sizing
+    final titleSize = isSmallDevice ? 20.0 : 24.0;
+    final normalTextSize = isSmallDevice ? 14.0 : 16.0;
+    final smallTextSize = isSmallDevice ? 10.0 : 12.0;
+
+    // Responsive component sizing
+    final backButtonSize = screenWidth * 0.12;
+    final listTilePadding = screenWidth * 0.04;
+    final checkboxSize = screenWidth * 0.06;
+
+    final onboardingState = ref.watch(onboardingProvider);
+    final onboardingNotifier = ref.read(onboardingProvider.notifier);
+
+    final List<String> allMedications = [
+      'Abilify',
+      'Acetaminophen',
+      'Aspirin',
+      'Baclofen',
+      'Ciprofloxacin',
+      'Diazepam',
+      'Enalapril',
+      'Fluoxetine',
+      'Gabapentin',
+      'Ibuprofen',
+      'Insulin',
+      'Metformin',
+      'Omeprazole',
+      'Prednisone',
+      'Ramipril',
+      'Simvastatin',
+      'Tramadol',
+      'Warfarin',
+      'Xanax',
+      'Zoloft',
+    ];
+
+    final List<String> filteredMedications =
+        allMedications
+            .where(
+              (med) => med.toLowerCase().contains(_searchQuery.toLowerCase()),
+            )
+            .toList();
+
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7F9),
       body: SafeArea(
         child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 30.w),
+          padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 30.h),
+              SizedBox(height: verticalSpacing),
               // Back button and progress bar
               Row(
                 children: [
-                  Container(
-                    width: 50.w,
-                    height: 50.h,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.grey.shade300),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Center(
-                      child: Icon(
-                        Icons.chevron_left,
-                        size: 28.sp,
-                        color: Colors.grey.shade600,
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      width: backButtonSize,
+                      height: backButtonSize,
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.grey[300]!),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          Icons.arrow_back_ios_new,
+                          size: backButtonSize * 0.4,
+                        ),
                       ),
                     ),
                   ),
-                  SizedBox(width: 15.w),
-                  Expanded(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(8.r),
-                      child: LinearProgressIndicator(
-                        value: 0.7,
-                        backgroundColor: Colors.grey.shade200,
-                        color: const Color(0xFF1B283A),
-                        minHeight: 8.h,
-                      ),
-                    ),
+                  SizedBox(width: screenWidth * 0.04),
+                  const Expanded(
+                    child: ProgressBar(totalSteps: 7, currentStep: 6),
                   ),
-                  SizedBox(width: 15.w),
+                  SizedBox(width: screenWidth * 0.04),
                   Text(
                     'Skip',
                     style: GoogleFonts.plusJakartaSans(
-                      color: Colors.black,
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w500,
+                      fontSize: normalTextSize,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 40.h),
+              SizedBox(height: titleSpacing),
               // Title
               Text(
                 'What medications do\nyou take?',
                 style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFF1B283A),
-                  fontSize: 32.sp,
+                  fontSize: titleSize,
                   fontWeight: FontWeight.bold,
                 ),
               ),
-              SizedBox(height: 20.h),
-              // Alphabet selection or search bar
-              AnimatedSwitcher(
-                duration: const Duration(milliseconds: 300),
-                child: state.isSearching 
-                    ? _buildSearchBar(ref)
-                    : _buildAlphabetSelector(ref),
-              ),
-              SizedBox(height: 10.h),
+              SizedBox(height: verticalSpacing),
+
+              // Search bar
+              _buildSearchBar(context, normalTextSize),
+
+              SizedBox(height: verticalSpacing * 0.8),
+
               // Medication list
               Expanded(
                 child: ListView.builder(
-                  padding: EdgeInsets.zero,
-                  itemCount: state.medications.length,
+                  itemCount: filteredMedications.length,
                   itemBuilder: (context, index) {
-                    final medication = state.medications[index];
-                    return _MedicationItem(
-                      medication: medication,
-                      onToggle: () => ref.read(medicationsProvider.notifier).toggleMedication(medication.name),
+                    final med = filteredMedications[index];
+                    final isSelected =
+                        onboardingState.medications?.contains(med) ?? false;
+
+                    return GestureDetector(
+                      onTap: () {
+                        onboardingNotifier.toggleMedication(med);
+                      },
+                      child: Container(
+                        margin: EdgeInsets.only(bottom: verticalSpacing * 0.4),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: ListTile(
+                          contentPadding: EdgeInsets.symmetric(
+                            horizontal: listTilePadding,
+                          ),
+                          title: Text(
+                            med,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: normalTextSize,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                          trailing: Container(
+                            width: checkboxSize,
+                            height: checkboxSize,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color:
+                                    isSelected
+                                        ? Colors.blue
+                                        : Colors.grey.shade300,
+                                width: 2,
+                              ),
+                              color:
+                                  isSelected ? Colors.blue : Colors.transparent,
+                            ),
+                            child:
+                                isSelected
+                                    ? Icon(
+                                      Icons.check,
+                                      color: Colors.white,
+                                      size: checkboxSize * 0.66,
+                                    )
+                                    : null,
+                          ),
+                        ),
+                      ),
                     );
                   },
                 ),
               ),
+
+              SizedBox(height: verticalSpacing),
+
               // Selected medications section
-              if (state.selectedMedications.isNotEmpty) ...[
-                Padding(
-                  padding: EdgeInsets.symmetric(vertical: 10.h),
-                  child: Row(
-                    children: [
-                      Text(
-                        'Selected:',
-                        style: GoogleFonts.plusJakartaSans(
-                          color: Colors.grey.shade600,
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                      SizedBox(width: 10.w),
-                      Expanded(
-                        child: Wrap(
-                          spacing: 8.w,
-                          children: state.selectedMedications
-                              .map((med) => _SelectedMedicationChip(
-                                    name: med,
-                                    onRemove: () => ref.read(medicationsProvider.notifier).removeMedication(med),
-                                  ))
-                              .toList(),
-                        ),
-                      ),
-                    ],
+              if (onboardingState.medications != null &&
+                  onboardingState.medications!.isNotEmpty) ...[
+                Text(
+                  'Selected:',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: smallTextSize + 2,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
                   ),
                 ),
-              ],
-              // AI Scan button
-              Container(
-                margin: EdgeInsets.symmetric(vertical: 10.h),
-                width: double.infinity,
-                height: 60.h,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE6F1FF),
-                  borderRadius: BorderRadius.circular(15.r),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'AI Scan',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.blue,
-                        fontSize: 18.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
+                SizedBox(height: verticalSpacing * 0.4),
+
+                // Horizontal Scrollable Medications List
+                SizedBox(
+                  height: screenHeight * 0.04,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      children:
+                          onboardingState.medications!
+                              .map(
+                                (med) => Padding(
+                                  padding: EdgeInsets.only(
+                                    right: screenWidth * 0.02,
+                                  ),
+                                  child: _buildSelectedMedicationChip(
+                                    med,
+                                    smallTextSize,
+                                  ),
+                                ),
+                              )
+                              .toList(),
                     ),
-                    SizedBox(width: 10.w),
-                    const Icon(Icons.add, color: Colors.blue),
-                  ],
+                  ),
                 ),
-              ),
+
+                SizedBox(height: verticalSpacing),
+              ],
+
               // Continue button
-              SizedBox(height: 10.h),
-              CustomButton(
-                text: "Continue",
-                iconPath: 'images/SignInAddIcon.png',
-                onPressed: () {
-                  Navigator.pushNamed(context, '/activity/today');
-                },
+              Padding(
+                padding: EdgeInsets.only(bottom: verticalSpacing),
+                child: CustomButton(
+                  text: "Continue",
+                  iconPath: 'images/SignInAddIcon.png',
+                  onPressed: () {
+                    Navigator.pushNamed(context, '/questions/allergy');
+                  },
+                ),
               ),
             ],
           ),
@@ -261,171 +257,84 @@ class HealthAssessmentMedication extends ConsumerWidget {
     );
   }
 
-  Widget _buildAlphabetSelector(WidgetRef ref) {
+  Widget _buildSearchBar(BuildContext context, double fontSize) {
+    final size = MediaQuery.of(context).size;
+    final searchBarHeight = size.height * 0.06;
+
     return Container(
-      key: const ValueKey('alphabet'),
-      height: 60.h,
+      height: searchBarHeight,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(15.r),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: ListView(
-              scrollDirection: Axis.horizontal,
-              children: [
-                _buildAlphabetButton('A', true),
-                _buildAlphabetButton('B', false),
-                _buildAlphabetButton('C', false),
-                _buildAlphabetButton('...', false),
-                _buildAlphabetButton('X', false),
-                _buildAlphabetButton('Y', false),
-                _buildAlphabetButton('Z', false),
-              ],
-            ),
-          ),
-          Container(
-            width: 60.w,
-            height: 60.h,
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: Color(0xFFEEEEEE)),
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(Icons.search, size: 24.sp),
-              onPressed: () => ref.read(medicationsProvider.notifier).toggleSearch(),
-            ),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAlphabetButton(String letter, bool isActive) {
-    return Container(
-      width: 50.w,
-      height: 50.h,
-      decoration: BoxDecoration(
-        color: isActive ? const Color(0xFF1B283A) : Colors.transparent,
-        borderRadius: BorderRadius.circular(8.r),
-      ),
-      margin: EdgeInsets.symmetric(horizontal: 5.w, vertical: 5.h),
-      child: Center(
-        child: Text(
-          letter,
-          style: GoogleFonts.plusJakartaSans(
-            color: isActive ? Colors.white : const Color(0xFF1B283A),
-            fontSize: 18.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchBar(WidgetRef ref) {
-    return Container(
-      key: const ValueKey('search'),
-      height: 60.h,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15.r),
-      ),
       child: Row(
         children: [
+          SizedBox(width: size.width * 0.03),
+          Icon(Icons.search, color: Colors.grey, size: searchBarHeight * 0.4),
+          SizedBox(width: size.width * 0.02),
           Expanded(
             child: TextField(
+              controller: _searchController,
+              onChanged: (value) {
+                setState(() {
+                  _searchQuery = value;
+                });
+              },
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: fontSize,
+                color: const Color(0xFF1B283A),
+              ),
               decoration: InputDecoration(
                 hintText: 'Search medications...',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: fontSize,
+                  color: Colors.grey,
+                ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.symmetric(horizontal: 20.w),
+                contentPadding: EdgeInsets.symmetric(
+                  vertical: searchBarHeight * 0.3,
+                ),
+                isDense: true,
               ),
             ),
           ),
-          Container(
-            width: 60.w,
-            height: 60.h,
-            decoration: const BoxDecoration(
-              border: Border(
-                left: BorderSide(color: Color(0xFFEEEEEE)),
+          if (_searchQuery.isNotEmpty)
+            GestureDetector(
+              onTap: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
+                });
+              },
+              child: Padding(
+                padding: EdgeInsets.all(size.width * 0.02),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.grey,
+                  size: searchBarHeight * 0.36,
+                ),
               ),
             ),
-            child: IconButton(
-              icon: Icon(Icons.close, size: 24.sp),
-              onPressed: () => ref.read(medicationsProvider.notifier).toggleSearch(),
-            ),
-          ),
+          SizedBox(width: size.width * 0.01),
         ],
       ),
     );
   }
-}
 
-class _MedicationItem extends StatelessWidget {
-  final Medication medication;
-  final VoidCallback onToggle;
-
-  const _MedicationItem({
-    required this.medication,
-    required this.onToggle,
-  });
-
-  @override
-  Widget build(BuildContext context) {
+  Widget _buildSelectedMedicationChip(String name, double fontSize) {
     return Container(
-      margin: EdgeInsets.only(bottom: 10.h),
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15.r),
-      ),
-      child: ListTile(
-        title: Text(
-          medication.name,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 17.sp,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        trailing: Container(
-          width: 30.w,
-          height: 30.h,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(8.r),
-            border: Border.all(
-              color: medication.isSelected ? Colors.blue : Colors.grey.shade300,
-              width: 2,
-            ),
-            color: medication.isSelected ? Colors.blue : Colors.transparent,
-          ),
-          child: medication.isSelected
-              ? const Icon(Icons.check, color: Colors.white, size: 18)
-              : null,
-        ),
-        onTap: onToggle,
-      ),
-    );
-  }
-}
-
-class _SelectedMedicationChip extends StatelessWidget {
-  final String name;
-  final VoidCallback onRemove;
-
-  const _SelectedMedicationChip({
-    required this.name,
-    required this.onRemove,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: EdgeInsets.only(bottom: 5.h),
-      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 5.h),
-      decoration: BoxDecoration(
-        color: Colors.grey.shade200,
-        borderRadius: BorderRadius.circular(8.r),
+        color: Colors.blue.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.blue.withOpacity(0.3), width: 1),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -433,14 +342,21 @@ class _SelectedMedicationChip extends StatelessWidget {
           Text(
             name,
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.sp,
+              fontSize: fontSize,
               fontWeight: FontWeight.w500,
+              color: Colors.blue.shade700,
             ),
           ),
-          SizedBox(width: 5.w),
+          const SizedBox(width: 4),
           GestureDetector(
-            onTap: onRemove,
-            child: Icon(Icons.close, size: 16.sp),
+            onTap: () {
+              ref.read(onboardingProvider.notifier).toggleMedication(name);
+            },
+            child: Icon(
+              Icons.close,
+              size: fontSize,
+              color: Colors.blue.shade700,
+            ),
           ),
         ],
       ),

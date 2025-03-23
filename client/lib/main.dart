@@ -23,6 +23,7 @@ import 'features/auth/signin.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:client/features/dashboard/dashboard.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -88,6 +89,7 @@ class MyApp extends StatelessWidget {
                 '/questions/gender': (context) =>  const HealthAssessmentGender(),
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
+                '/dashboard': (context) => const HomeScreen(),
                 '/dashboard/activity/today': (context) => const ActivityToday(),
                 '/dashboard/activity/stats': (context) => ActivityStats(),
                 '/dashboard/activity/calories': (context) => const ActivityCalories(),

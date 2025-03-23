@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 
 final authProvider = Provider<AuthService>((ref) {
   return AuthService();
@@ -14,6 +15,7 @@ class AuthService {
   String? _accessToken; // Store access token
   String? _verificationId; // Store verification ID for OTP
   String? _refreshToken; // Store refresh token
+  Timer? _tokenRefreshTimer; // Timer for automatic token refresh
 
   AuthService() {
     _loadTokens(); // ✅ Load tokens on app startup
@@ -26,11 +28,11 @@ class AuthService {
     required String lastName,
   }) async {
     try {
-      // print("Registering user...");
+      print("Registering user...");
 
       // Get user location
       String location = await _getUserLocation();
-      const String backendUrl = "http://192.168.79.196:6000/api/users/signup";
+      const String backendUrl = "http://192.168.11.196:6000/api/users/signup";
 
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -48,11 +50,11 @@ class AuthService {
 
         if (data["success"] == true && data["data"] != null) {
           _accessToken = data["data"]["tokens"]["accessToken"]; // Fix here
-          // print("User registered successfully. Access Token: $_accessToken");
+          print("User registered successfully. Access Token: $_accessToken");
 
           // Send OTP
           await sendOtp(phoneNumber);
-          // print("OTP sent successfully!");
+          print("OTP sent successfully!");
         } else {
           throw Exception("Unexpected response format: ${response.body}");
         }
@@ -60,43 +62,43 @@ class AuthService {
         throw Exception("Failed to register user: ${response.body}");
       }
     } catch (e) {
-      // print("Error registering user: $e");
+      print("Error registering user: $e");
       throw Exception("Registration Error: ${e.toString()}");
     }
   }
 
   /// **Send OTP to User**
   Future<void> sendOtp(String phoneNumber) async {
-    // print("Sending OTP to: $phoneNumber");
+    print("Sending OTP to: $phoneNumber");
     try {
       await _auth.verifyPhoneNumber(
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
           await _auth.signInWithCredential(credential);
-          // print("Auto OTP verification completed.");
+          print("Auto OTP verification completed.");
         },
         verificationFailed: (FirebaseAuthException e) {
-          // print("OTP sending failed: ${e.message}");
+          print("OTP sending failed: ${e.message}");
           throw Exception("OTP sending failed: ${e.message}");
         },
         codeSent: (String verificationId, int? resendToken) {
           _verificationId = verificationId;
-          // print("OTP sent successfully. Verification ID: $_verificationId");
+          print("OTP sent successfully. Verification ID: $_verificationId");
         },
         codeAutoRetrievalTimeout: (String verificationId) {
           _verificationId = verificationId;
         },
       );
     } catch (e) {
-      // print("OTP Sending Error: $e");
+      print("OTP Sending Error: $e");
       throw Exception("OTP Sending Error: ${e.toString()}");
     }
   }
 
   /// **Resend OTP to User**
   Future<void> resendOtp(String phoneNumber) async {
-    // print("Resending OTP...");
+    print("Resending OTP...");
     await sendOtp(phoneNumber);
   }
 
@@ -117,9 +119,9 @@ class AuthService {
       );
 
       if (userCredential.user != null) {
-        // print(
-        //   "User phone number from Firebase: ${userCredential.user?.phoneNumber}",
-        // );
+        print(
+          "User phone number from Firebase: ${userCredential.user?.phoneNumber}",
+        );
         await sendOtpToBackend(await userCredential.user?.getIdToken() ?? "");
       } else {
         throw Exception("User credential is null");
@@ -139,7 +141,7 @@ class AuthService {
         throw Exception("Access token missing. Please register first.");
       }
 
-      const String otpUrl = "http://192.168.79.196:6000/api/users/verify-token";
+      const String otpUrl = "http://192.168.11.196:6000/api/users/verify-token";
 
       final response = await http.post(
         Uri.parse(otpUrl),
@@ -195,7 +197,7 @@ class AuthService {
       // Call API to get city name
       String city = await getCityFromCoordinates(latitude, longitude);
 
-      return "City: $city\nLatitude: $latitude\nLongitude: $longitude";
+      return city;
     } catch (e) {
       return "Location Error: ${e.toString()}";
     }
@@ -254,6 +256,8 @@ class AuthService {
           throw Exception("Failed to retrieve Firebase ID Token");
         }
 
+        
+
         return freshIdToken; // Return valid ID Token
       } else {
         throw Exception("User credential is null");
@@ -276,7 +280,7 @@ class AuthService {
         throw Exception("❌ Failed to retrieve verified OTP code.");
       }
 
-      const String signInUrl = "http://192.168.79.196:6000/api/users/signin";
+      const String signInUrl = "http://192.168.11.196:6000/api/users/signin";
 
       // ✅ Step 2: Send Verified ID Token for Sign-in
       final response = await http.post(
@@ -295,11 +299,12 @@ class AuthService {
         _refreshToken = responseData["data"]["tokens"]["refreshToken"];
 
         await _saveTokens(_accessToken!, _refreshToken!);
+        _startTokenRefreshTimer(); // Start refresh timer on successful login
 
         // ✅ Successfully signed in
-        // print("✅ User signed in successfully!");
-        // print("🔑 Access Token: $_accessToken");
-        // print("🔄 Refresh Token: $_refreshToken");
+        print("✅ User signed in successfully!");
+        print("🔑 Access Token: $_accessToken");
+        print("🔄 Refresh Token: $_refreshToken");
       } else {
         throw Exception("❌ Failed to sign in: ${response.body}");
       }
@@ -309,47 +314,96 @@ class AuthService {
     }
   }
 
-  /// Save access token & refresh token to shared preferences
+  /// **Auto-Refresh Token Every Hour**
+  void _startTokenRefreshTimer() {
+    _tokenRefreshTimer
+        ?.cancel(); // Cancel existing timer to prevent duplication
+    if (_refreshToken == null) return; // Ensure a valid refresh token exists
+
+    _tokenRefreshTimer = Timer.periodic(const Duration(seconds: 10), (
+      Timer timer,
+    ) async {
+      await _refreshAccessToken();
+    });
+  }
+
+  /// **Refresh Access Token using Refresh Token**
+  Future<void> _refreshAccessToken() async {
+    if (_refreshToken == null) {
+      print("No refresh token found. Logging out user.");
+      await signOut();
+      return;
+    }
+
+    const String refreshUrl =
+        "http://192.168.11.196:6000/api/users/refresh-token";
+
+    try {
+      final response = await http.post(
+        Uri.parse(refreshUrl),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({"refreshToken": _refreshToken}),
+      );
+
+      final responseData = jsonDecode(response.body);
+
+      if (response.statusCode == 200 && responseData["success"] == true) {
+        _accessToken = responseData["data"]["accessToken"]["accessToken"];
+        await _saveTokens(_accessToken!, _refreshToken!);
+        print("✅ Access token refreshed successfully!");
+      } else {
+        print("❌ Refresh token expired! Logging out user.");
+        await signOut();
+      }
+    } catch (e) {
+      print("❌ Token Refresh Error: ${e.toString()}");
+      await signOut();
+    }
+  }
+
+  /// **Save Tokens in SharedPreferences**
   Future<void> _saveTokens(String accessToken, String refreshToken) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("access_token", accessToken);
     await prefs.setString("refresh_token", refreshToken);
   }
 
-  /// Load access token & refresh token from shared preferences
+  /// **Load Tokens & Start Refresh Timer on App Startup**
   Future<void> _loadTokens() async {
     final prefs = await SharedPreferences.getInstance();
     _accessToken = prefs.getString("access_token");
     _refreshToken = prefs.getString("refresh_token");
+
+    if (_refreshToken != null) {
+      _startTokenRefreshTimer(); // Start auto-refresh on app launch
+    }
   }
 
-  /// Check if user is logged in
+  /// **Sign Out User**
+  Future<void> signOut() async {
+    _accessToken = null;
+    _refreshToken = null;
+    _verificationId = null;
+
+    await _auth.signOut();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove("access_token");
+    await prefs.remove("refresh_token");
+
+    _tokenRefreshTimer?.cancel(); // Stop token refresh timer
+
+    print("✅ User signed out successfully!");
+  }
+
+  /// **Check if user is logged in**
   Future<bool> isLoggedIn() async {
     await _loadTokens();
     return _accessToken != null;
   }
 
-  // ✅ Function to get the access token
+  /// **Get Access Token**
   String? getAccessToken() {
     return _accessToken;
-  }
-
-  Future<void> signOut() async {
-    try {
-      _accessToken = null;
-      _refreshToken = null;
-      _verificationId = null;
-
-      await _auth.signOut(); // Sign out from Firebase
-
-      // ✅ Clear tokens from shared preferences
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove("access_token");
-      await prefs.remove("refresh_token");
-
-      // print("✅ User signed out successfully!");
-    } catch (e) {
-      throw Exception("Sign-out Error: ${e.toString()}");
-    }
   }
 }
