@@ -1,5 +1,5 @@
 import 'package:client/widgets/CustomButton.dart';
-import 'package:client/widgets/CustomHeaderWidget.dart';
+import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
@@ -62,7 +62,7 @@ class _SleepManagementScoreState extends ConsumerState<SleepManagementScore> {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          CustomHeader(
+          CustomActivityHeader(
             title: 'Sleep Score',
             badgeText: 'Insomniac',
             score: '24',
