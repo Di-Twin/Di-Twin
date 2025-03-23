@@ -19,6 +19,31 @@ class SleepCycleBarGraph extends StatelessWidget {
   Widget build(BuildContext context) {
     return Column(
       children: [
+        // Move legend to the top, outside the graph area
+        Padding(
+          padding: EdgeInsets.only(bottom: 16.0.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: [
+              _buildLegendItem(
+                'Awake',
+                'images/sleep_management_sun.png',
+              ),
+              _buildLegendItem(
+                'REM',
+                'images/sleep_management_bed.png',
+              ),
+              _buildLegendItem(
+                'Light',
+                'images/sleep_management_warning.png',
+              ),
+              _buildLegendItem(
+                'Deep',
+                'images/sleep_management_sleep.png',
+              ),
+            ],
+          ),
+        ),
         Expanded(
           child: Padding(
             padding: EdgeInsets.all(16.0.w),
@@ -34,44 +59,18 @@ class SleepCycleBarGraph extends StatelessWidget {
                 final bar3X = bar2X + barWidth + spacing;
                 final bar4X = bar3X + barWidth + spacing;
 
-                final maxPossibleValue = 100.0;
+                // Set the max value to exactly 100
+                final maxPossibleValue = 100.h;
 
                 return Stack(
                   children: [
-                    Padding(
-                      padding: EdgeInsets.only(bottom: 16.0.h),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          _buildLegendItem(
-                            'Awake',
-                            const Color(0xFFC1D8FA),
-                            'images/sun.png',
-                          ),
-                          _buildLegendItem(
-                            'REM',
-                            const Color(0xFF9A6EFA),
-                            'images/bed.png',
-                          ),
-                          _buildLegendItem(
-                            'Light',
-                            const Color(0xFFFA5C5C),
-                            'images/warning.png',
-                          ),
-                          _buildLegendItem(
-                            'Deep',
-                            const Color(0xFF5B6B7F),
-                            'images/sleep.png',
-                          ),
-                        ],
-                      ),
-                    ),
-
+                    // Dotted lines
                     CustomPaint(
                       size: Size(constraints.maxWidth, constraints.maxHeight),
                       painter: DottedLinePainter(),
                     ),
 
+                    // Bars
                     _buildBar(
                       x: bar1X,
                       value: awakeValue,
@@ -124,43 +123,60 @@ class SleepCycleBarGraph extends StatelessWidget {
   }) {
     final clampedValue = value > maxValue ? maxValue : value;
     final barHeight = (clampedValue / maxValue) * maxHeight;
-
+    
+    // Ensure we have enough space for the text at the top
+    final textPadding = 4.h;
+    final textHeight = 20.h; // Estimate text height
+    
     return Positioned(
       left: x.w,
       bottom: 0,
-      child: Container(
-        width: barWidth.w,
-        height: barHeight.h,
-        decoration: BoxDecoration(
-          color: color,
-          borderRadius: BorderRadius.circular(8.r),
-        ),
-        child: Align(
-          alignment: Alignment.topCenter,
-          child: Padding(
-            padding: EdgeInsets.only(top: 8.h),
-            child: Text(
-              value.toInt().toString(),
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 14.sp,
+      child: Stack(
+        clipBehavior: Clip.none, // Allow the text to overflow the container if needed
+        children: [
+          Container(
+            width: barWidth.w,
+            height: barHeight.h,
+            decoration: BoxDecoration(
+              color: color,
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+          ),
+          // Position the text at the top of the bar, but slightly outside if needed
+          Positioned(
+            top: value == maxValue ? -textHeight / 2 : textPadding,
+            width: barWidth.w,
+            child: Center(
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 4.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: value == maxValue ? color : Colors.transparent,
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+                child: Text(
+                  value.toInt().toString(),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14.sp,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }
 
-  Widget _buildLegendItem(String label, Color color, String iconPath) {
+  Widget _buildLegendItem(String label, String iconPath) {
     return Row(
       children: [
         Image.asset(
           iconPath,
           width: 16.w,
           height: 16.h,
-          // colorFilter: ColorFilter.mode(color, BlendMode.srcIn),
         ),
         SizedBox(width: 8.w),
         Text(label, style: TextStyle(fontSize: 12.sp)),
@@ -183,11 +199,11 @@ class DottedLinePainter extends CustomPainter {
     final double startX = 0;
     final double endX = size.width;
 
-    for (
-      double y = size.height * 0.125;
-      y < size.height;
-      y += size.height * 0.125
-    ) {
+    // Draw exactly 7 horizontal lines
+    // This divides the height into 6 equal parts to create 7 lines
+    for (int i = 0; i <= 6; i++) {
+      double y = size.height - (size.height * i / 6);
+      
       double currentX = startX;
       while (currentX < endX) {
         canvas.drawLine(
