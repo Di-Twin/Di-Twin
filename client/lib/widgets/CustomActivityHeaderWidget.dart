@@ -1,5 +1,3 @@
-// Header background color default : 0xFF242E49
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -11,7 +9,22 @@ class CustomActivityHeader extends StatelessWidget {
   final String subtitle;
   final String buttonImage;
   final VoidCallback onButtonTap;
+  
+  // Added customizable properties with defaults
   final Color backgroundColor;
+  final String? backgroundImagePath;
+  final Color buttonColor;
+  final Color buttonShadowColor;
+  final double buttonShadowSpread;
+  final Color backButtonBorderColor;
+  final double backButtonBorderWidth;
+  final Color badgeBackgroundColor;
+  final Color titleTextColor;
+  final Color scoreTextColor;
+  final Color subtitleTextColor;
+  final Color badgeTextColor;
+  final double bottomLeftRadius;
+  final double bottomRightRadius;
 
   const CustomActivityHeader({
     super.key,
@@ -21,9 +34,23 @@ class CustomActivityHeader extends StatelessWidget {
     required this.subtitle,
     required this.buttonImage,
     required this.onButtonTap,
-    Color? backgroundColor, 
-  })  : backgroundColor = backgroundColor ?? const Color(0xFF242E49);
-
+    
+    // All customizable properties with defaults
+    this.backgroundColor = const Color(0xFF242E49),
+    this.backgroundImagePath,
+    this.buttonColor = const Color(0xFF0F67FE),
+    this.buttonShadowColor = const Color(0xFF0F67FE),
+    this.buttonShadowSpread = 5.0,
+    this.backButtonBorderColor = Colors.white,
+    this.backButtonBorderWidth = 1.5,
+    this.badgeBackgroundColor = Colors.white,
+    this.titleTextColor = Colors.white,
+    this.scoreTextColor = Colors.white,
+    this.subtitleTextColor = Colors.white,
+    this.badgeTextColor = Colors.white,
+    this.bottomLeftRadius = 30.0,
+    this.bottomRightRadius = 30.0,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -37,13 +64,15 @@ class CustomActivityHeader extends StatelessWidget {
               width: double.infinity,
               decoration: BoxDecoration(
                 color: backgroundColor,
-                image: const DecorationImage(
-                  image: AssetImage('images/header_background.png'),
-                  fit: BoxFit.cover,
-                ),
+                image: backgroundImagePath != null
+                    ? DecorationImage(
+                        image: AssetImage(backgroundImagePath!),
+                        fit: BoxFit.cover,
+                      )
+                    : null,
                 borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(30.r),
-                  bottomRight: Radius.circular(30.r),
+                  bottomLeft: Radius.circular(bottomLeftRadius.r),
+                  bottomRight: Radius.circular(bottomRightRadius.r),
                 ),
               ),
               child: SafeArea(
@@ -58,35 +87,35 @@ class CustomActivityHeader extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              // Back Button
+                              // Back Button with customizable properties
                               GestureDetector(
-  onTap: () {
-    Navigator.of(context).pop(); // Navigate back to the previous screen
-  },
-  child: Container(
-    padding: EdgeInsets.all(6.w),
-    decoration: BoxDecoration(
-      color: Colors.transparent,
-      borderRadius: BorderRadius.circular(8.r),
-      border: Border.all(
-        color: Colors.white,
-        width: 1.5.w,
-      ),
-    ),
-    child: Icon(
-      Icons.chevron_left,
-      color: Colors.white,
-      size: 20.sp,
-    ),
-  ),
-),
+                                onTap: () {
+                                  Navigator.of(context).pop(); // Navigate back to the previous screen
+                                },
+                                child: Container(
+                                  padding: EdgeInsets.all(6.w),
+                                  decoration: BoxDecoration(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                    border: Border.all(
+                                      color: backButtonBorderColor,
+                                      width: backButtonBorderWidth.w,
+                                    ),
+                                  ),
+                                  child: Icon(
+                                    Icons.chevron_left,
+                                    color: backButtonBorderColor,
+                                    size: 20.sp,
+                                  ),
+                                ),
+                              ),
 
                               SizedBox(width: 12.w),
-                              // Dynamic Title
+                              // Dynamic Title with customizable color
                               Text(
                                 title,
                                 style: GoogleFonts.plusJakartaSans(
-                                  color: Colors.white,
+                                  color: titleTextColor,
                                   fontSize: 18.sp,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -94,20 +123,20 @@ class CustomActivityHeader extends StatelessWidget {
                             ],
                           ),
 
-                          // Dynamic Badge
+                          // Dynamic Badge with customizable background
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 10.w,
                               vertical: 6.h,
                             ),
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.2),
+                              color: badgeBackgroundColor.withOpacity(0.2),
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Text(
                               badgeText,
                               style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
+                                color: badgeTextColor,
                                 fontSize: 14.sp,
                                 fontWeight: FontWeight.w500,
                               ),
@@ -118,7 +147,7 @@ class CustomActivityHeader extends StatelessWidget {
 
                       SizedBox(height: 20.h),
 
-                      // Centered Score & Subtitle
+                      // Centered Score & Subtitle with customizable colors
                       Center(
                         child: Column(
                           children: [
@@ -126,7 +155,7 @@ class CustomActivityHeader extends StatelessWidget {
                             Text(
                               score,
                               style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
+                                color: scoreTextColor,
                                 fontSize: 100.sp,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -136,7 +165,7 @@ class CustomActivityHeader extends StatelessWidget {
                             Text(
                               subtitle,
                               style: GoogleFonts.plusJakartaSans(
-                                color: Colors.white,
+                                color: subtitleTextColor,
                                 fontSize: 24.sp,
                                 fontWeight: FontWeight.w600,
                               ),
@@ -150,7 +179,7 @@ class CustomActivityHeader extends StatelessWidget {
               ),
             ),
 
-            // Positioned Floating Button
+            // Positioned Floating Button with customizable colors
             Positioned(
               bottom: -30.h,
               left: (constraints.maxWidth / 2) - 40.w,
@@ -160,13 +189,13 @@ class CustomActivityHeader extends StatelessWidget {
                   width: 80.w,
                   height: 80.w,
                   decoration: BoxDecoration(
-                    color: Color(0xFF0F67FE),
+                    color: buttonColor,
                     borderRadius: BorderRadius.circular(15.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF0F67FE).withOpacity(0.25),
+                        color: buttonShadowColor.withOpacity(0.25),
                         blurRadius: 0,
-                        spreadRadius: 5,
+                        spreadRadius: buttonShadowSpread,
                       ),
                     ],
                   ),
