@@ -10,13 +10,13 @@ class ActivityHeader extends StatelessWidget {
   final VoidCallback? onBackPressed;
 
   const ActivityHeader({
-    Key? key,
+    super.key,
     this.name,
     this.onTrack,
     this.backgroundColor, 
     this.padding, 
     this.onBackPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

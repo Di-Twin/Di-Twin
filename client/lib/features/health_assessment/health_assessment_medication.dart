@@ -1,6 +1,5 @@
 import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
-import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/ProgressBar.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';

@@ -1,3 +1,5 @@
+import 'package:client/features/activity_management/activity_my_stats.dart';
+import 'package:client/features/weight_management/weight_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'fitness_tracker_item.dart';
@@ -21,7 +23,21 @@ class FitnessTrackerSection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder:
+                        (context) => MyActivitiesScreen(
+                          userJoinDate: DateTime(
+                            2023,
+                            1,
+                            15,
+                          ), // Replace with actual user join date
+                        ),
+                  ),
+                );
+              },
               child: Text(
                 'See All',
                 style: GoogleFonts.plusJakartaSans(
@@ -35,8 +51,8 @@ class FitnessTrackerSection extends StatelessWidget {
         ),
         const SizedBox(height: 12),
         Column(
-          children: const [
-            FitnessTrackerItem(
+          children: [
+            const FitnessTrackerItem(
               icon: Icons.fitness_center,
               title: 'Calories Burned',
               subtitle: '1000kcal',
@@ -44,35 +60,43 @@ class FitnessTrackerSection extends StatelessWidget {
               progress: 0.67,
               progressColor: Color(0xFFEF4444),
             ),
-            Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            FitnessTrackerItem(
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            const FitnessTrackerItem(
               icon: Icons.directions_walk,
               title: 'Steps Taken',
               subtitle: 'You\'ve taken 1000 steps.',
               progress: 0.5,
               progressColor: Color(0xFF3B82F6),
             ),
-            Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            FitnessTrackerItem(
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            const FitnessTrackerItem(
               icon: Icons.apple,
               title: 'Nutrition',
               subtitle: '',
               showChips: true,
             ),
-            Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            FitnessTrackerItem(
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            const FitnessTrackerItem(
               icon: Icons.nightlight_outlined,
               title: 'Sleep',
               subtitle: 'You\'ve taken 7 hours sleep.',
               progress: 0.7,
               progressColor: Color(0xFF06B6D4),
             ),
-            Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            // Weight Loss item with GestureDetector for navigation
+            // For the Weight Loss item:
             FitnessTrackerItem(
               icon: Icons.monitor_weight_outlined,
               title: 'Weight Loss',
               subtitle: '',
               showDots: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const WeightScreen()),
+                );
+              },
             ),
           ],
         ),

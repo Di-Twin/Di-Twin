@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:flutter_svg/flutter_svg.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ActivitySteps extends ConsumerWidget {
-  const ActivitySteps({Key? key}) : super(key: key);
+  const ActivitySteps({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -369,7 +368,7 @@ class ActivitySteps extends ConsumerWidget {
   }
   
   Widget _buildProgressBar({required double progress, bool isHighlighted = false}) {
-    return Container(
+    return SizedBox(
       width: 30.w,
       height: 120.h,
       child: Stack(

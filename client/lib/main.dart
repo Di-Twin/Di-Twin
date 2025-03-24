@@ -1,9 +1,9 @@
-import 'package:client/features/activity/activity_calories.dart';
-import 'package:client/features/activity/activity_nutrition.dart';
-import 'package:client/features/activity/activity_stats.dart';
-import 'package:client/features/activity/activity_steps.dart';
-import 'package:client/features/activity/activity_today.dart';
-import 'package:client/features/activity/activity_calories_tracker.dart';
+import 'package:client/features/activity_management/activity_calories.dart';
+import 'package:client/features/activity_management/activity_nutrition.dart';
+import 'package:client/features/activity_management/activity_stats.dart';
+import 'package:client/features/activity_management/activity_steps.dart';
+import 'package:client/features/activity_management/activity_today.dart';
+import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';

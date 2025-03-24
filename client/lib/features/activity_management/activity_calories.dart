@@ -10,7 +10,7 @@ class ActivityCalories extends StatelessWidget {
   final int activityScore = 4;
   final String cardioWorkoutCalories = "154";
 
-  const ActivityCalories({Key? key}) : super(key: key);
+  const ActivityCalories({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -198,7 +198,7 @@ class ActivityCalories extends StatelessWidget {
           SizedBox(height: 16.h),
           ClipRRect(
             borderRadius: BorderRadius.circular(8.r),
-            child: Container(
+            child: SizedBox(
               height: 30.h,
               child: Row(
                 children: [

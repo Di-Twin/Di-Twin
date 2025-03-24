@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart'; // Added to match the style of both screens
 
 class SmartHealthAnalysisScreen extends StatelessWidget {
-  const SmartHealthAnalysisScreen({Key? key}) : super(key: key);
+  const SmartHealthAnalysisScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

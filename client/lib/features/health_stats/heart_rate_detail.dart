@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:client/features/health_stats/smart_health_analysis.dart'; // Import the analysis screen
 
 class HeartRateDetailScreen extends StatelessWidget {
-  const HeartRateDetailScreen({Key? key}) : super(key: key);
+  const HeartRateDetailScreen({super.key});
 
   @override
   Widget build(BuildContext context) {

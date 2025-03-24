@@ -4,7 +4,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:math' as math;
 
 class ActivityStats extends StatefulWidget {
-  const ActivityStats({Key? key}) : super(key: key);
+  const ActivityStats({super.key});
 
   @override
   State<ActivityStats> createState() => _ActivityStatsState();
@@ -97,8 +97,12 @@ class _ActivityStatsState extends State<ActivityStats> with TickerProviderStateM
   @override
   void dispose() {
     // Dispose all animation controllers
-    _controllers.values.forEach((controller) => controller.dispose());
-    _decorativeControllers.forEach((controller) => controller.dispose());
+    for (var controller in _controllers.values) {
+      controller.dispose();
+    }
+    for (var controller in _decorativeControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 

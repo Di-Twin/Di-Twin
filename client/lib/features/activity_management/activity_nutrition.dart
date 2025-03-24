@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 // Data model for nutrition information
 class NutritionData {
@@ -93,10 +92,10 @@ class NutritionValueDisplay extends StatelessWidget {
   final String unit;
 
   const NutritionValueDisplay({
-    Key? key,
+    super.key,
     required this.totalAmount,
     required this.unit,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -140,7 +139,7 @@ class NutritionValueDisplay extends StatelessWidget {
 }
 
 class NutritionBarChart extends StatelessWidget {
-  const NutritionBarChart({Key? key}) : super(key: key);
+  const NutritionBarChart({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -229,7 +228,7 @@ class NutritionBarChart extends StatelessWidget {
 }
 
 class NutritionLegend extends StatelessWidget {
-  const NutritionLegend({Key? key}) : super(key: key);
+  const NutritionLegend({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -327,11 +326,11 @@ class NutritionMetricsRow extends StatelessWidget {
   final int fiber;
 
   const NutritionMetricsRow({
-    Key? key,
+    super.key,
     required this.proteins,
     required this.macro,
     required this.fiber,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -407,7 +406,7 @@ class NutritionMetricsRow extends StatelessWidget {
 }
 
 class DateNavigator extends StatelessWidget {
-  const DateNavigator({Key? key}) : super(key: key);
+  const DateNavigator({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -438,7 +437,7 @@ class DateNavigator extends StatelessWidget {
 }
 
 class AddFoodButton extends StatelessWidget {
-  const AddFoodButton({Key? key}) : super(key: key);
+  const AddFoodButton({super.key});
 
   @override
   Widget build(BuildContext context) {

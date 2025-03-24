@@ -1,3 +1,4 @@
+import 'package:client/features/sleep_management/sleep_my_stats.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/features/health_stats/heart_rate_detail.dart';
@@ -30,9 +31,15 @@ class HealthMetricCard extends StatelessWidget {
       case 'Blood Pressure':
         page = const BloodPressureDetailScreen();
         break;
-      // case 'Sleep':
-      //   page = const SleepPage();
-      //   break;
+      case 'Sleep':
+        page = MySleepScreen(
+          userJoinDate: DateTime(
+            2023,
+            1,
+            15,
+          ), // Replace with actual user join date
+        );
+        break;
       default:
         return;
     }
