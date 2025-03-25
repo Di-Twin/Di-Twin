@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/widgets/dashboard/notification_screen.dart';
 
 class AppHeader extends StatelessWidget {
   const AppHeader({super.key});
@@ -32,7 +33,7 @@ class AppHeader extends StatelessWidget {
                   Text(
                     'Tue, 18 Feb 2025',
                     style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white.withValues(),
+                      color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.w500,
                     ),
@@ -42,17 +43,27 @@ class AppHeader extends StatelessWidget {
               // Notification Icon with rounded rectangle background
               Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 14,
-                  vertical: 10,
+                  horizontal: 3,
+                  vertical: 3,
                 ),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.notifications_none_outlined,
-                  color: Colors.white,
-                  size: 26,
+                child: IconButton(
+                  icon: const Icon(
+                    Icons.notifications_none_outlined,
+                    color: Colors.white,
+                    size: 26,
+                  ),
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const NotificationScreen(),
+                      ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -73,7 +84,7 @@ class AppHeader extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.network(
-                    'https://placeholder.svg?height=60&width=60',
+                    'https://via.placeholder.com/60',
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -97,9 +108,9 @@ class AppHeader extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 6),
-                        Text(
+                        const Text(
                           '👋🏻', // iOS-style light-skinned wave emoji
-                          style: const TextStyle(fontSize: 22),
+                          style: TextStyle(fontSize: 22),
                         ),
                       ],
                     ),
@@ -108,7 +119,7 @@ class AppHeader extends StatelessWidget {
                     // Health Score & Membership with dot separator
                     Row(
                       children: [
-                        Icon(Icons.favorite, color: Colors.red, size: 18),
+                        const Icon(Icons.favorite, color: Colors.red, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           '88%',
@@ -128,7 +139,7 @@ class AppHeader extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 8),
-                        Icon(Icons.bolt, color: Colors.amber, size: 18),
+                        const Icon(Icons.bolt, color: Colors.amber, size: 18),
                         const SizedBox(width: 6),
                         Text(
                           'Pro Member',

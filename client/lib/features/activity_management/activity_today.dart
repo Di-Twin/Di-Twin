@@ -234,7 +234,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
                   activityData.length,
-                  (index) => Container(
+                  (index) => SizedBox(
                     width: barWidth,
                     child: _buildActivityBar(
                       minutes: activityData[index]['minutes'] as String,
