@@ -5,8 +5,8 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class ActivityHeader extends StatelessWidget {
   final String? name;
   final String? onTrack;
-  final Color? backgroundColor; // New parameter for onTrack background color
-  final EdgeInsetsGeometry? padding; // New parameter for padding
+  final Color? backgroundColor;
+  final EdgeInsetsGeometry? padding; 
   final VoidCallback? onBackPressed;
 
   const ActivityHeader({

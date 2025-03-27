@@ -5,6 +5,8 @@ import 'package:client/features/activity_management/activity_steps.dart';
 import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
+import 'package:client/features/food_logs_management/food_logs_intelligence.dart';
+import 'package:client/features/food_logs_management/food_logs_nutrition_tracker.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
 import 'package:client/features/health_assessment/health_assessment_symptoms.dart';
@@ -55,7 +57,7 @@ class MyApp extends StatelessWidget {
               ),
               initialRoute: '/',
               routes: {
-                '/': (context) => const Startpage(),
+                '/aoihdfawpoin': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
@@ -96,7 +98,10 @@ class MyApp extends StatelessWidget {
                 '/dashboard/activity/calroies_tracker': (context) =>  ActivityCaloriesTracker(),
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
+                '/fhdasupihfas': (context) => FoodLogsIntelligence(),
+                '/': (context) => const FoodLogsNutritionTracker()
               },
+              
             );
           },
         );
