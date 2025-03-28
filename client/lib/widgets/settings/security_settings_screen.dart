@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SecurityScreen extends StatefulWidget {
-  const SecurityScreen({Key? key}) : super(key: key);
+  const SecurityScreen({super.key});
 
   @override
   State<SecurityScreen> createState() => _SecurityScreenState();
@@ -143,7 +143,7 @@ class _SecurityScreenState extends State<SecurityScreen>
 
                   // Description
                   Text(
-                    'We\'ve sent a 6-digit verification code to ${email}',
+                    'We\'ve sent a 6-digit verification code to $email',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
@@ -380,7 +380,7 @@ class _SecurityScreenState extends State<SecurityScreen>
                         ),
 
                         // Security icon
-                        Container(
+                        SizedBox(
                           width: 220,
                           height: 220,
                           child: Icon(

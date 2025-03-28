@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class LinkedDeviceScreen extends StatefulWidget {
-  const LinkedDeviceScreen({Key? key}) : super(key: key);
+  const LinkedDeviceScreen({super.key});
 
   @override
   State<LinkedDeviceScreen> createState() => _LinkedDeviceScreenState();
