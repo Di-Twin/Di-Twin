@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ContactInformationScreen extends StatelessWidget {
-  const ContactInformationScreen({Key? key}) : super(key: key);
+  const ContactInformationScreen({super.key});
 
   final phonenumber = "+123 456 789";
   final email = "info@ditwin.com";

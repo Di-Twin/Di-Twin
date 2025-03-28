@@ -9,7 +9,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SettingsPage extends StatefulWidget {
-  const SettingsPage({Key? key}) : super(key: key);
+  const SettingsPage({super.key});
 
   @override
   State<SettingsPage> createState() => _SettingsPageState();
@@ -602,10 +602,10 @@ class _SettingsPageState extends State<SettingsPage> {
           value: value,
           onChanged: onChanged,
           activeColor: Colors.blue,
-          trackColor: MaterialStateProperty.resolveWith<Color>((
-            Set<MaterialState> states,
+          trackColor: WidgetStateProperty.resolveWith<Color>((
+            Set<WidgetState> states,
           ) {
-            if (states.contains(MaterialState.selected)) {
+            if (states.contains(WidgetState.selected)) {
               return Colors.blue.withOpacity(0.3);
             }
             return Colors.grey.withOpacity(0.3);

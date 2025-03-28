@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class FeedbackFormScreen extends StatefulWidget {
-  const FeedbackFormScreen({Key? key}) : super(key: key);
+  const FeedbackFormScreen({super.key});
 
   @override
   State<FeedbackFormScreen> createState() => _FeedbackFormScreenState();
