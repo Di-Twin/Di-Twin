@@ -42,4 +42,19 @@
             <data android:mimeType="text/plain"/>
         </intent>
     </queries>
+<!-- For media access (Android 13+) -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_VIDEO"/>
+    <uses-permission android:name="android.permission.READ_MEDIA_AUDIO"/>
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+    <uses-permission android:name="android.permission.INTERNET"/>
+    <!-- SMS permissions (Use only if necessary) -->
+    <uses-permission android:name="android.permission.RECEIVE_SMS"/>
+    <uses-permission android:name="android.permission.READ_SMS"/>
+
+    <!-- Declare that your app can work without a phone (optional) -->
+    <uses-feature android:name="android.hardware.telephony" android:required="false" />
+
+
 </manifest>

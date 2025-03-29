@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "235797705732",
+    "project_id": "di-twin",
+    "storage_bucket": "di-twin.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:235797705732:android:18be5ecba51b651a7f3151",
+        "android_client_info": {
+          "package_name": "com.example.client"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDfNE1MbD_QGNwciMBYkBIc4PwKPyWcEqU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
