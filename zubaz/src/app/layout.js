@@ -17,9 +17,9 @@ export const raleway = Raleway({
 });
 
 export const metadata = {
-  title: "DI-Twin | AI-Powered Preventive Healthcare",
+  title: "DTwin | AI-Powered Preventive Healthcare",
   description:
-    "DI-Twin is an AI-driven digital twin for preventive healthcare, helping users predict, prevent, and manage chronic diseases with personalized health insights.",
+    "DTwin is an AI-driven digital twin for preventive healthcare, helping users predict, prevent, and manage chronic diseases with personalized health insights.",
   keywords: [
     "AI healthcare",
     "digital twin",
@@ -29,7 +29,7 @@ export const metadata = {
     "fitness AI",
     "wearable device integration",
   ],
-  author: "DI-Twin",
+  author: "EvenBetter",
   icons: {
     icon: ["/favicon.ico?v=4"],
     apple: ["/favicon.ico?v=4"],
@@ -38,7 +38,7 @@ export const metadata = {
   openGraph: {
     type: "website",
     url: "https://dtwin.evenbetter.in",
-    title: "DI-Twin | AI-Powered Preventive Healthcare",
+    title: "DTwin | AI-Powered Preventive Healthcare",
     description:
       "Predict, prevent, and manage chronic diseases with AI-driven health analytics and personalized recommendations.",
     images: [
@@ -46,14 +46,14 @@ export const metadata = {
         url: "https://dtwin.evenbetter.in/images/di-twin-preview.jpg",
         width: 1200,
         height: 630,
-        alt: "DI-Twin Health Tracking",
+        alt: "DTwin Health Tracking",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
     url: "https://dtwin.evenbetter.in",
-    title: "DI-Twin | AI-Powered Preventive Healthcare",
+    title: "DTwin | AI-Powered Preventive Healthcare",
     description:
       "AI-powered health tracking, disease prediction, and personalized fitness insights.",
     image: "https://dtwin.evenbetter.in/images/di-twin-preview.jpg",
