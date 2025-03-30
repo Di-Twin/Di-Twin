@@ -10,10 +10,20 @@ const ContentSectionTwo = () => {
           </div>
           <div className="col-lg-7">
             <div className="zubuz-default-content">
-              <h2>One Platform for Better Health</h2>
+              <h2>The Future of Preventive Healthcare</h2>
               <p>
-                Our AI-powered health platform helps you track, prevent, and
-                manage chronic diseases effortlessly.
+                Chronic diseases are a growing epidemic, but with the power of
+                <strong>
+                  {" "}
+                  AI, real-time monitoring, and predictive analytics
+                </strong>
+                , DTwin is changing the way we manage health. Our platform{" "}
+                <strong>does more than just track data</strong>—it
+                <strong>
+                  {" "}
+                  helps you prevent, predict, and personalize
+                </strong>{" "}
+                your health journey.
               </p>
               <div className="zubuz-extara-mt">
                 <div className="zubuz-iconbox-wrap-left">
@@ -21,9 +31,10 @@ const ContentSectionTwo = () => {
                     <img src="/images/v2/check.png" alt="" />
                   </div>
                   <div className="zubuz-iconbox-data">
-                    <span>Personalized Health Insights</span>
+                    <span>AI-Powered Disease Prediction</span>
                     <p>
-                      AI-driven recommendations for diet, exercise, and sleep.
+                      Detect risks for diabetes, heart disease, and more—before
+                      symptoms appear.
                     </p>
                   </div>
                 </div>
@@ -32,8 +43,11 @@ const ContentSectionTwo = () => {
                     <img src="/images/v2/check.png" alt="" />
                   </div>
                   <div className="zubuz-iconbox-data">
-                    <span>Real-Time Monitoring</span>
-                    <p>Sync with wearables for accurate health tracking.</p>
+                    <span>Lab Report & Prescription Analysis</span>
+                    <p>
+                      Instantly analyze medical reports and prescriptions with
+                      AI for better insights.
+                    </p>
                   </div>
                 </div>
                 <div className="zubuz-iconbox-wrap-left">
@@ -41,10 +55,18 @@ const ContentSectionTwo = () => {
                     <img src="/images/v2/check.png" alt="" />
                   </div>
                   <div className="zubuz-iconbox-data">
-                    <span>Preventive Care</span>
-                    <p>Detect risks early and take action before problems arise.</p>
+                    <span>All-in-One Health Ecosystem</span>
+                    <p>
+                      A single platform to manage chronic conditions, track
+                      fitness, and improve wellness.
+                    </p>
                   </div>
                 </div>
+              </div>
+              <div className="zubuz-extara-mt">
+                <a className="zubuz-default-btn" href="contact-us">
+                  <span>Experience the Future of Health</span>
+                </a>
               </div>
             </div>
           </div>

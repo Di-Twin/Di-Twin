@@ -2,10 +2,12 @@ import FeatureCardTwo from "~/components/Ui/Cards/FeatureTwo";
 
 const FeatureSection = () => {
   return (
-    <div className="section zubuz-section-padding3">
+    <div className="section zubuz-section-padding1">
       <div className="container">
         <div className="zubuz-section-title center">
-          <h2>Optimize Your Health with Smart Insights</h2>
+          <h2 className="wider-heading">
+            From Patterns to Progress Own Your Health.
+          </h2> 
         </div>
         <div className="row">
           <div className="col-lg-6">

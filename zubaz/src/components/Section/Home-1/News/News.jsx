@@ -20,8 +20,8 @@ const NewsSection = () => {
   return (
     <div id="news" className="section zubuz-section-padding2 light-bg">
       <div className="container">
-        <div className="zubuz-section-title center">
-          <h2>We've earned a 4.8-star Trustpilot rating</h2>
+        <div className="zubuz-section-title center" style={{ maxWidth: "1100px", margin: "0 auto" }}>
+          <h2>Your Health, Your Future. Stay Ahead of Chronic Diseases Today!</h2>
         </div>
         <div className="row">
           {blogDatas?.map((blog, index) => (
