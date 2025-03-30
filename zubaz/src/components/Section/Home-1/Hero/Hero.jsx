@@ -26,6 +26,7 @@ const HeroSection = () => {
       <div
         className="zubuz-hero-section white-bg"
         style={{ backgroundImage: "url(/images/v1/hero-shape1.png)" }}
+        id="home"
       >
         <div className="container">
           <div className="zubuz-hero-content center position-relative">
