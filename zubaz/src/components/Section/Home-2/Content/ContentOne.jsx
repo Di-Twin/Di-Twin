@@ -39,7 +39,7 @@ const ContentSectionOne = () => {
               <p>
                 Chronic diseases like diabetes, heart disease, and hypertension
                 affect millions worldwide. These conditions often go unnoticed
-                until it's too late, leading to severe health complications.
+                until it&apos;s too late, leading to severe health complications.
                 Prevention and early detection are crucial to reducing risks.
               </p>
               <div className="zubuz-extara-mt">
