@@ -10,6 +10,8 @@ import {
 } from "react-icons/fa";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear(); // Get the current year dynamically
+
   return (
     <footer className="zubuz-footer-section main-footer white-bg">
       <div className="container">
@@ -18,11 +20,13 @@ const Footer = () => {
             <div className="col-xl-4 col-lg-12">
               <div className="zubuz-footer-textarea">
                 <Link href="">
-                  <img src="/images/logo/logo-dark.svg" alt="" />
+                  <img src="/images/logo/logo-dark.svg" alt="DI-Twin Logo" />
                 </Link>
                 <p>
-                  We're your innovation partner, delivering cutting-edge
-                  solutions that elevate your business to the next level.
+                  <strong>DI-Twin</strong> is an AI-powered digital twin for
+                  preventive healthcare. We help users predict, prevent, and
+                  manage chronic diseases with advanced analytics, personalized
+                  recommendations, and wearable device integration.
                 </p>
                 <div className="zubuz-subscribe-one">
                   <form>
@@ -45,47 +49,44 @@ const Footer = () => {
                 </div>
                 <ul>
                   <li>
-                    <Link href="">Demos</Link>
+                    <Link href="">Home</Link>
                   </li>
                   <li>
-                    <Link href="">About Us</Link>
+                    <Link href="">Features</Link>
                   </li>
                   <li>
-                    <Link href="">Services</Link>
+                    <Link href="">Why us?</Link>
                   </li>
                   <li>
-                    <Link href="">Pages</Link>
-                  </li>
-                  <li>
-                    <Link href="">Contact</Link>
+                    <Link href="">News</Link>
                   </li>
                 </ul>
               </div>
             </div>
-            <div className="col-xl-2 col-md-4">
+            {/* <div className="col-xl-2 col-md-4">
               <div className="zubuz-footer-menu">
                 <div className="zubuz-footer-title">
-                  <p>Utility pages</p>
+                  <p>Utility Pages</p>
                 </div>
                 <ul>
                   <li>
                     <Link href="">Instructions</Link>
                   </li>
                   <li>
-                    <Link href="">Style guide</Link>
+                    <Link href="">Style Guide</Link>
                   </li>
                   <li>
                     <Link href="">Licenses</Link>
                   </li>
                   <li>
-                    <Link href="">404 Not found</Link>
+                    <Link href="">404 Not Found</Link>
                   </li>
                   <li>
-                    <Link href="">Password protected</Link>
+                    <Link href="">Password Protected</Link>
                   </li>
                 </ul>
               </div>
-            </div>
+            </div> */}
             <div className="col-xl-3 col-md-4">
               <div className="zubuz-footer-menu extar-margin">
                 <div className="zubuz-footer-title">
@@ -96,16 +97,16 @@ const Footer = () => {
                     <Link href="">Support</Link>
                   </li>
                   <li>
-                    <Link href="">Privacy policy</Link>
+                    <Link href="">Privacy Policy</Link>
                   </li>
                   <li>
                     <Link href="">Terms & Conditions</Link>
                   </li>
                   <li>
-                    <Link href="">Strategic finance</Link>
+                    <Link href="">Health Insights</Link>
                   </li>
                   <li>
-                    <Link href="">Video guide</Link>
+                    <Link href="">Video Guide</Link>
                   </li>
                 </ul>
               </div>
@@ -116,34 +117,35 @@ const Footer = () => {
           <div className="zubuz-social-icon order-md-2">
             <ul>
               <li>
-                <a href="https://twitter.com/" target="_blank">
+                <a href="#" target="_blank">
                   <FaTwitter />
                 </a>
               </li>
               <li>
-                <a href="https://facebook.com/" target="_blank">
+                <a href="#" target="_blank">
                   <FaFacebookF />
                 </a>
               </li>
               <li>
-                <a href="https://www.instagram.com/" target="_blank">
+                <a
+                  href="https://www.instagram.com/dtwin_social?igsh=MXJ1OTdlN25veDAxdA%3D%3D&utm_source=qr"
+                  target="_blank"
+                >
                   <FaInstagram />
                 </a>
               </li>
               <li>
-                <a href="https://www.linkedin.com/" target="_blank">
+                <a href="#" target="_blank">
                   <FaLinkedin />
-                </a>
-              </li>
-              <li>
-                <a href="https://github.com/" target="_blank">
-                  <FaGithub />
                 </a>
               </li>
             </ul>
           </div>
           <div className="zubuz-copywright">
-            <p> &copy;Copyright 2024, All Rights Reserved by Mthemeus</p>
+            <p>
+              © {currentYear}, All Rights Reserved by{" "}
+              <strong>EvenBetter</strong>
+            </p>
           </div>
         </div>
       </div>
