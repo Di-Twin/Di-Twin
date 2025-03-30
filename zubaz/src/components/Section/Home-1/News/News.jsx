@@ -35,10 +35,10 @@ const NewsSection = () => {
                 </Link>
                 <div className="zubuz-blog-data">
                   <p>{blog?.date}</p>
-                  <Link href={blog?.link}>
+                  <Link href={blog?.link} target="blank">
                     <h3>{blog?.title}</h3>
                   </Link>
-                  <Link href={blog?.link} className="zubuz-blog-btn">
+                  <Link href={blog?.link} target="blank" className="zubuz-blog-btn">
                     <ArrowRightIcon />
                   </Link>
                 </div>
