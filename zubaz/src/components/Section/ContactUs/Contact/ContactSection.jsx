@@ -43,7 +43,7 @@ const ContactSection = () => {
             <div className="zubuz-default-content m-right">
               <h2>Get in Touch with Our Team</h2>
               <p>
-                Have questions? We're here to help! Whether it’s about our
+                Have questions? We&apos;re here to help! Whether it&apos;s about our
                 services or general inquiries, feel free to reach out.
               </p>
               <div className="zubuz-extara-mt">
