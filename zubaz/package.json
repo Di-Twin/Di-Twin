@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "NEXT_PUBLIC_IGNORE_ESLINT_ERRORS=true next build",
+    "build": "NEXT_PUBLIC_IGNORE_ESLINT_ERRORS=true yarn build",
     "start": "next start",
     "lint": "next lint",
     "export": "next build && next export"
