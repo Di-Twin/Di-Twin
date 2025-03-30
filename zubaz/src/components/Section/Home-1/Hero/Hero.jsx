@@ -41,18 +41,16 @@ const HeroSection = () => {
               decisions.
             </p>
             <div className="zubuz-hero-btn-wrap center">
-              <Link className="zubuz-default-btn" href="contact-us">
+              {/* <Link className="zubuz-hero-video" href="contact-us">
                 <span>Start Your Free Trial</span>
-              </Link>
+              </Link> */}
               <a
                 href="https://forms.gle/WFqdwC331ZSSWLLG6"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="zubuz-hero-video"
+                className="zubuz-default-btn"
               >
-                <LogIn className="mr-2" size={20} />
-                <img src="" alt="" />
-                Join the Beta Program
+                <span><LogIn className="mr-2" size={20} /> <img src="" alt="" /> Join the Beta Program</span>
               </a>
             </div>
             <div className="zubuz-hero-shape">

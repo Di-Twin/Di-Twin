@@ -1,27 +1,26 @@
 [
-    {
-      "category": "Business",
-      "date": "June 18, 2024",
-      "title": "What is a good solution for finance apps?",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla consectetur libero a condimentum. Nulla vel ultricies mauris. Nulla id varius odio. Curabitur vel tortor sit amet ex viverra rhoncus a at enim. Phasellus suscipit eleifend mi, id lacinia mauris sollicitudin vel. Donec pretium justo sed sapien fringilla dictum. Nullam non lorem eget enim placerat scelerisque. Vivamus sit amet lectus auctor, viverra ex vel, sagittis neque. Duis vitae congue ex. Ut non consectetur velit. Donec id consequat eros. Integer ut mauris sapien. Nulla eu imperdiet libero.",
-      "image": "/images/blog/blog1.png",
-      "link": "single-blog.html"
-    },
-    {
-      "category": "Technology",
-      "date": "June 18, 2024",
-      "title": "What makes banking app development ideal?",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla consectetur libero a condimentum. Nulla vel ultricies mauris. Nulla id varius odio. Curabitur vel tortor sit amet ex viverra rhoncus a at enim. Phasellus suscipit eleifend mi, id lacinia mauris sollicitudin vel. Donec pretium justo sed sapien fringilla dictum. Nullam non lorem eget enim placerat scelerisque. Vivamus sit amet lectus auctor, viverra ex vel, sagittis neque. Duis vitae congue ex. Ut non consectetur velit. Donec id consequat eros. Integer ut mauris sapien. Nulla eu imperdiet libero.",
-      "image": "/images/blog/blog2.png",
-      "link": "single-blog.html"
-    },
-    {
-      "category": "Management",
-      "date": "June 18, 2024",
-      "title": "Finance apps that will help you make money!",
-      "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nulla consectetur libero a condimentum. Nulla vel ultricies mauris. Nulla id varius odio. Curabitur vel tortor sit amet ex viverra rhoncus a at enim. Phasellus suscipit eleifend mi, id lacinia mauris sollicitudin vel. Donec pretium justo sed sapien fringilla dictum. Nullam non lorem eget enim placerat scelerisque. Vivamus sit amet lectus auctor, viverra ex vel, sagittis neque. Duis vitae congue ex. Ut non consectetur velit. Donec id consequat eros. Integer ut mauris sapien. Nulla eu imperdiet libero.",
-      "image": "/images/blog/blog3.png",
-      "link": "single-blog.html"
-    }
-  ]
-  
+  {
+    "category": "Health & Wellness",
+    "date": "March 28, 2025",
+    "title": "Top 5 AI-Powered Apps for Preventive Healthcare",
+    "description": "Artificial Intelligence (AI) is transforming the way we approach healthcare, shifting from reactive treatment to proactive prevention. AI-powered apps analyze user health data to predict risks, offer personalized insights, and improve overall well-being. Here are the top five apps leading the preventive healthcare revolution:\n\n✅ 1. HealthifyAI – Tracks diet, fitness, and stress levels to prevent chronic diseases.\n✅ 2. MyVitals+ – Syncs with wearables to monitor heart rate, blood pressure, and activity.\n✅ 3. WellCare AI – Uses predictive analysis to detect early signs of illness.\n✅ 4. NutriSense – AI-driven meal planning based on metabolic health.\n✅ 5. SleepSmart – Analyzes sleep patterns and suggests improvements.\n\n💡 Why It Matters:\nThese AI tools empower users to take charge of their health before issues arise, ensuring a healthier future.",
+    "image": "/images/blog/blog5.png",
+    "link": "/single-blog"
+  },
+  {
+    "category": "Technology in Healthcare",
+    "date": "March 28, 2025",
+    "title": "How AI is Revolutionizing Digital Mental and Physical Health",
+    "description": "AI is not just transforming hospitals; it's also reshaping personal wellness. From chatbots offering mental health support to AI-driven workout plans, technology is making health management smarter and more personalized.\n\nKey AI Applications in Healthcare:\n🔹 AI Therapy Assistants – Apps like Woebot and Wysa provide emotional support.\n🔹 Predictive Health Analytics – AI predicts health risks based on user data.\n🔹 Personalized Fitness Plans – Apps like Freeletics customize workouts using AI.\n🔹 Remote Health Monitoring – Wearables track real-time vitals for early diagnosis.\n\n💡 The Future:\nAI will continue to enhance remote healthcare, offering preventive insights and reducing the burden on traditional medical systems.",
+    "image": "/images/blog/blog4.png",
+    "link": "/single-blog"
+  },
+  {
+    "category": "Personalized Health",
+    "date": "March 28, 2025",
+    "title": "The Future of Healthcare: AI-Based Personalized Wellness",
+    "description": "Gone are the days of generic health advice. AI-driven wellness platforms now analyze individual data to offer customized recommendations for fitness, nutrition, and mental well-being.\n\n🚀 How AI is Personalizing Healthcare:\n🔹 Smart Meal Plans – AI suggests diets based on metabolic responses.\n🔹 AI-Powered Coaching – Virtual trainers optimize fitness routines.\n🔹 Wearable-Integrated Insights – Health trackers adjust recommendations in real-time.\n🔹 Predictive Risk Assessments – AI detects potential health concerns before symptoms appear.\n\n💡 Looking Ahead:\nAI will make healthcare more accessible, personalized, and predictive, ensuring healthier lives through tailored insights.",
+    "image": "/images/blog/blog6.png",
+    "link": "/single-blog"
+  }
+]

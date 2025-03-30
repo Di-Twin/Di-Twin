@@ -101,7 +101,7 @@ const HomeHeaderTwo = ({ logoSrc }) => {
           <div className="header-btn header-btn-l1 ms-auto d-none d-xs-inline-flex">
             <Link
               className="zubuz-default-btn zubuz-header-btn pill"
-              href="contact-us"
+              href="https://docs.google.com/forms/d/e/1FAIpQLSfzlQ-MxRn3xyZ4yj3fxFtkgwz6r_ZwzUdA5Ocp72-5Bkr-dA/viewform"
             >
               <span>Download</span>
             </Link>
@@ -161,10 +161,10 @@ const HomeHeaderTwo = ({ logoSrc }) => {
             </div>
 
             <div className="drawer-stores">
-              <a href="#" className="drawer-store-btn">
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSfzlQ-MxRn3xyZ4yj3fxFtkgwz6r_ZwzUdA5Ocp72-5Bkr-dA/viewform" className="drawer-store-btn">
                 <img src="/images/v1/app-store.png" alt="App Store" />
               </a>
-              <a href="#" className="drawer-store-btn">
+              <a href="https://docs.google.com/forms/d/e/1FAIpQLSfzlQ-MxRn3xyZ4yj3fxFtkgwz6r_ZwzUdA5Ocp72-5Bkr-dA/viewform" className="drawer-store-btn">
                 <img src="/images/v1/play-store.png" alt="Play Store" />
               </a>
             </div>
