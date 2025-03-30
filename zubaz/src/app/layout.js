@@ -3,6 +3,7 @@ import "~/assets/css/bootstrap.min.css";
 import "~/assets/css/app.css";
 import "~/assets/css/main.css";
 import "~/assets/css/react-adjustment.css";
+import { Analytics } from "@vercel/analytics/react";
 
 export const inter = Inter({
   subsets: ["latin"],
@@ -65,6 +66,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body className={`${inter.variable} ${raleway.variable}`}>
         {children}
+        <Analytics />
       </body>
     </html>
   );
