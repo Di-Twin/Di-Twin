@@ -17,6 +17,7 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
+import 'package:client/features/medication_management/medication_add_medication.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -99,7 +100,8 @@ class MyApp extends StatelessWidget {
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
                 '/fhdasupihfas': (context) => FoodLogsIntelligence(),
-                '/': (context) => const FoodLogsNutritionTracker()
+                '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
+                '/': (context) => const AddMedication(),
               },
               
             );
