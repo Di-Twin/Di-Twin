@@ -1,9 +1,15 @@
+import 'package:client/data/API/onboarding_data.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/widgets/ProgressBar.dart';
+import 'package:client/data/providers/onboarding_provider.dart';
 
-class OnboardingPage extends StatefulWidget {
+// Import the function from wherever it's defined
+// import 'package:client/utils/profile_update.dart';
+
+class OnboardingPage extends ConsumerStatefulWidget {
   final VoidCallback onSkip;
   final VoidCallback onComplete;
 
@@ -14,10 +20,10 @@ class OnboardingPage extends StatefulWidget {
   });
 
   @override
-  State<OnboardingPage> createState() => _OnboardingPageState();
+  ConsumerState<OnboardingPage> createState() => _OnboardingPageState();
 }
 
-class _OnboardingPageState extends State<OnboardingPage> {
+class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   int currentStep = 0;
   final int totalSteps = 5;
 
@@ -53,14 +59,26 @@ class _OnboardingPageState extends State<OnboardingPage> {
     },
   ];
 
-  void _handleNext() {
+  void _handleNext() async {
     if (currentStep < totalSteps - 1) {
       setState(() {
         currentStep++;
       });
     } else {
+      // On the last step, send data to backend before navigating
+      await updateUserHealthProfile(ref);
+      
+      // Then navigate to signup page and call the complete callback
+      widget.onComplete();
       Navigator.pushReplacementNamed(context, '/signup');
     }
+  }
+
+  void _handleSkip() async {
+    // Even if skipped, we might want to send whatever data we've collected
+    await updateUserHealthProfile(ref);
+    widget.onSkip();
+    Navigator.pushReplacementNamed(context, '/signup');
   }
 
   @override
@@ -94,12 +112,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                           // Keep the Skip button's space even on the last step
                           currentStep < totalSteps - 1
                               ? TextButton(
-                                onPressed: () {
-                                  Navigator.pushReplacementNamed(
-                                    context,
-                                    '/signup',
-                                  );
-                                },
+                                onPressed: _handleSkip,
                                 child: Text(
                                   'Skip',
                                   style: TextStyle(
