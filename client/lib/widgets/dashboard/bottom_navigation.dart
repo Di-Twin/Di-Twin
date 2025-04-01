@@ -1,4 +1,6 @@
+import 'package:client/features/dashboard/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:client/features/dashboard/dashboard.dart';
 
 class BottomNavigation extends StatelessWidget {
   const BottomNavigation({super.key});
@@ -13,31 +15,51 @@ class BottomNavigation extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildNavItem(Icons.home_outlined, true),
-          _buildNavItem(Icons.bar_chart_outlined, false),
+          _buildNavItem(context, Icons.home_outlined, true, "home"),
+          _buildNavItem(context, Icons.bar_chart_outlined, false, ""),
           const SizedBox(width: 40), // Space for FAB
-          _buildNavItem(Icons.restaurant_menu_outlined, false),
-          _buildNavItem(Icons.settings_outlined, false),
+          _buildNavItem(context, Icons.restaurant_menu_outlined, false, ""),
+          _buildNavItem(context, Icons.settings_outlined, false, "settings"),
         ],
       ),
     );
   }
 
-  /// **Bottom Navigation Item**
-  Widget _buildNavItem(IconData icon, bool isActive) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration:
-          isActive
-              ? BoxDecoration(
-                color: const Color(0xFFEFF6FF),
-                borderRadius: BorderRadius.circular(12),
-              )
-              : null,
-      child: Icon(
-        icon,
-        color: isActive ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
-        size: 28,
+  Widget _buildNavItem(
+    BuildContext context,
+    IconData icon,
+    bool isActive,
+    String route,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        if (route == "settings") {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const SettingsPage()),
+          );
+        } else if (route == "home") {
+          // Navigate to Dashboard
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        }
+      },
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration:
+            isActive
+                ? BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(12),
+                )
+                : null,
+        child: Icon(
+          icon,
+          color: isActive ? const Color(0xFF3B82F6) : const Color(0xFFCBD5E1),
+          size: 28,
+        ),
       ),
     );
   }

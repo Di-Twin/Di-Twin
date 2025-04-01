@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'dart:math' show max, pow;
 
 class ActivityToday extends StatefulWidget {
   const ActivityToday({super.key});
@@ -234,7 +233,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: List.generate(
                   activityData.length,
-                  (index) => Container(
+                  (index) => SizedBox(
                     width: barWidth,
                     child: _buildActivityBar(
                       minutes: activityData[index]['minutes'] as String,

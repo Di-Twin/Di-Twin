@@ -1,4 +1,5 @@
 import 'package:client/features/activity_management/activity_my_stats.dart';
+import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/weight_management/weight_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -52,16 +53,22 @@ class FitnessTrackerSection extends StatelessWidget {
         const SizedBox(height: 12),
         Column(
           children: [
-            const FitnessTrackerItem(
+             FitnessTrackerItem(
               icon: Icons.fitness_center,
               title: 'Calories Burned',
               subtitle: '1000kcal',
               maxValue: '1500kcal',
               progress: 0.67,
               progressColor: Color(0xFFEF4444),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => ActivityCaloriesTracker()),
+                );
+              },
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            const FitnessTrackerItem(
+            FitnessTrackerItem(
               icon: Icons.directions_walk,
               title: 'Steps Taken',
               subtitle: 'You\'ve taken 1000 steps.',

@@ -1,4 +1,3 @@
-import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -62,6 +61,7 @@ class _SleepManagementScoreState extends ConsumerState<SleepManagementScore> {
             badgeText: 'Insomniac',
             score: '24',
             subtitle: 'You are Insomniac',
+            backgroundImagePath: './images/header_background.png',
             buttonImage: 'images/SignInAddIcon.png',
             onButtonTap: () {
               print("Button clicked!");

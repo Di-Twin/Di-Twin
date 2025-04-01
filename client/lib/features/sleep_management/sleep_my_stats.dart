@@ -159,7 +159,7 @@ class _MySleepScreenState extends State<MySleepScreen>
               DateFormat('yyyy-MM-dd').format(_selectedDate!);
         }).toList();
 
-    print('Found ${records.length} sleep records for ${_selectedDate}');
+    print('Found ${records.length} sleep records for $_selectedDate');
     return records;
   }
 
