@@ -61,6 +61,7 @@ class _SleepManagementScoreState extends ConsumerState<SleepManagementScore> {
             badgeText: 'Insomniac',
             score: '24',
             subtitle: 'You are Insomniac',
+            backgroundImagePath: './images/header_background.png',
             buttonImage: 'images/SignInAddIcon.png',
             onButtonTap: () {
               print("Button clicked!");

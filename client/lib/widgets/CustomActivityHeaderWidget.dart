@@ -25,6 +25,8 @@ class CustomActivityHeader extends StatelessWidget {
   final Color badgeTextColor;
   final double bottomLeftRadius;
   final double bottomRightRadius;
+  final bool showBadge;
+
 
   const CustomActivityHeader({
     super.key,
@@ -50,6 +52,7 @@ class CustomActivityHeader extends StatelessWidget {
     this.badgeTextColor = Colors.white,
     this.bottomLeftRadius = 30.0,
     this.bottomRightRadius = 30.0,
+    this.showBadge = true,
   });
 
   @override
@@ -60,7 +63,7 @@ class CustomActivityHeader extends StatelessWidget {
           clipBehavior: Clip.none, // Allows button to extend outside the header
           children: [
             Container(
-              height: constraints.maxHeight * 0.45,
+              height: constraints.maxHeight,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: backgroundColor,
@@ -124,6 +127,7 @@ class CustomActivityHeader extends StatelessWidget {
                           ),
 
                           // Dynamic Badge with customizable background
+                          if (showBadge)
                           Container(
                             padding: EdgeInsets.symmetric(
                               horizontal: 10.w,
