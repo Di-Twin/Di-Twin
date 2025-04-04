@@ -9,12 +9,12 @@ class MedicationsList extends StatelessWidget {
   final Function(Medication)? onDelete;
 
   const MedicationsList({
-    Key? key,
+    super.key,
     required this.medications,
     this.isEditMode = false,
     this.onEdit,
     this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

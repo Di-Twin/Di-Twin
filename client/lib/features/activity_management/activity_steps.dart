@@ -206,11 +206,6 @@ class ActivitySteps extends ConsumerWidget {
                     iconBgColor: const Color(0xFF22D3EE),
                     value: distance,
                   ),
-                  _buildMetricCard(
-                    icon: Icon(Icons.access_time_filled, color: Colors.white, size: 16.sp),
-                    iconBgColor: const Color(0xFF8B5CF6),
-                    value: duration,
-                  ),
                 ],
               ),
               

@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/widgets/ProgressBar.dart';
-import 'package:client/data/providers/onboarding_provider.dart';
 
 // Import the function from wherever it's defined
 // import 'package:client/utils/profile_update.dart';

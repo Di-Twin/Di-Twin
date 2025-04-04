@@ -292,12 +292,12 @@ class MonthYearPicker extends StatefulWidget {
   final Function(DateTime) onMonthYearChanged;
 
   const MonthYearPicker({
-    Key? key,
+    super.key,
     required this.initialDate,
     required this.firstDate,
     required this.lastDate,
     required this.onMonthYearChanged,
-  }) : super(key: key);
+  });
 
   @override
   _MonthYearPickerState createState() => _MonthYearPickerState();

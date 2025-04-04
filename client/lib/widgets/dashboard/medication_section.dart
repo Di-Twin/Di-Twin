@@ -1,3 +1,5 @@
+import 'package:client/features/medication_management/medication_management_add.dart';
+import 'package:client/features/medication_management/medication_management_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -22,7 +24,12 @@ class MedicationSection extends StatelessWidget {
               ),
             ),
             TextButton(
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => MedicationsScreen()),
+                );
+              },
               child: Text(
                 'See All',
                 style: GoogleFonts.plusJakartaSans(
@@ -74,16 +81,32 @@ class MedicationSection extends StatelessWidget {
                   const Spacer(),
 
                   /// **Updated Add Button**
-                  Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16,
-                      vertical: 16,
+                  /// **Updated Add Button with onPressed**
+                  GestureDetector(
+                    onTap: () {
+                      // Navigate to a new screen or open a dialog
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => MedicationManagementAddPage(),
+                        ), // Replace with actual screen
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 16,
+                      ),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(
+                        Icons.add,
+                        color: Colors.white,
+                        size: 24,
+                      ),
                     ),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF3B82F6),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Icon(Icons.add, color: Colors.white, size: 24),
                   ),
                 ],
               ),
@@ -98,6 +121,7 @@ class MedicationSection extends StatelessWidget {
                   color: const Color(0xFF1E293B),
                 ),
               ),
+
               /// **Medication Calendar Grid**
               _buildCalendarGrid(),
               const SizedBox(height: 16),

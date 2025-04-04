@@ -16,14 +16,14 @@ class ActivityCalendar extends StatefulWidget {
   final double? verticalPadding;
 
   const ActivityCalendar({
-    Key? key,
+    super.key,
     required this.selectedMonth,
     required this.today,
     required this.activityRegularity,
     required this.userJoinedDate,
     required this.onMonthChanged,
     required this.onDateSelected, this.width, this.height, this.cellSize, this.horizontalPadding, this.verticalPadding,
-  }) : super(key: key);
+  });
 
   @override
   State<ActivityCalendar> createState() => ActivityCalendarState();
