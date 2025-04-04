@@ -1,18 +1,80 @@
+import 'package:client/data/API/health_score_data.dart';
 import 'package:client/widgets/CustomSecondaryButton.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class HealthAssessmentScore extends StatelessWidget {
-  final int score;
+class HealthAssessmentScore extends StatefulWidget {
+  const HealthAssessmentScore({super.key});
 
-  const HealthAssessmentScore({super.key, required this.score});
+  @override
+  State<HealthAssessmentScore> createState() => _HealthAssessmentScoreState();
+}
+
+class _HealthAssessmentScoreState extends State<HealthAssessmentScore> {
+  final HealthScoreService _healthScoreService = HealthScoreService();
+  bool _isLoading = true;
+  int _score = 0;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHealthScore();
+  }
+
+  Future<void> _fetchHealthScore() async {
+    try {
+      final score = await _healthScoreService.getHealthScore();
+      setState(() {
+        _score = score;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(
+          child: CircularProgressIndicator(),
+        ),
+      );
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Error: $_errorMessage',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchHealthScore,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final Color primaryColor =
-        score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
+        _score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
     final Color backgroundColor =
-        score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
+        _score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
 
     return Scaffold(
       body: Container(
@@ -21,7 +83,7 @@ class HealthAssessmentScore extends StatelessWidget {
           image: const DecorationImage(
             image: AssetImage("images/texture.png"),
             fit: BoxFit.cover,
-            opacity: 15, // Adjusted opacity
+            opacity: 15,
           ),
         ),
         child: SafeArea(
@@ -77,11 +139,10 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
                             // Score Number
                             Center(
                               child: Text(
-                                score.toString(),
+                                _score.toString(),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 150,
                                   fontWeight: FontWeight.bold,
@@ -89,8 +150,7 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Middle Box (50% opacity) - positioned below the main box
+                            // Middle Box (50% opacity)
                             Positioned(
                               bottom: -15,
                               child: Container(
@@ -105,8 +165,7 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Smallest Box (15% opacity) - positioned at the bottom
+                            // Smallest Box (15% opacity)
                             Positioned(
                               bottom: -30,
                               child: Container(
@@ -129,7 +188,7 @@ class HealthAssessmentScore extends StatelessWidget {
                 ),
               ),
 
-              // **Text and Buttons**
+              // Text and Buttons
               const SizedBox(height: 24),
               Text(
                 "You're All Set Up.",
@@ -141,7 +200,7 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "Your health score is $score.",
+                "Your health score is $_score.",
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -150,7 +209,7 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // **AI Suggestions**
+              // AI Suggestions
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -168,11 +227,11 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // **Button**
+              // Button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: CustomSecondaryButton(
-                  text: "Let’s Get Healthy",
+                  text: "Let's Get Healthy",
                   iconPath: "images/SignInAddIcon.png",
                   width: 200,
                   height: 50,

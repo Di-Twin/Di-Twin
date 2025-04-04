@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/onboarding_provider.dart';
 
 Future<void> updateUserHealthProfile(WidgetRef ref) async {
+
+  // dart(NOTE:) Onboarding data is being sent to backend successfully if access token is available
   final onboardingState = ref.read(onboardingProvider);
 
   try {
@@ -29,8 +31,6 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
           onboardingState.medical_conditions ?? [], // ✅ Allergy Data Sent
     };
 
-    print("📡 Sending Data: $requestData");
-
     // ✅ Convert data to JSON
     final String jsonData = jsonEncode(requestData);
 
@@ -43,6 +43,9 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
       },
       body: jsonData,
     );
+
+    // ignore: avoid_print
+    print("response: $response");
 
     // ✅ Handle API Response
     if (response.statusCode == 200) {
