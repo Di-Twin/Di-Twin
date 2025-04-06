@@ -12,6 +12,7 @@ import 'dart:math' show max, pow;
 class ActivityService {
   static const String baseUrl = 'http://192.168.11.196:6000/'; 
   
+
   static Future<List<Map<String, dynamic>>> fetchTopActivities(DateTime date) async {
     try {
       // Format the date as YYYY-MM-DD
@@ -41,6 +42,37 @@ class ActivityService {
       }
     } catch (e) {
       throw Exception('Error fetching activities: $e');
+    }
+  }
+
+  static Future<int> fetchDailyActivityScore(DateTime date) async {
+    try {
+      // Format the date as YYYY-MM-DD
+      final formattedDate = DateFormat('yyyy-M-d').format(date);
+      
+      // Get the access token
+      final accessToken = await _getAccessToken();
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/activity/daily-score/$formattedDate'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return responseData['data']['activity_score'] as int;
+        } else {
+          throw Exception('Failed to load activity score: ${responseData['message']}');
+        }
+      } else {
+        throw Exception('Failed to load activity score: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching activity score: $e');
     }
   }
   
@@ -121,11 +153,13 @@ class _ActivityTodayState extends State<ActivityToday> {
   List<Map<String, dynamic>> _topActivities = [];
   String _errorMessage = '';
   int _totalActivities = 0;
+  int _activityScore = 0;
 
   @override
   void initState() {
     super.initState();
     _fetchActivities();
+    _fetchActivityScore();
   }
 
   Future<void> _fetchActivities() async {
@@ -164,6 +198,20 @@ class _ActivityTodayState extends State<ActivityToday> {
           },
         ];
         _totalActivities = 2;
+      });
+    }
+  }
+
+  Future<void> _fetchActivityScore() async {
+    try {
+      final score = await ActivityService.fetchDailyActivityScore(DateTime.now());
+      setState(() {
+        _activityScore = score;
+      });
+    } catch (e) {
+      // Handle error or set a default value
+      setState(() {
+        _activityScore = 0;
       });
     }
   }
@@ -245,8 +293,8 @@ class _ActivityTodayState extends State<ActivityToday> {
           CustomActivityHeader(
             title: 'Activities',
             badgeText: 'Normal',
-            score: _totalActivities.toString(),
-            subtitle: 'Activities Today.',
+            score: _activityScore.toString(),
+            subtitle: 'Activities Score.',
             buttonImage: 'images/SignInAddIcon.png',
             onButtonTap: () {},
             backgroundColor: Color(0xFFD0E4FF),
