@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class MyActivitiesScreen extends StatefulWidget {
   final DateTime userJoinDate;
@@ -22,6 +24,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   DateTime _selectedMonth = DateTime.now();
   int _selectedYear = DateTime.now().year;
   DateTime? _selectedDate = DateTime.now(); // Default to today
+  bool _isLoading = false;
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -69,13 +72,14 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     30: false,
   };
 
-  final List<Map<String, dynamic>> _activityHistory = [
+  // Default activity data
+  final List<Map<String, dynamic>> _defaultActivityHistory = [
     {
       'name': 'Weightlifting at Home',
       'calories': 241,
       'icon': Icons.fitness_center,
       'color': Color(0xFF5D6B89),
-      'date': DateTime(2025, 3, 21), // Example date
+      'date': DateTime(2025, 3, 21),
     },
     {
       'name': 'Jogging',
@@ -103,9 +107,12 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       'calories': 241,
       'icon': Icons.hiking,
       'color': Color(0xFF9C27B0),
-      'date': DateTime(202, 3, 24),
+      'date': DateTime(2025, 3, 24),
     },
   ];
+
+  // List to store actual API fetched activities
+  List<Map<String, dynamic>> _activityHistory = [];
 
   @override
   void initState() {
@@ -137,6 +144,12 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     );
 
     _pageTransitionController.forward();
+    
+    // Initialize with default data
+    _activityHistory = List.from(_defaultActivityHistory);
+    
+    // Fetch activities for the selected date
+    _fetchActivities();
   }
 
   @override
@@ -145,10 +158,134 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     super.dispose();
   }
 
+  // Method to fetch activities from the API
+  Future<void> _fetchActivities() async {
+    if (_selectedDate == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    // Format the date for the API call
+    String formattedDate = DateFormat('yyyy-M-d').format(_selectedDate!);
+    
+    try {
+      // Get the access token (in a real app, this would come from your auth service)
+      String accessToken = "YOUR_ACCESS_TOKEN"; // Replace with actual token retrieval
+      
+      // Create the API endpoint URL
+      final url = Uri.parse('/api/activity/top-activities/$formattedDate?all=true');
+      
+      // Make the API call
+      final response = await http.post(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          // Convert API data to the format used by our UI
+          List<Map<String, dynamic>> fetchedActivities = [];
+          
+          for (var activity in responseData['data']) {
+            // Map activity types to corresponding icons
+            IconData activityIcon;
+            Color activityColor;
+            
+            switch (activity['activity_type'].toString().toLowerCase()) {
+              case 'cycling':
+              case 'bike':
+                activityIcon = Icons.directions_bike;
+                activityColor = Color(0xFF1976D2);
+                break;
+              case 'running':
+                activityIcon = Icons.directions_run;
+                activityColor = Color(0xFFFF5A5A);
+                break;
+              case 'strength training':
+              case 'weightlifting':
+                activityIcon = Icons.fitness_center;
+                activityColor = Color(0xFF5D6B89);
+                break;
+              case 'yoga':
+                activityIcon = Icons.self_improvement;
+                activityColor = Color(0xFF66BB6A);
+                break;
+              case 'hiking':
+                activityIcon = Icons.hiking;
+                activityColor = Color(0xFF9C27B0);
+                break;
+              default:
+                activityIcon = Icons.directions_run;
+                activityColor = Color(0xFFFF5A5A);
+            }
+            
+            // Format the activity data
+            fetchedActivities.add({
+              'name': _capitalizeActivityType(activity['activity_type']),
+              'calories': activity['calories_burned'] ?? 0,
+              'icon': activityIcon,
+              'color': activityColor,
+              'date': DateTime.parse(activity['start_time']),
+              'duration': activity['duration_seconds'] ?? 0,
+              'heart_rate_avg': activity['heart_rate_avg'] ?? 0,
+              'heart_rate_max': activity['heart_rate_max'] ?? 0,
+              'distance': activity['distance_meters'] ?? 0,
+              'source': activity['source_device'] ?? 'Unknown',
+            });
+          }
+          
+          setState(() {
+            _activityHistory = fetchedActivities;
+            _isLoading = false;
+          });
+        } else {
+          // If the API returns a success:false or no data, use default data
+          setState(() {
+            _activityHistory = List.from(_defaultActivityHistory);
+            _isLoading = false;
+          });
+        }
+      } else {
+        // If the API call fails, use default data
+        setState(() {
+          _activityHistory = List.from(_defaultActivityHistory);
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // If there's an exception, use default data
+      setState(() {
+        _activityHistory = List.from(_defaultActivityHistory);
+        _isLoading = false;
+      });
+    }
+  }
+
+  // Helper method to capitalize activity type
+  String _capitalizeActivityType(String activityType) {
+    // Split by space to capitalize each word
+    List<String> words = activityType.split(' ');
+    for (int i = 0; i < words.length; i++) {
+      if (words[i].isNotEmpty) {
+        words[i] = words[i][0].toUpperCase() + words[i].substring(1);
+      }
+    }
+    return words.join(' ');
+  }
+
   void _handleDateSelection(DateTime selectedDate) {
     setState(() {
       _selectedDate = selectedDate;
     });
+    
+    // Fetch activities when a new date is selected
+    _fetchActivities();
   }
 
   List<Map<String, dynamic>> _getFilteredActivities() {
@@ -253,30 +390,30 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                               isFutureYear
                                   ? null // Disable future years
                                   : () {
-                                    setState(() {
-                                      _selectedYear = year;
+                                      setState(() {
+                                        _selectedYear = year;
 
-                                      // Get months available in the selected year
-                                      List<DateTime> monthsInYear =
-                                          _availableMonths
-                                              .where(
-                                                (month) => month.year == year,
-                                              )
-                                              .toList();
-
-                                      if (monthsInYear.isNotEmpty) {
-                                        // If current year, default to current month; otherwise, use first available
-                                        _selectedMonth =
-                                            (year == _today.year)
-                                                ? DateTime(
-                                                  year,
-                                                  _today.month,
-                                                  1,
+                                        // Get months available in the selected year
+                                        List<DateTime> monthsInYear =
+                                            _availableMonths
+                                                .where(
+                                                  (month) => month.year == year,
                                                 )
-                                                : monthsInYear.first;
-                                      }
-                                    });
-                                  },
+                                                .toList();
+
+                                        if (monthsInYear.isNotEmpty) {
+                                          // If current year, default to current month; otherwise, use first available
+                                          _selectedMonth =
+                                              (year == _today.year)
+                                                  ? DateTime(
+                                                    year,
+                                                    _today.month,
+                                                    1,
+                                                  )
+                                                  : monthsInYear.first;
+                                        }
+                                      });
+                                    },
                           child: Container(
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(
@@ -351,14 +488,14 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                           onTap:
                               isAvailable
                                   ? () {
-                                    setState(() {
-                                      _selectedMonth = DateTime(
-                                        _selectedYear,
-                                        monthNum,
-                                        1,
-                                      );
-                                    });
-                                  }
+                                      setState(() {
+                                        _selectedMonth = DateTime(
+                                          _selectedYear,
+                                          monthNum,
+                                          1,
+                                        );
+                                      });
+                                    }
                                   : null,
                           child: Container(
                             decoration: BoxDecoration(
@@ -740,15 +877,56 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                           color: const Color(0xFF1E293B),
                         ),
                       ),
+                      if (_selectedDate != null)
+                        Text(
+                          DateFormat('MMM d, yyyy').format(_selectedDate!),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
                     ],
                   ),
 
                   const SizedBox(height: 16),
 
-                  // Activity list
-                  ..._getFilteredActivities().map(
-                    (activity) => _buildActivityItem(activity),
-                  ),
+                  // Loading indicator
+                  if (_isLoading)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                        child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (_getFilteredActivities().isEmpty)
+                    // No activities found message
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40.0),
+                        child: Column(
+                          children: [
+                            Icon(
+                              Icons.sports_gymnastics,
+                              size: 48,
+                              color: Colors.grey.shade400,
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No activities found for this date',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    // Activity list
+                    ..._getFilteredActivities().map(
+                      (activity) => _buildActivityItem(activity),
+                    ),
 
                   const SizedBox(height: 24),
                 ],

@@ -1,4 +1,5 @@
 import 'package:client/features/activity_management/activity_calories.dart';
+import 'package:client/features/activity_management/activity_my_stats.dart';
 import 'package:client/features/activity_management/activity_nutrition.dart';
 import 'package:client/features/activity_management/activity_stats.dart';
 import 'package:client/features/activity_management/activity_steps.dart';
@@ -28,7 +29,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(); // ✅ Unique navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(); 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -60,7 +61,7 @@ class MyApp extends StatelessWidget {
               ),
               initialRoute: '/',
               routes: {
-                '/': (context) => const Startpage(),
+                '/aoidfhsanofdhsa': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
@@ -103,14 +104,20 @@ class MyApp extends StatelessWidget {
                 '/dashboard': (context) => const HomeScreen(),
                 '/dashboard/activity/today': (context) => const ActivityToday(),
                 '/dashboard/activity/stats': (context) => const ActivityStats(),
+                '/dashboard/acitivty/calorieTracker': (context) => const ActivityCaloriesTracker(),
                 '/dashboard/activity/calories': (context) => const ActivityCalories(),
-                '/dashboard/activity/calories_tracker': (context) => const ActivityCaloriesTracker(), // ✅ Fixed Typo
+                '/dashboard/acitivity/myActivities': (context) => MyActivitiesScreen(userJoinDate: DateTime(
+                            2023,
+                            1,
+                            15,
+                          ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
 
                 '/gggh': (context) => const AddMedicationPage(),
                 '/fhdasupihfas': (context) => FoodLogsIntelligence(),
                 '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
+
                 // '/afnadsio': (context) => const AddMedication(),
               },
             );
