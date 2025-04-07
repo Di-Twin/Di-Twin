@@ -80,7 +80,7 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer AccessToken',
+          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNzEzNzA0Zi0wZTk2LTQxY2ItYjhlNC04NDMwOTVlMjg5MDMiLCJlbWFpbCI6bnVsbCwiaWF0IjoxNzQ0MDIwMDU1LCJleHAiOjE3NDQwMjM2NTV9.YKwd2fTkMrETa7QePt3eZ9H82XF3cv6ORUhOXc-gw9Y',
           'Content-Type': 'application/json',
         },
       );
@@ -115,7 +115,7 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
     setState(() {
       isLoading = false;
       totalCaloriesBurned = 1542; // Default value
-      activities = _getDefaultActivities();
+      // activities = _getDefaultActivities();
     });
   }
 

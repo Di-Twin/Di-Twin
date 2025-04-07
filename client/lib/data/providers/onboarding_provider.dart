@@ -15,7 +15,7 @@ class OnboardingState {
     this.gender = '',
     this.weight_kg = 0.0,
     this.height_cm = 0.0,
-    this.age = 0,
+    this.age = 19,
     this.medications, // ✅ Nullable medications
     this.medical_conditions, // ✅ Nullable medical conditions
   });
@@ -49,7 +49,7 @@ class OnboardingNotifier extends StateNotifier<OnboardingState> {
   OnboardingNotifier() : super(OnboardingState());
 
   // ✅ Update goal
-  void updateGoal(String goal) {
+  void updateGoal(String goal) {  
     state = state.copyWith(goal: goal);
     print("✅ Goal updated: ${state.goal}");
   }
