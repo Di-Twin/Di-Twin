@@ -4,59 +4,54 @@ import 'package:google_fonts/google_fonts.dart';
 
 class CustomActivityHeader extends StatelessWidget {
   final String title;
-  final String badgeText;
   final String score;
   final String subtitle;
   final String buttonImage;
-  final VoidCallback onButtonTap;
-
-  // Added customizable properties with defaults
+  final String badgeText;
   final Color backgroundColor;
-  final String? backgroundImagePath;
-  final Color buttonColor;
-  final Color buttonShadowColor;
-  final double buttonShadowSpread;
-  final Color backButtonBorderColor;
-  final double backButtonBorderWidth;
-  final Color badgeBackgroundColor;
   final Color titleTextColor;
   final Color scoreTextColor;
   final Color subtitleTextColor;
+  final Color badgeBackgroundColor;
   final Color badgeTextColor;
+  final Color buttonColor;
+  final Color buttonShadowColor;
+  final Color backButtonBorderColor;
+  final double backButtonBorderWidth;
+  final String? backgroundImagePath;
+  final double headerHeight;
   final double bottomLeftRadius;
   final double bottomRightRadius;
-  final bool showBadge;
+  final double buttonShadowSpread;
+  final VoidCallback onButtonTap;
   final bool showMenu;
-  final double headerHeight; // New property to control header height
+  final bool showBadge;
 
   const CustomActivityHeader({
     super.key,
     required this.title,
-    required this.badgeText,
     required this.score,
     required this.subtitle,
     required this.buttonImage,
-    required this.onButtonTap,
-
-    // All customizable properties with defaults
-    this.backgroundColor = const Color(0xFF242E49),
+    required this.badgeText,
+    required this.backgroundColor,
+    required this.titleTextColor,
+    required this.scoreTextColor,
+    required this.subtitleTextColor,
+    required this.badgeBackgroundColor,
+    required this.badgeTextColor,
+    required this.buttonColor,
+    required this.buttonShadowColor,
+    required this.backButtonBorderColor,
+    required this.backButtonBorderWidth,
     this.backgroundImagePath,
-    this.buttonColor = const Color(0xFF0F67FE),
-    this.buttonShadowColor = const Color(0xFF0F67FE),
-    this.buttonShadowSpread = 5.0,
-    this.backButtonBorderColor = Colors.white,
-    this.backButtonBorderWidth = 1.5,
-    this.badgeBackgroundColor = Colors.white,
-    this.titleTextColor = Colors.white,
-    this.scoreTextColor = Colors.white,
-    this.subtitleTextColor = Colors.white,
-    this.badgeTextColor = Colors.white,
-    this.bottomLeftRadius = 30.0,
-    this.bottomRightRadius = 30.0,
+    required this.headerHeight,
+    required this.bottomLeftRadius,
+    required this.bottomRightRadius,
+    required this.buttonShadowSpread,
+    required this.onButtonTap,
+    this.showMenu = false,
     this.showBadge = true,
-    this.showMenu = true,
-    this.headerHeight =
-        300.0, // Default height that should work for most screens
   });
 
   @override
@@ -116,7 +111,7 @@ class CustomActivityHeader extends StatelessWidget {
                               decoration: BoxDecoration(
                                 border: Border.all(
                                   color: backButtonBorderColor,
-                                  width: backButtonBorderWidth,
+                                  // width: backButtonBorderWidth,
                                 ),
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
@@ -155,38 +150,6 @@ class CustomActivityHeader extends StatelessWidget {
                       ),
                     ),
 
-                    // Badge (if shown)
-                    if (showBadge)
-                      Padding(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 20.w,
-                          vertical: 10.h,
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 10.w,
-                                vertical: 6.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: badgeBackgroundColor.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Text(
-                                badgeText,
-                                style: GoogleFonts.plusJakartaSans(
-                                  color: badgeTextColor,
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
                     // Expanded to push content to center with flexible sizing
                     Expanded(
                       child: Center(
@@ -215,6 +178,32 @@ class CustomActivityHeader extends StatelessWidget {
                               ),
                               textAlign: TextAlign.center,
                             ),
+
+                            // Add badge below subtitle (if shown)
+                            if (showBadge)
+                              Padding(
+                                padding: EdgeInsets.only(top: 12.h),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: badgeBackgroundColor.withOpacity(
+                                      0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(
+                                    badgeText,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: badgeTextColor,
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
