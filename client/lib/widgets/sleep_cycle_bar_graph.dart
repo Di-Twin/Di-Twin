@@ -8,11 +8,11 @@ class SleepCycleBarGraph extends StatelessWidget {
   final double deepValue;
 
   const SleepCycleBarGraph({
-    super.key,
-    this.awakeValue = 5,
-    this.remValue = 31,
-    this.lightValue = 24,
-    this.deepValue = 43,
+    Key?key,
+    required this.awakeValue,
+    required this.remValue,
+    required this.lightValue,
+    required this.deepValue,
   });
 
   @override

@@ -73,7 +73,7 @@ class CustomActivityHeader extends StatelessWidget {
           clipBehavior: Clip.none, // Allows button to extend outside the header
           children: [
             Container(
-              height: actualHeaderHeight,
+              height: constraints.maxHeight * 0.45,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: backgroundColor,

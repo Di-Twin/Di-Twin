@@ -32,7 +32,7 @@ class AuthService {
 
       // Get user location
       String location = await _getUserLocation();
-      const String backendUrl = "http://192.168.11.196:6000/api/users/signup";
+      const String backendUrl = "https://test-prod-f427.onrender.com/api/users/signup";
 
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -141,7 +141,7 @@ class AuthService {
         throw Exception("Access token missing. Please register first.");
       }
 
-      const String otpUrl = "http://192.168.11.196:6000/api/users/verify-token";
+      const String otpUrl = "https://test-prod-f427.onrender.com/api/users/verify-token";
 
       final response = await http.post(
         Uri.parse(otpUrl),
@@ -280,7 +280,7 @@ class AuthService {
         throw Exception("❌ Failed to retrieve verified OTP code.");
       }
 
-      const String signInUrl = "http://192.168.11.196:6000/api/users/signin";
+      const String signInUrl = "https://test-prod-f427.onrender.com/api/users/signin";
 
       // ✅ Step 2: Send Verified ID Token for Sign-in
       final response = await http.post(
@@ -336,7 +336,7 @@ class AuthService {
     }
 
     const String refreshUrl =
-        "http://192.168.11.196:6000/api/users/refresh-token";
+        "https://test-prod-f427.onrender.com/api/users/refresh-token";
 
     try {
       final response = await http.post(
@@ -404,6 +404,7 @@ class AuthService {
 
   /// **Get Access Token**
   String? getAccessToken() {
+    _accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4ZjgyMTA1ZS1iNWJhLTQwNmUtOTFkNi1hMTlkMmU5ODk0YzgiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0MzA5ODc0LCJleHAiOjE3NDQzMTM0NzR9.rEHxrfyDKb2-xj-v-STcraeAI2hLE5hvKTt8pI_4EyA'; // Retrieve from SharedPreferences
     return _accessToken;
   }
 }
