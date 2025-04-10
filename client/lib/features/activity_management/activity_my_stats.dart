@@ -1,3 +1,4 @@
+import 'package:client/features/activity_management/activity_calories.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -16,7 +17,7 @@ class MyActivitiesScreen extends StatefulWidget {
 }
 
 class _MyActivitiesScreenState extends State<MyActivitiesScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // Class variables
   List<int> _availableYears = [];
   List<DateTime> _availableMonths = [];
@@ -28,16 +29,17 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Animation controller for page transition - add 'late' keyword to fix initialization error
+  // Animation controller for page transition
   late AnimationController _pageTransitionController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   Offset _slideDirection = const Offset(1.0, 0.0);
 
-  DateTime fromDate = DateTime.now().subtract(Duration(days: 5));
-  DateTime toDate = DateTime.now();
-  String activityType = 'Jogging';
-  double duration = 2.5;
+  // Animation controllers for score popup
+  late AnimationController _scoreAnimationController;
+  late Animation<double> _scoreScaleAnimation;
+  late Animation<double> _scoreOpacityAnimation;
+  late Animation<double> _scoreRotationAnimation;
 
   // Sample data for activities
   final Map<int, bool> _activityRegularity = {
@@ -48,20 +50,21 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     5: true,
     6: true,
     7: true,
-    8: true,
-    9: true,
-    10: true,
-    11: true,
-    13: true,
-    14: true,
-    15: true,
-    16: true,
-    17: true,
-    18: true,
-    24: true,
-    25: true,
-    26: true,
-    28: true,
+    8: false,
+    9: false,
+    10: false,
+    11: false,
+    13: false,
+    14: false,
+    15: false,
+    16: false,
+    17: false,
+    18: false,
+    23: false,
+    24: false,
+    25: false,
+    26: false,
+    28: false,
     12: false,
     19: false,
     20: false,
@@ -86,21 +89,27 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       'calories': 112,
       'icon': Icons.directions_run,
       'color': Color(0xFFFF5A5A),
-      'date': DateTime(2025, 3, 22),
+      'date': DateTime.now().subtract(Duration(days: 1)),
+      'duration': '30 min',
+      'distance': '3.2 km',
     },
     {
       'name': 'Biking',
       'calories': 241,
       'icon': Icons.directions_bike,
       'color': Color(0xFF1976D2),
-      'date': DateTime(2025, 3, 23),
+      'date': DateTime.now().subtract(Duration(days: 3)),
+      'duration': '60 min',
+      'distance': '12.5 km',
     },
     {
       'name': 'Yoga',
       'calories': 241,
       'icon': Icons.self_improvement,
       'color': Color(0xFF66BB6A),
-      'date': DateTime(2025, 3, 21),
+      'date': DateTime.now().subtract(Duration(days: 4)),
+      'duration': '40 min',
+      'distance': null,
     },
     {
       'name': 'Hiking',
@@ -113,6 +122,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
   // List to store actual API fetched activities
   List<Map<String, dynamic>> _activityHistory = [];
+  List<DateTime> _last5Days = [];
 
   @override
   void initState() {
@@ -121,11 +131,14 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     _selectedMonth = DateTime(_today.year, _today.month, 1);
     _selectedYear = _today.year;
 
+    // Generate last 5 days for default view
+    _generateLast5Days();
+
     // Initialize the collections
     _generateAvailableYears();
     _generateAvailableMonths();
 
-    // Initialize animation controller
+    // Initialize animation controller for page transition
     _pageTransitionController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -143,6 +156,36 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       CurvedAnimation(parent: _pageTransitionController, curve: Curves.easeOut),
     );
 
+    // Initialize animation controller for score popup
+    _scoreAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _scoreScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.2), weight: 40),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0), weight: 60),
+    ]).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _scoreOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+
+    _scoreRotationAnimation = Tween<double>(begin: -0.1, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
     _pageTransitionController.forward();
     
     // Initialize with default data
@@ -152,9 +195,17 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     _fetchActivities();
   }
 
+  void _generateLast5Days() {
+    _last5Days = [];
+    for (int i = 0; i < 5; i++) {
+      _last5Days.add(DateTime.now().subtract(Duration(days: i)));
+    }
+  }
+
   @override
   void dispose() {
     _pageTransitionController.dispose();
+    _scoreAnimationController.dispose();
     super.dispose();
   }
 
@@ -290,11 +341,21 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
   List<Map<String, dynamic>> _getFilteredActivities() {
     if (_selectedDate == null) {
-      return _activityHistory; // Show all if no date is selected
+      // Show last 5 days activities by default
+      return _activityHistory.where((activity) {
+        if (activity['date'] == null) return false;
+
+        final activityDate = activity['date'] as DateTime;
+        return _last5Days.any(
+          (date) =>
+              DateFormat('yyyy-MM-dd').format(date) ==
+              DateFormat('yyyy-MM-dd').format(activityDate),
+        );
+      }).toList();
     }
 
     return _activityHistory.where((activity) {
-      if (activity['date'] == null) return false; // Handle missing date safely
+      if (activity['date'] == null) return false;
 
       return DateFormat('yyyy-MM-dd').format(activity['date'] as DateTime) ==
           DateFormat('yyyy-MM-dd').format(_selectedDate!);
@@ -340,50 +401,191 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     _availableMonths.sort((a, b) => b.compareTo(a));
   }
 
+  // Update the _showMonthYearPicker method to create a more impressive and professional UI
+
+  // Replace the _showMonthYearPicker method with this enhanced version:
   void _showMonthYearPicker() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
             return Container(
-              padding: const EdgeInsets.all(20),
+              height: MediaQuery.of(context).size.height * 0.7,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    spreadRadius: 0,
+                    offset: Offset(0, -2),
+                  ),
+                ],
+              ),
               child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Title
-                  Text(
-                    'Select Month & Year',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
+                  // Handle and header
+                  Container(
+                    padding: EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.vertical(
+                        top: Radius.circular(24),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          spreadRadius: 0,
+                          offset: Offset(0, 1),
+                        ),
+                      ],
+                    ),
+                    child: Column(
+                      children: [
+                        // Handle
+                        Center(
+                          child: Container(
+                            width: 40,
+                            height: 4,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade300,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                          ),
+                        ),
+                        SizedBox(height: 16),
+
+                        // Title with close button
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              'Select Month & Year',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                                color: Color(0xFF1E293B),
+                              ),
+                            ),
+                            InkWell(
+                              onTap: () => Navigator.pop(context),
+                              borderRadius: BorderRadius.circular(20),
+                              child: Container(
+                                padding: EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.close,
+                                  color: Color(0xFF64748B),
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   ),
-                  const SizedBox(height: 16),
 
-                  // Year selector
-                  Text(
-                    'Year',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                  // Content
+                  Expanded(
+                    child: Container(
+                      padding: EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Current selection display
+                          Container(
+                            padding: EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(0xFF0F67FE).withOpacity(0.2),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  padding: EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.calendar_month,
+                                    color: Colors.white,
+                                    size: 24,
+                                  ),
+                                ),
+                                SizedBox(width: 16),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      DateFormat('MMMM').format(_selectedMonth),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 24,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                    Text(
+                                      _selectedYear.toString(),
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        color: Colors.white.withOpacity(0.9),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
 
-                  SizedBox(
-                    height: 50,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _availableYears.length,
-                      itemBuilder: (context, index) {
-                        final year = _availableYears[index];
-                        final isSelected = year == _selectedYear;
-                        final isFutureYear = year > _today.year;
+                          SizedBox(height: 24),
+
+                          // Year selector
+                          Text(
+                            'Year',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          SizedBox(height: 12),
+
+                          // Improved year selector with animation
+                          Container(
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: Colors.grey.shade50,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: Colors.grey.shade200),
+                            ),
+                            child: ListView.builder(
+                              scrollDirection: Axis.horizontal,
+                              itemCount: _availableYears.length,
+                              itemBuilder: (context, index) {
+                                final year = _availableYears[index];
+                                final isSelected = year == _selectedYear;
+                                final isFutureYear = year > _today.year;
 
                         return GestureDetector(
                           onTap:
@@ -450,39 +652,46 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                          SizedBox(height: 24),
 
-                  // Month selector
-                  Text(
-                    'Month',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  Expanded(
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 2.5,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
+                          // Month selector
+                          Text(
+                            'Month',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Color(0xFF1E293B),
+                            ),
                           ),
-                      itemCount: 12,
-                      itemBuilder: (context, index) {
-                        final monthNum = index + 1;
-                        final monthDate = DateTime(_selectedYear, monthNum, 1);
+                          SizedBox(height: 12),
 
-                        // Check if the month should be disabled
-                        bool isAvailable = _isMonthAvailable(monthDate);
-                        bool isSelected =
-                            _selectedMonth.month == monthNum &&
-                            _selectedMonth.year == _selectedYear;
+                          // Improved month selector with animation
+                          Expanded(
+                            child: GridView.builder(
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: 4,
+                                    childAspectRatio: 1.2,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: 12,
+                              itemBuilder: (context, index) {
+                                final monthNum = index + 1;
+                                final monthDate = DateTime(
+                                  _selectedYear,
+                                  monthNum,
+                                  1,
+                                );
+                                final monthName = DateFormat(
+                                  'MMM',
+                                ).format(monthDate);
+
+                                // Check if the month should be disabled
+                                bool isAvailable = _isMonthAvailable(monthDate);
+                                bool isSelected =
+                                    _selectedMonth.month == monthNum &&
+                                    _selectedMonth.year == _selectedYear;
 
                         return GestureDetector(
                           onTap:
@@ -528,76 +737,95 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                     ),
                   ),
 
-                  const SizedBox(height: 20),
+                          SizedBox(height: 20),
 
-                  // Confirm button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Determine slide direction based on month comparison
-                        DateTime oldMonth = _selectedMonth;
-                        DateTime newMonth = DateTime(
-                          _selectedYear,
-                          _selectedMonth.month,
-                          1,
-                        );
+                          // Apply button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Color(0xFF0F67FE),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                padding: EdgeInsets.symmetric(vertical: 16),
+                              ),
+                              onPressed: () {
+                                Navigator.pop(context);
+                                // Determine slide direction based on month comparison
+                                DateTime oldMonth = _selectedMonth;
+                                DateTime newMonth = DateTime(
+                                  _selectedYear,
+                                  _selectedMonth.month,
+                                  1,
+                                );
 
-                        if (newMonth.isBefore(oldMonth)) {
-                          _slideDirection = const Offset(
-                            -1.0,
-                            0.0,
-                          ); // Right slide (newer to older)
-                        } else if (newMonth.isAfter(oldMonth)) {
-                          _slideDirection = const Offset(
-                            1.0,
-                            0.0,
-                          ); // Left slide (older to newer)
-                        } else {
-                          // Same month, no animation needed
-                          this.setState(() {
-                            _selectedMonth = newMonth;
-                          });
-                          return;
-                        }
+                                if (newMonth.isBefore(oldMonth)) {
+                                  _slideDirection = const Offset(
+                                    -1.0,
+                                    0.0,
+                                  ); // Right slide (newer to older)
+                                } else if (newMonth.isAfter(oldMonth)) {
+                                  _slideDirection = const Offset(
+                                    1.0,
+                                    0.0,
+                                  ); // Left slide (older to newer)
+                                } else {
+                                  // Same month, no animation needed
+                                  this.setState(() {
+                                    _selectedMonth = newMonth;
+                                  });
+                                  return;
+                                }
 
-                        // Update the slide animation with new direction
-                        _slideAnimation = Tween<Offset>(
-                          begin: _slideDirection,
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: _pageTransitionController,
-                            curve: Curves.easeOut,
+                                // Update the slide animation with new direction
+                                _slideAnimation = Tween<Offset>(
+                                  begin: _slideDirection,
+                                  end: Offset.zero,
+                                ).animate(
+                                  CurvedAnimation(
+                                    parent: _pageTransitionController,
+                                    curve: Curves.easeOut,
+                                  ),
+                                );
+
+                                // Reset animation
+                                _pageTransitionController.reset();
+
+                                // Update state with the new selected month
+                                this.setState(() {
+                                  _selectedMonth = newMonth;
+                                });
+
+                                // Start animation
+                                _pageTransitionController.forward();
+
+                                // Restart score animation
+                                _scoreAnimationController.reset();
+                                Future.delayed(Duration(milliseconds: 300), () {
+                                  _scoreAnimationController.forward();
+                                });
+                              },
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Icon(Icons.check_circle_outline, size: 20),
+                                  SizedBox(width: 8),
+                                  Text(
+                                    'Apply Selection',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
-                        );
-
-                        // Reset animation
-                        _pageTransitionController.reset();
-
-                        // Update state with the new selected month
-                        this.setState(() {
-                          _selectedMonth = newMonth;
-                        });
-
-                        // Start animation
-                        _pageTransitionController.forward();
-                      },
-                      child: Text(
-                        'Confirm',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
+                        ],
                       ),
                     ),
                   ),
@@ -613,14 +841,14 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   // Helper method to check if a month is available
   bool _isMonthAvailable(DateTime monthDate) {
     // Month should be after or same as join date
-    bool isAfterJoinDate = monthDate.isAfter(
-      DateTime(widget.userJoinDate.year, widget.userJoinDate.month - 1, 1),
-    );
+    bool isAfterJoinDate =
+        !monthDate.isBefore(
+          DateTime(widget.userJoinDate.year, widget.userJoinDate.month, 1),
+        );
 
     // Month should not be in the future
-    bool isNotInFuture = monthDate.isBefore(
-      DateTime(_today.year, _today.month + 1, 1),
-    );
+    bool isNotInFuture =
+        !monthDate.isAfter(DateTime(_today.year, _today.month, 1));
 
     return isAfterJoinDate && isNotInFuture;
   }
@@ -656,6 +884,12 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
     // Start animation
     _pageTransitionController.forward();
+
+    // Restart score animation
+    _scoreAnimationController.reset();
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scoreAnimationController.forward();
+    });
   }
 
   @override
@@ -676,151 +910,124 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           userJoinDate: widget.userJoinDate,
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
-
-                  // Back button and drawer button
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment
-                            .start, // Aligns the back button to the left
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_left, size: 24),
-                          onPressed: () => Navigator.pop(context),
+                      const SizedBox(height: 16),
+
+                      // Back button and drawer button
+                      Row(
+                        mainAxisAlignment:
+                            MainAxisAlignment
+                                .start, // Aligns the back button to the left
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.chevron_left, size: 24),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Header with year selector
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'My Activities',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+
+                          // Combined month and year selector
+                          InkWell(
+                            onTap: _showMonthYearPicker,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.calendar_today, size: 18),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    DateFormat(
+                                      'MMM yyyy',
+                                    ).format(_selectedMonth),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 18,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Reduced height monthly score card
+                      _buildMonthlyScoreCard(),
+
+                      const SizedBox(height: 24),
+
+                      // Calendar with animation
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: ActivityCalendar(
+                            selectedMonth: _selectedMonth,
+                            today: _today,
+                            activityRegularity: _activityRegularity,
+                            userJoinedDate: widget.userJoinDate,
+                            onMonthChanged: _handleMonthChange,
+                            onDateSelected: _handleDateSelection,
+                            selectedDate: _selectedDate,
+                          ),
                         ),
                       ),
-                    ],
-                  ),
 
-                  const SizedBox(height: 24),
+                      const SizedBox(height: 32),
 
-                  // Header with year selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
+                      // AI Activity Suggestions
                       Text(
-                        'My Activities',
+                        'AI Activity Suggestions',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 28,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                           color: const Color(0xFF1E293B),
                         ),
                       ),
 
-                      // Combined month and year selector
-                      InkWell(
-                        onTap: _showMonthYearPicker,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            border: Border.all(color: Colors.grey.shade300),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.calendar_today, size: 18),
-                              const SizedBox(width: 8),
-                              Text(
-                                DateFormat('MMM yyyy').format(_selectedMonth),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(Icons.keyboard_arrow_down, size: 18),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Activities this month card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Text('🔥', style: TextStyle(fontSize: 24)),
-                            const SizedBox(width: 8),
-                            Text(
-                              '25',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Activities this month',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Calendar with animation
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: ActivityCalendar(
-                        selectedMonth: _selectedMonth,
-                        today: _today,
-                        activityRegularity: _activityRegularity,
-                        userJoinedDate: widget.userJoinDate,
-                        onMonthChanged: _handleMonthChange,
-                        onDateSelected:
-                            _handleDateSelection, // Pass the callback
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(height: 32),
-
-                  // AI Activity Suggestions
-                  Text(
-                    'AI Activity Suggestions',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-
-                  const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
                   // Suggestion card
                   Container(
@@ -935,81 +1142,341 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           ),
         ),
       ),
+    ),
     );
   }
 
   Widget _buildActivityItem(Map<String, dynamic> activity) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 8,
             offset: const Offset(0, 2),
           ),
         ],
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: activity['color'],
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(activity['icon'], color: Colors.white, size: 28),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () {
+            // Navigate to ActivityCalories instead of showing modal
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => ActivityCalories()),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
               children: [
-                Text(
-                  activity['name'],
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1E293B),
+                // Activity icon
+                Container(
+                  width: 50,
+                  height: 50,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        activity['color'],
+                        Color.lerp(activity['color'], Colors.white, 0.3)!,
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(activity['icon'], color: Colors.white, size: 24),
+                ),
+                const SizedBox(width: 12),
+
+                // Activity details
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        activity['name'],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_today,
+                            color: Colors.grey.shade500,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            DateFormat('MMM d, yyyy').format(activity['date']),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Icon(
+                            Icons.timer_outlined,
+                            color: Colors.grey.shade500,
+                            size: 12,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            activity['duration'],
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 4),
-                Row(
-                  children: [
-                    const Icon(Icons.bolt, color: Colors.grey, size: 16),
-                    const SizedBox(width: 4),
-                    Text(
-                      '${activity['calories']}kcal',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+
+                // Calories
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.local_fire_department,
+                        color: Color(0xFFFF5A5A),
+                        size: 14,
                       ),
-                    ),
-                    const SizedBox(width: 16),
-                    const Icon(
-                      Icons.calendar_today,
-                      color: Colors.grey,
-                      size: 16,
-                    ),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Today',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
-                        color: Colors.grey.shade600,
+                      SizedBox(width: 4),
+                      Text(
+                        '${activity['calories']}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-        ],
+        ),
       ),
+    );
+  }
+
+  void _showActivityDetails(Map<String, dynamic> activity) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+
+              // Activity header
+              Container(
+                padding: EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      activity['color'],
+                      Color.lerp(activity['color'], Colors.white, 0.3)!,
+                    ],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.3),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: Icon(
+                            activity['icon'],
+                            color: Colors.white,
+                            size: 32,
+                          ),
+                        ),
+                        SizedBox(width: 16),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              activity['name'],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                            SizedBox(height: 4),
+                            Text(
+                              DateFormat(
+                                'EEEE, MMM d, yyyy',
+                              ).format(activity['date']),
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.9),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+
+                    SizedBox(height: 24),
+
+                    // Stats row
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildDetailStat(
+                          Icons.local_fire_department,
+                          '${activity['calories']}',
+                          'Calories',
+                        ),
+                        _buildDetailStat(
+                          Icons.timer,
+                          activity['duration'],
+                          'Duration',
+                        ),
+                        if (activity['distance'] != null)
+                          _buildDetailStat(
+                            Icons.straighten,
+                            activity['distance'],
+                            'Distance',
+                          ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              // Additional content would go here
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Activity Summary',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      SizedBox(height: 16),
+                      Text(
+                        'You completed ${activity['name']} on ${DateFormat('EEEE, MMM d').format(activity['date'])}. This activity burned ${activity['calories']} calories and lasted for ${activity['duration']}.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          color: Colors.grey.shade700,
+                          height: 1.5,
+                        ),
+                      ),
+
+                      SizedBox(height: 24),
+
+                      // Placeholder for a chart or additional stats
+                      Container(
+                        height: 200,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'Activity Chart',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailStat(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Container(
+          padding: EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.3),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: Colors.white, size: 20),
+        ),
+        SizedBox(height: 8),
+        Text(
+          value,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+      ],
     );
   }
 }

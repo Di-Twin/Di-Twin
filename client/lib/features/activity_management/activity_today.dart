@@ -1,3 +1,4 @@
+import 'package:client/features/activity_management/activity_my_stats.dart';
 import 'dart:convert';
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:flutter/material.dart';
@@ -10,15 +11,11 @@ import 'dart:math' show max, pow;
 
 // API Service for fetching activity data
 class ActivityService {
-  static const String baseUrl = 'http://192.168.11.196:6000/'; 
-  
+  static const String baseUrl = 'http://192.168.11.196:6000/';
 
   static Future<List<Map<String, dynamic>>> fetchTopActivities(DateTime date) async {
     try {
-      // Format the date as YYYY-MM-DD
       final formattedDate = DateFormat('yyyy-M-d').format(date);
-      
-      // Get the access token from secure storage or state management solution
       final accessToken = await _getAccessToken();
       
       final response = await http.post(
@@ -47,10 +44,7 @@ class ActivityService {
 
   static Future<int> fetchDailyActivityScore(DateTime date) async {
     try {
-      // Format the date as YYYY-MM-DD
       final formattedDate = DateFormat('yyyy-M-d').format(date);
-      
-      // Get the access token
       final accessToken = await _getAccessToken();
       
       final response = await http.get(
@@ -76,11 +70,9 @@ class ActivityService {
     }
   }
   
-  // Transform API data to the format used by UI
   static List<Map<String, dynamic>> _transformActivities(List<dynamic> apiActivities) {
     final List<Map<String, dynamic>> transformedActivities = [];
     
-    // Define icon and color mappings for different activity types
     final Map<String, IconData> activityIcons = {
       'running': FontAwesomeIcons.personRunning,
       'cycling': FontAwesomeIcons.bicycle,
@@ -88,7 +80,6 @@ class ActivityService {
       'swimming': FontAwesomeIcons.personSwimming,
       'yoga': Icons.spa,
       'weightlifting': FontAwesomeIcons.dumbbell,
-      // Add more mappings as needed
     };
     
     final Map<String, Color> activityColors = {
@@ -98,11 +89,9 @@ class ActivityService {
       'swimming': Colors.blueAccent,
       'yoga': Colors.purpleAccent,
       'weightlifting': Colors.orangeAccent,
-      // Add more mappings as needed
     };
     
     for (var activity in apiActivities) {
-      // Convert seconds to minutes for display
       final int durationMinutes = (activity['duration_seconds'] / 60).round();
       
       transformedActivities.add({
@@ -120,21 +109,13 @@ class ActivityService {
     return transformedActivities;
   }
   
-  // Helper function to capitalize first letter of activity type
   static String _capitalizeFirstLetter(String text) {
-    if (text == null || text.isEmpty) {
-      return '';
-    }
+    if (text.isEmpty) return '';
     return text[0].toUpperCase() + text.substring(1);
   }
   
-  // Get access token from secure storage or state management
   static Future<String> _getAccessToken() async {
-    // Replace this with your actual method to retrieve the stored access token
-    // For example, using Flutter Secure Storage or a state management solution
-    
-    // Placeholder implementation
-    return 'YOUR_ACCESS_TOKEN'; // dart(TODO:) Replace with actual token retrieval logic
+    return 'YOUR_ACCESS_TOKEN'; // TODO: Replace with actual token retrieval
   }
 }
 
@@ -146,14 +127,35 @@ class ActivityToday extends StatefulWidget {
 }
 
 class _ActivityTodayState extends State<ActivityToday> {
-  double x = 165;
-  double y = 275;
-  
+  bool isWatchConnected = true;
+  bool isManualEntryOpen = false;
+  int currentStep = 0;
+  String? selectedActivityType;
+  int activityDuration = 30;
   bool _isLoading = true;
   List<Map<String, dynamic>> _topActivities = [];
   String _errorMessage = '';
   int _totalActivities = 0;
   int _activityScore = 0;
+
+  final List<Map<String, dynamic>> activityTypes = [
+    {'label': 'Jogging', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF1E293B)},
+    {'label': 'Running', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF0066FF)},
+    {'label': 'Walking', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF4CAF50)},
+    {'label': 'Outdoor Sport', 'icon': FontAwesomeIcons.baseball, 'color': const Color(0xFFFF9800)},
+    {'label': 'Elliptical', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF9C27B0)},
+    {'label': 'Strength Training', 'icon': FontAwesomeIcons.dumbbell, 'color': const Color(0xFF795548)},
+    {'label': 'Treadmill', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF607D8B)},
+    {'label': 'Cycling', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFFE91E63)},
+    {'label': 'Bike', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFF3F51B5)},
+    {'label': 'Swimming', 'icon': FontAwesomeIcons.personSwimming, 'color': const Color(0xFF00BCD4)},
+    {'label': 'Boxing', 'icon': FontAwesomeIcons.handFist, 'color': const Color(0xFFFF5722)},
+    {'label': 'Skipping', 'icon': FontAwesomeIcons.arrowDown, 'color': const Color(0xFF8BC34A)},
+    {'label': 'Table Tennis', 'icon': FontAwesomeIcons.tableTennisPaddleBall, 'color': const Color(0xFF673AB7)},
+    {'label': 'Badminton', 'icon': FontAwesomeIcons.locationArrow, 'color': const Color(0xFFCDDC39)},
+    {'label': 'Yoga', 'icon': Icons.spa, 'color': const Color(0xFF009688)},
+    {'label': 'Skating', 'icon': FontAwesomeIcons.personSkating, 'color': const Color(0xFF2196F3)},
+  ];
 
   @override
   void initState() {
@@ -169,9 +171,7 @@ class _ActivityTodayState extends State<ActivityToday> {
     });
 
     try {
-      // Fetch today's activities or use a specific date
       final activities = await ActivityService.fetchTopActivities(DateTime.now());
-      
       setState(() {
         _topActivities = activities;
         _totalActivities = activities.length;
@@ -181,8 +181,6 @@ class _ActivityTodayState extends State<ActivityToday> {
       setState(() {
         _errorMessage = 'Failed to load activities: $e';
         _isLoading = false;
-        
-        // Fallback to dummy data for testing
         _topActivities = [
           {
             'minutes': '60',
@@ -209,51 +207,250 @@ class _ActivityTodayState extends State<ActivityToday> {
         _activityScore = score;
       });
     } catch (e) {
-      // Handle error or set a default value
       setState(() {
         _activityScore = 0;
       });
     }
   }
 
+  void _navigateToMyActivities() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MyActivitiesScreen(userJoinDate: DateTime(2025, 4, 1)),
+      ),
+    );
+  }
+
+  void _openManualEntryDrawer() {
+    setState(() {
+      isManualEntryOpen = true;
+      currentStep = 0;
+      selectedActivityType = null;
+    });
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return GestureDetector(
+            onTap: () {},
+            child: _buildManualEntryDrawer(setModalState),
+          );
+        },
+      ),
+    ).then((_) {
+      setState(() {
+        isManualEntryOpen = false;
+      });
+    });
+  }
+
+  void _addActivity(StateSetter setModalState) {
+    if (selectedActivityType != null && activityDuration > 0) {
+      final activityData = activityTypes.firstWhere(
+        (element) => element['label'] == selectedActivityType,
+        orElse: () => activityTypes[0],
+      );
+
+      final newActivity = {
+        'minutes': activityDuration.toString(),
+        'label': selectedActivityType!,
+        'color': activityData['color'] as Color,
+        'icon': activityData['icon'] as IconData,
+      };
+
+      setState(() {
+        _topActivities.add(newActivity);
+      });
+
+      Navigator.pop(context);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$selectedActivityType added for $activityDuration minutes'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final headerHeight = 370.0;
+
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      resizeToAvoidBottomInset: true,
-      body: SafeArea(
-        child: GestureDetector(
-          onTap: () => FocusScope.of(context).unfocus(),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              return Stack(
-                children: [
-                  SizedBox(
-                    height: constraints.maxHeight,
-                    child: _buildHeader(constraints),
-                  ),
-                  if (_isLoading)
-                    Center(child: CircularProgressIndicator()),
-                  if (!_isLoading && _errorMessage.isNotEmpty)
-                    Center(child: _buildErrorMessage()),
-                  if (!_isLoading && _errorMessage.isEmpty)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _buildMostminutesSection(_topActivities, constraints),
-                    ),
-                ],
-              );
-            },
+      resizeToAvoidBottomInset: false,
+      body: Column(
+        children: [
+          SizedBox(
+            height: headerHeight.h,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                CustomActivityHeader(
+                  title: 'Activities',
+                  badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
+                  score: isWatchConnected ? _activityScore.toString() : '0',
+                  subtitle: 'Activities Today.',
+                  buttonImage: 'images/SignInAddIcon.png',
+                  onButtonTap: _navigateToMyActivities,
+                  backgroundColor: const Color(0xFFD0E4FF),
+                  backgroundImagePath: 'images/activity_header_background.png',
+                  buttonColor: const Color(0xFF242E49),
+                  buttonShadowColor: const Color(0xFF242E49),
+                  titleTextColor: const Color(0xFF242E49),
+                  scoreTextColor: const Color(0xFF242E49),
+                  subtitleTextColor: const Color(0xFF242E49),
+                  backButtonBorderColor: const Color(0xFF242E49),
+                  badgeBackgroundColor: isWatchConnected 
+                      ? const Color(0xFF0F67FE) 
+                      : const Color(0xFFFF5252).withOpacity(0.1),
+                  badgeTextColor: isWatchConnected 
+                      ? const Color(0xFF0F67FE) 
+                      : const Color(0xFFFF5252),
+                  backButtonBorderWidth: 1.0,
+                  bottomLeftRadius: 30,
+                  bottomRightRadius: 30,
+                  buttonShadowSpread: 4,
+                  headerHeight: headerHeight,
+                  showBadge: true,
+                  showMenu: false,
+                ),
+              ],
+            ),
           ),
-        ),
+          SizedBox(height: 40.h),
+          Expanded(
+            child: isWatchConnected
+                ? _buildActivityContent()
+                : SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: _buildEmptyState(),
+                  ),
+          ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchActivities,
-        child: Icon(Icons.refresh),
+        child: const Icon(Icons.refresh),
         tooltip: 'Refresh activities',
       ),
+    );
+  }
+
+  Widget _buildActivityContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return _buildErrorMessage();
+    }
+
+    if (_topActivities.isEmpty) {
+      return _buildEmptyActivityState();
+    }
+
+    final maxMinutesValue = _topActivities.fold(0.0, (max, activity) {
+      final minutes = double.parse(activity['minutes'].toString());
+      return minutes > max ? minutes : max;
+    });
+
+    return Column(
+      children: [
+        Padding(
+          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 16.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.local_fire_department,
+                    color: const Color(0xFF0F67FE),
+                    size: 20.sp,
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Most Minutes',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+              GestureDetector(
+                onTap: _openManualEntryDrawer,
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20.r),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF0F67FE).withOpacity(0.2),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.add_circle_outline,
+                        color: Colors.white,
+                        size: 16.sp,
+                      ),
+                      SizedBox(width: 6.w),
+                      Text(
+                        'Add Manually',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Container(
+          height: 300.h,
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _topActivities.map((activity) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: _buildActivityBar(
+                  minutes: activity['minutes'] as String,
+                  label: activity['label'] as String,
+                  color: activity['color'] as Color,
+                  icon: activity['icon'] as IconData,
+                  maxMinutes: maxMinutesValue,
+                ),
+              ),
+            )).toList(),
+          ),
+        ),
+      ],
     );
   }
 
@@ -276,136 +473,691 @@ class _ActivityTodayState extends State<ActivityToday> {
           SizedBox(height: 24.h),
           ElevatedButton(
             onPressed: _fetchActivities,
-            child: Text('Try Again'),
+            child: const Text('Try Again'),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildHeader(BoxConstraints constrains) {
-    return SizedBox(
-      height: constrains.maxHeight,
-      width: double.infinity,
-      child: Stack(
-        clipBehavior: Clip.none,
-        children: [
-          CustomActivityHeader(
-            title: 'Activities',
-            badgeText: 'Normal',
-            score: _activityScore.toString(),
-            subtitle: 'Activities Score.',
-            buttonImage: 'images/SignInAddIcon.png',
-            onButtonTap: () {},
-            backgroundColor: Color(0xFFD0E4FF),
-            backgroundImagePath: 'images/activity_header_background.png',
-            buttonColor: Color(0xFF242E49),
-            buttonShadowColor: Color(0xFF242E49),
-            titleTextColor: Color(0xFF242E49),
-            scoreTextColor: Color(0xFF242E49),
-            subtitleTextColor: Color(0xFF242E49),
-            backButtonBorderColor: Color(0xFF242E49),
-            badgeBackgroundColor: Color(0xFF0F67FE),
-            badgeTextColor: Color(0xFF0F67FE),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildMostminutesSection(List<Map<String, dynamic>> activityData, constraints) {
-    final Size screenSize = MediaQuery.of(context).size;
-    final double horizontalPadding = screenSize.width * 0.06;
-    final double barWidth = screenSize.width * 0.24;
-    
-    double sectionHeightRatio;
-    
-    bool isTablet = screenSize.width > 600;
-    bool isLandscape = screenSize.width > screenSize.height;
-    
-    if (isTablet) {
-      sectionHeightRatio = isLandscape ? 0.38 : 0.45;
-    } else {
-      sectionHeightRatio = isLandscape ? 0.32 : 0.42;
-    }
-    
-    if (screenSize.height < 600) {
-      sectionHeightRatio *= 0.85;
-    } else if (screenSize.height > 1200) {
-      sectionHeightRatio *= 1.1;
-    }
-
-    double maxminutesValue = 0;
-    for (var activity in activityData) {
-      double minutes = double.parse(activity['minutes'].toString());
-      if (minutes > maxminutesValue) {
-        maxminutesValue = minutes;
-      }
-    }
-    
-    // If there's no data, show a message
-    if (activityData.isEmpty) {
-      return Container(
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: 32.h),
-        child: Center(
-          child: Text(
-            'No activities recorded for today',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
-            ),
-          ),
-        ),
-      );
-    }
-
+  Widget _buildEmptyActivityState() {
     return Container(
-      width: double.infinity,
-      padding: EdgeInsets.only(top: 16.w),
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Padding(
-            padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-            child: Text(
-              'Most minutes',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.w800,
-                color: Colors.black87,
+          Container(
+            width: 180.w,
+            height: 180.w,
+            decoration: BoxDecoration(
+              gradient: const RadialGradient(
+                colors: [Color(0xFFE6F0FF), Color(0xFFD0E4FF)],
+                radius: 0.8,
               ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F67FE).withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
             ),
-          ),
-          SizedBox(height: 16.h),
-          SizedBox(
-            height: constraints.maxHeight * sectionHeightRatio,
-            child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: List.generate(
-                  activityData.length,
-                  (index) => SizedBox(
-                    width: barWidth,
-                    child: _buildActivityBar(
-                      minutes: activityData[index]['minutes'] as String,
-                      label: activityData[index]['label'] as String,
-                      color: activityData[index]['color'] as Color,
-                      icon: activityData[index]['icon'] as IconData,
-                      index: index,
-                      maxminutes: maxminutesValue,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  top: 30.h,
+                  right: 40.w,
+                  child: Container(
+                    width: 24.w,
+                    height: 24.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F67FE).withOpacity(0.2),
+                      shape: BoxShape.circle,
                     ),
                   ),
+                ),
+                Positioned(
+                  bottom: 50.h,
+                  left: 35.w,
+                  child: Container(
+                    width: 18.w,
+                    height: 18.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F67FE).withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 100.w,
+                  height: 100.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.directions_run,
+                    size: 50.sp,
+                    color: const Color(0xFF0F67FE),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 32.h),
+          Text(
+            'No activities yet',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'Start tracking your fitness journey by adding your first activity',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1E293B).withOpacity(0.7),
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32.h),
+          Container(
+            width: double.infinity,
+            height: 56.h,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F67FE).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openManualEntryDrawer,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Add Your First Activity',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-          SizedBox(height: 16.h),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 160.w,
+            height: 160.w,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEEF6FF),
+              shape: BoxShape.circle,
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Container(
+                  width: 140.w,
+                  height: 140.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFD0E4FF),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                Container(
+                  width: 100.w,
+                  height: 100.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.05),
+                        blurRadius: 10,
+                        spreadRadius: 0,
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.watch_outlined,
+                    size: 50.sp,
+                    color: const Color(0xFFFF5252),
+                  ),
+                ),
+                Positioned(
+                  top: 30.h,
+                  right: 30.w,
+                  child: Container(
+                    width: 20.w,
+                    height: 20.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5252).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Positioned(
+                  bottom: 40.h,
+                  left: 25.w,
+                  child: Container(
+                    width: 15.w,
+                    height: 15.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFF5252).withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: 32.h),
+          Text(
+            'Watch Not Connected',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'Connect your watch to automatically track your activities or add them manually.',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1E293B).withOpacity(0.7),
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32.h),
+          Container(
+            width: double.infinity,
+            height: 56.h,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F67FE).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openManualEntryDrawer,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Add Activity Manually',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildManualEntryDrawer(StateSetter setModalState) {
+    final double drawerHeight = MediaQuery.of(context).size.height * 0.50;
+
+    return Container(
+      height: drawerHeight,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 10,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            margin: EdgeInsets.only(top: 12.h),
+            width: 40.w,
+            height: 4.h,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(4.r),
+            ),
+          ),
+          SizedBox(height: 16.h),
+          Text(
+            currentStep == 0 ? 'Select Activity Type' : 'Set Duration',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 20.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: currentStep >= 0 ? const Color(0xFF0F67FE) : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+              SizedBox(width: 8.w),
+              Container(
+                width: 40.w,
+                height: 4.h,
+                decoration: BoxDecoration(
+                  color: currentStep >= 1 ? const Color(0xFF0F67FE) : Colors.grey[300],
+                  borderRadius: BorderRadius.circular(4.r),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 24.h),
+          Expanded(
+            child: currentStep == 0 
+                ? _buildActivityTypeSelection(setModalState)
+                : _buildDurationSelection(setModalState),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildActivityTypeSelection(StateSetter setModalState) {
+    return Column(
+      children: [
+        Expanded(
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24.w),
+              child: GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  childAspectRatio: 0.9,
+                  crossAxisSpacing: 12.w,
+                  mainAxisSpacing: 12.h,
+                ),
+                itemCount: activityTypes.length,
+                itemBuilder: (context, index) {
+                  final activity = activityTypes[index];
+                  final bool isSelected = selectedActivityType == activity['label'];
+
+                  return GestureDetector(
+                    onTap: () {
+                      setModalState(() {
+                        selectedActivityType = activity['label'] as String;
+                        currentStep = 1;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? (activity['color'] as Color).withOpacity(0.1)
+                            : Colors.grey[100],
+                        borderRadius: BorderRadius.circular(16.r),
+                        border: Border.all(
+                          color: isSelected
+                              ? activity['color'] as Color
+                              : Colors.grey[300]!,
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(12.r),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? activity['color'] as Color
+                                  : Colors.white,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              activity['icon'] as IconData,
+                              color: isSelected
+                                  ? Colors.white
+                                  : activity['color'] as Color,
+                              size: 20.sp,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 4.w),
+                            child: Text(
+                              activity['label'] as String,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.sp,
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? activity['color'] as Color
+                                    : const Color(0xFF1E293B),
+                              ),
+                              textAlign: TextAlign.center,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDurationSelection(StateSetter setModalState) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(12.r),
+                decoration: BoxDecoration(
+                  color: activityTypes
+                      .firstWhere(
+                        (element) => element['label'] == selectedActivityType,
+                        orElse: () => activityTypes[0],
+                      )['color']
+                      .withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  activityTypes.firstWhere(
+                    (element) => element['label'] == selectedActivityType,
+                    orElse: () => activityTypes[0],
+                  )['icon'] as IconData,
+                  color: activityTypes.firstWhere(
+                    (element) => element['label'] == selectedActivityType,
+                    orElse: () => activityTypes[0],
+                  )['color'] as Color,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: Text(
+                  selectedActivityType ?? '',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              TextButton(
+                onPressed: () {
+                  setModalState(() {
+                    currentStep = 0;
+                  });
+                },
+                child: Text(
+                  'Change',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF0F67FE),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: 24.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Duration (minutes)',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildDurationButton(
+                    icon: Icons.remove,
+                    onPressed: () {
+                      if (activityDuration > 5) {
+                        setModalState(() {
+                          activityDuration -= 5;
+                        });
+                      }
+                    },
+                  ),
+                  SizedBox(width: 24.w),
+                  SizedBox(
+                    width: 120.w,
+                    child: Text(
+                      '$activityDuration',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 48.sp,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF1E293B),
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  SizedBox(width: 24.w),
+                  _buildDurationButton(
+                    icon: Icons.add,
+                    onPressed: () {
+                      setModalState(() {
+                        activityDuration += 5;
+                      });
+                    },
+                  ),
+                ],
+              ),
+              SizedBox(height: 8.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildQuickDurationButton(15, setModalState),
+                  _buildQuickDurationButton(30, setModalState),
+                  _buildQuickDurationButton(45, setModalState),
+                  _buildQuickDurationButton(60, setModalState),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const Spacer(),
+        Padding(
+          padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () {
+                    setModalState(() {
+                      currentStep = 0;
+                    });
+                  },
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF0F67FE)),
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: Text(
+                    'Back',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF0F67FE),
+                    ),
+                  ),
+                ),
+              ),
+              SizedBox(width: 16.w),
+              Expanded(
+                child: ElevatedButton(
+                  onPressed: () => _addActivity(setModalState),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF0F67FE),
+                    foregroundColor: Colors.white,
+                    padding: EdgeInsets.symmetric(vertical: 16.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: Text(
+                    'Add Activity',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDurationButton({
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) {
+    return InkWell(
+      onTap: onPressed,
+      child: Container(
+        width: 48.w,
+        height: 48.w,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEEF2F6),
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        child: Icon(icon, color: const Color(0xFF1E293B), size: 24.sp),
+      ),
+    );
+  }
+
+  Widget _buildQuickDurationButton(int minutes, StateSetter setModalState) {
+    final bool isSelected = activityDuration == minutes;
+
+    return InkWell(
+      onTap: () {
+        setModalState(() {
+          activityDuration = minutes;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F67FE) : const Color(0xFFEEF2F6),
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(
+          '$minutes min',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF1E293B),
+          ),
+        ),
       ),
     );
   }
@@ -415,20 +1167,12 @@ class _ActivityTodayState extends State<ActivityToday> {
     required String label,
     required Color color,
     required IconData icon,
-    required int index,
-    required double maxminutes,
+    required double maxMinutes,
   }) {
-    double minutesValue = double.parse(minutes);
-    double maxBarHeight = 400.h;
-    double coloredBarHeight;
-    
-    if (minutesValue <= 0) {
-      coloredBarHeight = 0;
-    } else {
-      double ratio = minutesValue / maxminutes;
-      coloredBarHeight = maxBarHeight * ratio;
-    }
-    
+    final minutesValue = double.parse(minutes);
+    final maxBarHeight = 300.h;
+    final coloredBarHeight = minutesValue <= 0 ? 0 : maxBarHeight * (minutesValue / maxMinutes);
+
     return Container(
       height: maxBarHeight,
       decoration: BoxDecoration(
@@ -445,13 +1189,9 @@ class _ActivityTodayState extends State<ActivityToday> {
               right: 0,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16.r),
-                child: Container(
-                  height: coloredBarHeight,
-                  color: color,
-                ),
+                child: Container(height: coloredBarHeight, color: color),
               ),
             ),
-          
           Positioned(
             bottom: 16.h,
             left: 0,
@@ -467,7 +1207,9 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w700,
-                      color: (minutesValue > 0 && coloredBarHeight > 80.h) ? Colors.white : Colors.grey[600],
+                      color: (minutesValue > 0 && coloredBarHeight > 80.h)
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -476,14 +1218,15 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
-                      color: (minutesValue > 0 && coloredBarHeight > 80.h) ? Colors.white : Colors.grey[600],
+                      color: (minutesValue > 0 && coloredBarHeight > 80.h)
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          
           Positioned(
             top: 16.h,
             left: 0,

@@ -38,10 +38,7 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
       if (isLoading) {
         setState(() {
           isLoading = false;
-          // Set default values after timeout
-          totalCaloriesBurned = 1542; // Default value from original UI
-          // activities = _getDefaultActivities(); // Default activities
-          // Cancel the timer to prevent it from running again
+          totalCaloriesBurned = 1542;
         });
       }
     });
@@ -85,7 +82,6 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
         },
       );
 
-      // Cancel the timeout timer if we get a response
       _timeoutTimer?.cancel();
 
       if (response.statusCode == 200) {
@@ -94,7 +90,6 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
         if (responseData['success'] == true) {
           setState(() {
             activities = responseData['data'];
-            // Calculate total calories burned
             totalCaloriesBurned = activities.fold(0, (sum, activity) => 
                 sum + (activity['calories_burned'] as double));
             isLoading = false;
@@ -114,7 +109,7 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
   void _setDefaultValues() {
     setState(() {
       isLoading = false;
-      totalCaloriesBurned = 1542; // Default value
+      totalCaloriesBurned = 1542;
       activities = _getDefaultActivities();
     });
   }
@@ -128,7 +123,7 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
           ? _buildLoader()
           : SingleChildScrollView(
               child: Padding(
-                padding: EdgeInsets.symmetric(),
+                padding: EdgeInsets.symmetric(horizontal: 16.w),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -163,7 +158,6 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
         children: [
           const CircularProgressIndicator(
             valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0066FF)),
-          ),
           SizedBox(height: 16.h),
           Text(
             'Loading activities...',
@@ -179,106 +173,100 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
   }
 
   Widget _buildCaloriesSummary() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Today, you just burned',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.black,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Today, you just burned',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: Colors.black,
+          ),
+        ),
+        SizedBox(height: 8.h),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.baseline,
+          textBaseline: TextBaseline.alphabetic,
+          children: [
+            Text(
+              totalCaloriesBurned.toStringAsFixed(0),
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 40.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1A1F36),
+              ),
             ),
-          ),
-          SizedBox(height: 8.h),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.baseline,
-            textBaseline: TextBaseline.alphabetic,
-            children: [
-              Text(
-                totalCaloriesBurned.toStringAsFixed(0),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 40.sp,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1A1F36),
-                ),
+            SizedBox(width: 8.w),
+            Text(
+              'kcal',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w400,
+                color: Colors.grey,
               ),
-              SizedBox(width: 8.w),
-              Text(
-                'kcal',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 
   Widget _buildCaloriesChart() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
-      child: Container(
-        height: 48.h,
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8.r),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Target section
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: EdgeInsets.only(right: 5.w),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD9E4F5),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
+    return Container(
+      height: 48.h,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          // Target section
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: EdgeInsets.only(right: 5.w),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD9E4F5),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
             ),
-            // Taken section
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 2.w),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFFF5A5F),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
+          ),
+          // Taken section
+          Expanded(
+            flex: 2,
+            child: Padding(
+              padding: EdgeInsets.symmetric(horizontal: 2.w),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFF5A5F),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
             ),
-            // Burned section
-            Expanded(
-              flex: 3,
-              child: Padding(
-                padding: EdgeInsets.only(left: 5.w),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0066FF),
-                    borderRadius: BorderRadius.circular(8.r),
-                  ),
+          ),
+          // Burned section
+          Expanded(
+            flex: 3,
+            child: Padding(
+              padding: EdgeInsets.only(left: 5.w),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0066FF),
+                  borderRadius: BorderRadius.circular(8.r),
                 ),
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -298,103 +286,97 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
   }
 
   Widget _buildLegendItem(Color color, String label) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
       children: [
-        SizedBox(height: 16.h),
-        Row(
-          children: [
-            Container(
-              width: 12.w,
-              height: 12.h,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(2.r),
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                fontWeight: FontWeight.w400,
-                color: Colors.grey,
-              ),
-            ),
-          ],
+        Container(
+          width: 16.w,
+          height: 16.w,
+          decoration: BoxDecoration(
+            color: color,
+            borderRadius: BorderRadius.circular(4.r),
+          ),
         ),
-        SizedBox(height: 4.h),
+        SizedBox(width: 8.w),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF8F9BB3),
+          ),
+        ),
       ],
     );
   }
 
   Widget _buildActivitiesSection() {
-  return Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Card(
-        margin: EdgeInsets.symmetric(horizontal: 16.w),
-        elevation: 1,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(
-            Radius.circular(16.r),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Card(
+          margin: EdgeInsets.symmetric(horizontal: 16.w),
+          elevation: 1,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(
+              Radius.circular(16.r),
+            ),
           ),
-        ),
-        color: Colors.white,
-        child: Container(
-          width: double.infinity,
-          constraints: BoxConstraints(
-            minHeight: 200.h, // Set a minimum height
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: Text(
-                  'Activities',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18.sp,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black,
+          color: Colors.white,
+          child: Container(
+            width: double.infinity,
+            constraints: BoxConstraints(
+              minHeight: 200.h,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: Text(
+                    'Activities',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
                   ),
                 ),
-              ),
-              Padding(
-                padding: EdgeInsets.all(16.w),
-                child: activities.isEmpty 
-                  ? Center(
-                      child: Text(
-                        "No activities found",
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          color: Colors.grey,
+                Padding(
+                  padding: EdgeInsets.all(16.w),
+                  child: activities.isEmpty 
+                    ? Center(
+                        child: Text(
+                          "No activities found",
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16.sp,
+                            color: Colors.grey,
+                          ),
                         ),
+                      )
+                    : Column(
+                        children: activities.map((activity) {
+                          return Column(
+                            children: [
+                              _buildActivityItem(
+                                iconData: _getIconForActivityType(activity['activity_type']),
+                                title: _capitalizeActivityType(activity['activity_type']),
+                                calories: activity['calories_burned'].toInt(),
+                                color: _getColorForActivityType(activity['activity_type']),
+                                iconColor: _getIconColorForActivityType(activity['activity_type']),
+                              ),
+                              SizedBox(height: 12.h),
+                            ],
+                          );
+                        }).toList(),
                       ),
-                    )
-                  : Column(
-                      children: activities.map((activity) {
-                        return Column(
-                          children: [
-                            _buildActivityItem(
-                              iconData: _getIconForActivityType(activity['activity_type']),
-                              title: _capitalizeActivityType(activity['activity_type']),
-                              calories: activity['calories_burned'].toInt(),
-                              color: _getColorForActivityType(activity['activity_type']),
-                            ),
-                            SizedBox(height: 12.h),
-                          ],
-                        );
-                      }).toList(),
-                    ),
-              ),
-            ],
+                ),
+              ],
+            ),
           ),
         ),
-      ),
-    ],
-  );
-}
+      ],
+    );
+  }
 
   IconData _getIconForActivityType(String activityType) {
     switch (activityType.toLowerCase()) {
@@ -432,6 +414,24 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
     }
   }
 
+  Color _getIconColorForActivityType(String activityType) {
+    switch (activityType.toLowerCase()) {
+      case 'running':
+        return const Color(0xFF9747FF);
+      case 'cycling':
+      case 'bike':
+        return const Color(0xFFFF5A5F);
+      case 'strength training':
+        return const Color(0xFF0066FF);
+      case 'hiking':
+        return const Color(0xFF0066FF);
+      case 'cardio workout':
+        return const Color(0xFF9747FF);
+      default:
+        return const Color(0xFF9747FF);
+    }
+  }
+
   String _capitalizeActivityType(String activityType) {
     return activityType.split(' ').map((word) => 
       word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : ''
@@ -443,50 +443,46 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
     required String title,
     required int calories,
     required Color color,
+    required Color iconColor,
   }) {
     return Container(
-      height: 72.h,
-      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      padding: EdgeInsets.all(16.r),
       decoration: BoxDecoration(
         color: color,
-        borderRadius: BorderRadius.circular(12.r),
+        borderRadius: BorderRadius.circular(16.r),
       ),
       child: Row(
         children: [
           Container(
-            width: 40.w,
-            height: 40.h,
+            width: 48.w,
+            height: 48.w,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.3),
-              borderRadius: BorderRadius.circular(10.r),
+              color: Colors.white.withOpacity(0.5),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Center(
-              child: FaIcon(
-                iconData,
-                size: 20.sp,
-                color: Colors.black87,
-              ),
+              child: FaIcon(iconData, size: 24.sp, color: iconColor),
             ),
           ),
           SizedBox(width: 16.w),
           Column(
-            mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
                 title,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.black,
+                  fontSize: 18.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1A1F36),
                 ),
               ),
               SizedBox(height: 4.h),
               Text(
                 '$calories Calories Burned',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  color: Colors.black54,
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w400,
+                  color: const Color(0xFF8F9BB3),
                 ),
               ),
             ],

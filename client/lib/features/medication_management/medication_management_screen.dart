@@ -5,8 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:client/features/medication_management/medication_management_list.dart';
 import 'package:client/features/medication_management/medication_management_edit.dart';
-import 'dart:math' as math;
-import 'package:intl/intl.dart';
 
 class MedicationsScreen extends StatefulWidget {
   const MedicationsScreen({super.key});
@@ -32,8 +30,8 @@ class _MedicationsScreenState extends State<MedicationsScreen>
   bool _isKeyboardVisible = false;
 
   // Medication statistics
-  int _takenToday = 2; // Example value - replace with actual data
-  int _missedToday = 1; // Example value - replace with actual data
+  final int _takenToday = 2; // Example value - replace with actual data
+  final int _missedToday = 1; // Example value - replace with actual data
 
   // Animation controllers
   late AnimationController _animationController;
@@ -304,6 +302,12 @@ class _MedicationsScreenState extends State<MedicationsScreen>
                   backgroundColor: Color(0xFF0F67FE),
                   buttonColor: Color(0xFF242E49),
                   buttonShadowColor: Color(0xFF242E49),
+                  scoreTextColor: Color.fromARGB(255, 255, 255, 255),
+                  subtitleTextColor: Color.fromARGB(255, 255, 255, 255),
+                  badgeTextColor: Color(0xFF0F67FE),
+                  badgeBackgroundColor: Color(0xFF0F67FE),
+                  backButtonBorderWidth: 1.5,
+                  buttonShadowSpread: 5.0,
                   badgeText: 'Insomniac',
                   backgroundImagePath: './images/header_background.png',
                   score: '12',

@@ -1,6 +1,6 @@
-import 'package:client/features/activity_management/activity_my_stats.dart';
 import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/activity_management/activity_steps.dart';
+import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/weight_management/weight_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -30,13 +30,7 @@ class FitnessTrackerSection extends StatelessWidget {
                   context,
                   MaterialPageRoute(
                     builder:
-                        (context) => MyActivitiesScreen(
-                          userJoinDate: DateTime(
-                            2023,
-                            1,
-                            15,
-                          ), // Replace with actual user join date
-                        ),
+                        (context) => ActivityToday()
                   ),
                 );
               },
