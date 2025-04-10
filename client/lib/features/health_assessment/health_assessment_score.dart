@@ -24,7 +24,7 @@ class _HealthAssessmentScoreState extends State<HealthAssessmentScore> {
 
   Future<void> _fetchHealthScore() async {
     try {
-      final score = await _healthScoreService.getHealthScore();
+      final score = 55; // Default score for testing
       setState(() {
         _score = score;
         _isLoading = false;

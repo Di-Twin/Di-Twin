@@ -11,8 +11,8 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
 
   try {
     // ✅ Retrieve Access Token from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString("access_token");
+    // final prefs = await SharedPreferences.getInstance();
+    final String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNzEzNzA0Zi0wZTk2LTQxY2ItYjhlNC04NDMwOTVlMjg5MDMiLCJlbWFpbCI6bnVsbCwiaWF0IjoxNzQ0MDE5Njc0LCJleHAiOjE3NDQwMjMyNzR9.LfaL3AqoTHJ6oCqfLHbG88m10YjV9vCw48ayRGAvWlc"; // Replace with actual token retrieval logic
 
     if (accessToken == null) {
       print("⚠️ Error: No Access Token Found.");
@@ -36,7 +36,7 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
 
     // ✅ Send PATCH request to backend
     final response = await http.patch(
-      Uri.parse("http://192.168.11.196:6000/api/profiles"),
+      Uri.parse("http://192.168.11.196:4000/api/profiles"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $accessToken", // Attach token

@@ -61,7 +61,7 @@ class MyApp extends StatelessWidget {
               ),
               initialRoute: '/',
               routes: {
-                '/aoidfhsanofdhsa': (context) => const Startpage(),
+                '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),

@@ -11,7 +11,8 @@ class ActivityCaloriesTracker extends StatefulWidget {
   const ActivityCaloriesTracker({super.key});
 
   @override
-  State<ActivityCaloriesTracker> createState() => _ActivityCaloriesTrackerState();
+  State<ActivityCaloriesTracker> createState() =>
+      _ActivityCaloriesTrackerState();
 }
 
 class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
@@ -46,26 +47,11 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
 
   List<dynamic> _getDefaultActivities() {
     return [
-      {
-        'activity_type': 'cardio workout',
-        'calories_burned': 154.0,
-      },
-      {
-        'activity_type': 'hiking',
-        'calories_burned': 854.0,
-      },
-      {
-        'activity_type': 'biking',
-        'calories_burned': 224.0,
-      },
-      {
-        'activity_type': 'cardio workout',
-        'calories_burned': 154.0,
-      },
-      {
-        'activity_type': 'hiking',
-        'calories_burned': 156.0,
-      },
+      {'activity_type': 'cardio workout', 'calories_burned': 154.0},
+      {'activity_type': 'hiking', 'calories_burned': 854.0},
+      {'activity_type': 'biking', 'calories_burned': 224.0},
+      {'activity_type': 'cardio workout', 'calories_burned': 154.0},
+      {'activity_type': 'hiking', 'calories_burned': 156.0},
     ];
   }
 
@@ -73,11 +59,12 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
     try {
       final String date = DateTime.now().toString().split(' ')[0];
       final Uri url = Uri.parse('/api/activity/top-activities/$date?all=true');
-      
+
       final response = await http.post(
         url,
         headers: {
-          'Authorization': 'Bearer AccessToken',
+          'Authorization':
+              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIyNzEzNzA0Zi0wZTk2LTQxY2ItYjhlNC04NDMwOTVlMjg5MDMiLCJlbWFpbCI6bnVsbCwiaWF0IjoxNzQ0MDIwMDU1LCJleHAiOjE3NDQwMjM2NTV9.YKwd2fTkMrETa7QePt3eZ9H82XF3cv6ORUhOXc-gw9Y',
           'Content-Type': 'application/json',
         },
       );
@@ -86,12 +73,14 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        
+
         if (responseData['success'] == true) {
           setState(() {
             activities = responseData['data'];
-            totalCaloriesBurned = activities.fold(0, (sum, activity) => 
-                sum + (activity['calories_burned'] as double));
+            totalCaloriesBurned = activities.fold(
+              0,
+              (sum, activity) => sum + (activity['calories_burned'] as double),
+            );
             isLoading = false;
           });
         } else {
@@ -109,8 +98,12 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
   void _setDefaultValues() {
     setState(() {
       isLoading = false;
+
       totalCaloriesBurned = 1542;
       activities = _getDefaultActivities();
+
+      totalCaloriesBurned = 1542; // Default value
+      // activities = _getDefaultActivities();
     });
   }
 
@@ -119,34 +112,35 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F3F8),
       body: SafeArea(
-        child: isLoading 
-          ? _buildLoader()
-          : SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 16.h),
-                    ActivityHeader(
-                      name: 'Calories',
-                      onTrack: 'On Track',
-                      onBackPressed: () {
-                        // Handle back button press
-                      }
+        child:
+            isLoading
+                ? _buildLoader()
+                : SingleChildScrollView(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        SizedBox(height: 16.h),
+                        ActivityHeader(
+                          name: 'Calories',
+                          onTrack: 'On Track',
+                          onBackPressed: () {
+                            // Handle back button press
+                          },
+                        ),
+                        SizedBox(height: 24.h),
+                        _buildCaloriesSummary(),
+                        SizedBox(height: 24.h),
+                        _buildCaloriesChart(),
+                        SizedBox(height: 8.h),
+                        _buildChartLegend(),
+                        SizedBox(height: 24.h),
+                        _buildActivitiesSection(),
+                      ],
                     ),
-                    SizedBox(height: 24.h),
-                    _buildCaloriesSummary(),
-                    SizedBox(height: 24.h),
-                    _buildCaloriesChart(),
-                    SizedBox(height: 8.h),
-                    _buildChartLegend(),
-                    SizedBox(height: 24.h),
-                    _buildActivitiesSection(),
-                  ],
+                  ),
                 ),
-              ),
-            ),
       ),
     );
   }
@@ -156,15 +150,39 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0066FF)),
+          // Enhanced progress indicator with size control
+          SizedBox(
+            width: 48.w,
+            height: 48.w,
+            child: CircularProgressIndicator(
+              strokeWidth: 3.w,
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                Color(0xFF0066FF),
+              ),
+              backgroundColor: Colors.grey.shade200,
+            ),
+          ),
           SizedBox(height: 16.h),
+          // Animated text for better UX
+          AnimatedOpacity(
+            opacity: 1.0,
+            duration: const Duration(milliseconds: 300),
+            child: Text(
+              'Loading activities...',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ),
+          // Optional: Add estimated time or progress
+          SizedBox(height: 8.h),
           Text(
-            'Loading activities...',
+            'This may take a moment',
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w500,
-              color: Colors.grey[600],
+              fontSize: 12.sp,
+              color: Colors.grey.shade500,
             ),
           ),
         ],
@@ -317,16 +335,12 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
           margin: EdgeInsets.symmetric(horizontal: 16.w),
           elevation: 1,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(
-              Radius.circular(16.r),
-            ),
+            borderRadius: BorderRadius.all(Radius.circular(16.r)),
           ),
           color: Colors.white,
           child: Container(
             width: double.infinity,
-            constraints: BoxConstraints(
-              minHeight: 200.h,
-            ),
+            constraints: BoxConstraints(minHeight: 200.h),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -343,32 +357,43 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
                 ),
                 Padding(
                   padding: EdgeInsets.all(16.w),
-                  child: activities.isEmpty 
-                    ? Center(
-                        child: Text(
-                          "No activities found",
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            color: Colors.grey,
-                          ),
-                        ),
-                      )
-                    : Column(
-                        children: activities.map((activity) {
-                          return Column(
-                            children: [
-                              _buildActivityItem(
-                                iconData: _getIconForActivityType(activity['activity_type']),
-                                title: _capitalizeActivityType(activity['activity_type']),
-                                calories: activity['calories_burned'].toInt(),
-                                color: _getColorForActivityType(activity['activity_type']),
-                                iconColor: _getIconColorForActivityType(activity['activity_type']),
+                  child:
+                      activities.isEmpty
+                          ? Center(
+                            child: Text(
+                              "No activities found",
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16.sp,
+                                color: Colors.grey,
                               ),
-                              SizedBox(height: 12.h),
-                            ],
-                          );
-                        }).toList(),
-                      ),
+                            ),
+                          )
+                          : Column(
+                            children:
+                                activities.map((activity) {
+                                  return Column(
+                                    children: [
+                                      _buildActivityItem(
+                                        iconData: _getIconForActivityType(
+                                          activity['activity_type'],
+                                        ),
+                                        title: _capitalizeActivityType(
+                                          activity['activity_type'],
+                                        ),
+                                        calories:
+                                            activity['calories_burned'].toInt(),
+                                        color: _getColorForActivityType(
+                                          activity['activity_type'],
+                                        ),
+                                        iconColor: _getIconColorForActivityType(
+                                          activity['activity_type'],
+                                        ),
+                                      ),
+                                      SizedBox(height: 12.h),
+                                    ],
+                                  );
+                                }).toList(),
+                          ),
                 ),
               ],
             ),
@@ -433,9 +458,13 @@ class _ActivityCaloriesTrackerState extends State<ActivityCaloriesTracker> {
   }
 
   String _capitalizeActivityType(String activityType) {
-    return activityType.split(' ').map((word) => 
-      word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : ''
-    ).join(' ');
+    return activityType
+        .split(' ')
+        .map(
+          (word) =>
+              word.isNotEmpty ? word[0].toUpperCase() + word.substring(1) : '',
+        )
+        .join(' ');
   }
 
   Widget _buildActivityItem({
