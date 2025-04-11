@@ -1,9 +1,16 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/data/providers/dashboard_provider.dart';
+import 'package:client/data/API/dashboard_data.dart';
 
 class HealthScoreCard extends StatefulWidget {
-  const HealthScoreCard({super.key});
+  final Function(int)? onScoreUpdated; // Add this callback
+  
+  const HealthScoreCard({
+    super.key,
+    this.onScoreUpdated,
+  });
 
   @override
   _HealthScoreCardState createState() => _HealthScoreCardState();
@@ -12,56 +19,101 @@ class HealthScoreCard extends StatefulWidget {
 class _HealthScoreCardState extends State<HealthScoreCard> {
   final PageController _pageController = PageController(viewportFraction: 0.9);
   int _currentPage = 0;
-
-  final List<Map<String, dynamic>> scores = [
-    {
-      'score': 88,
-      'title': 'Health Score',
-      'description': 'Based on your data, your health status is above average.',
-      'backgroundColor': const Color(0xFFA855F7), // Purple
-    },
-    {
-      'score': 75,
-      'title': 'Metabolic Score',
-      'description': 'Your metabolic health is good but can be improved.',
-      'backgroundColor': const Color(0xFFEAB308), // Yellow
-    },
-    {
-      'score': 90,
-      'title': 'Sleep Score',
-      'description': 'You have an excellent sleep routine!',
-      'backgroundColor': const Color(0xFF22C55E), // Green
-    },
-    {
-      'score': 82,
-      'title': 'Food Score',
-      'description': 'Your nutrition intake is well-balanced.',
-      'backgroundColor': const Color(0xFF3B82F6), // Blue
-    },
-    {
-      'score': 78,
-      'title': 'Activity Score',
-      'description': 'You are moderately active, aim for more movement.',
-      'backgroundColor': const Color(0xFFF43F5E), // Red
-    },
-  ];
+  bool _isLoading = true;
+  String? _error;
+  late DashboardProvider _dashboardProvider;
+  List<Map<String, dynamic>> scores = [];
 
   @override
   void initState() {
     super.initState();
+    _dashboardProvider = DashboardProvider();
+    _fetchHealthScores();
+
     // Auto-scroll effect
     Timer.periodic(const Duration(seconds: 3), (Timer timer) {
+      if (!mounted) return;
       if (_currentPage < scores.length - 1) {
         _currentPage++;
       } else {
         _currentPage = 0;
       }
-      _pageController.animateToPage(
-        _currentPage,
-        duration: const Duration(milliseconds: 500),
-        curve: Curves.easeInOut,
-      );
+      if (scores.isNotEmpty) {
+        _pageController.animateToPage(
+          _currentPage,
+          duration: const Duration(milliseconds: 500),
+          curve: Curves.easeInOut,
+        );
+      }
     });
+  }
+
+  Future<void> _fetchHealthScores() async {
+    try {
+      // Get today's date in the format YYYY-MM-DD
+      final now = DateTime.now();
+      final dateStr = "${now.year}-${now.month}-${now.day}";
+      // final dateStr = "2025-4-6";
+      
+      final response = await _dashboardProvider.getHealthMetricsScores(dateStr);
+      
+      
+      final List<Map<String, dynamic>> apiScores = [];
+      
+      // Always add health score (use 0 if null)
+      apiScores.add({
+        'score': response.data.healthScore ?? 0,
+        'title': 'Health Score',
+        'description': 'Based on your data, your health status is above average.',
+        'backgroundColor': const Color(0xFFA855F7), // Purple
+      });
+      
+      // Always add metabolic score (use 0 if null)
+      apiScores.add({
+        'score': response.data.metabolicScore ?? 0,
+        'title': 'Metabolic Score',
+        'description': 'Your metabolic health is good but can be improved.',
+        'backgroundColor': const Color(0xFFEAB308), // Yellow
+      });
+      
+      // Always add sleep score (use 0 if null)
+      apiScores.add({
+        'score': response.data.sleepScore ?? 0,
+        'title': 'Sleep Score',
+        'description': 'You have an excellent sleep routine!',
+        'backgroundColor': const Color(0xFF22C55E), // Green
+      });
+      
+      // Always add food score (use 0 if null)
+      apiScores.add({
+        'score': response.data.foodScore ?? 0,
+        'title': 'Food Score',
+        'description': 'Your nutrition intake is well-balanced.',
+        'backgroundColor': const Color(0xFF3B82F6), // Blue
+      });
+      
+      // Always add activity score (use 0 if null)
+      apiScores.add({
+        'score': response.data.activityScore ?? 0,
+        'title': 'Activity Score',
+        'description': 'You are moderately active, aim for more movement.',
+        'backgroundColor': const Color(0xFFF43F5E), // Red
+      });
+      if (widget.onScoreUpdated != null && apiScores.isNotEmpty) {
+      // Pass the health score to the parent
+      widget.onScoreUpdated!(apiScores[0]['score']);
+    }
+      setState(() {
+        scores = apiScores;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+      debugPrint('Error fetching health scores: $e');
+    }
   }
 
   @override
@@ -86,21 +138,26 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
         SizedBox(
           height: 120,
           width: MediaQuery.of(context).size.width - 40, // Adjust width
-          child: PageView.builder(
-            key: const PageStorageKey<String>(
-              'healthScorePageView',
-            ), // Add a PageStorageKey
-            controller: _pageController,
-            itemCount: scores.length,
-            itemBuilder: (context, index) {
-              return _buildScoreCard(
-                scores[index]['score'],
-                scores[index]['title'],
-                scores[index]['description'],
-                scores[index]['backgroundColor'],
-              );
-            },
-          ),
+          child: _isLoading 
+            ? const Center(child: CircularProgressIndicator())
+            : _error != null
+              ? Center(child: Text('Error: $_error'))
+              : scores.isEmpty
+                ? Center(child: Text('No scores available', 
+                    style: GoogleFonts.plusJakartaSans(fontSize: 16)))
+                : PageView.builder(
+                    key: const PageStorageKey<String>('healthScorePageView'),
+                    controller: _pageController,
+                    itemCount: scores.length,
+                    itemBuilder: (context, index) {
+                      return _buildScoreCard(
+                        scores[index]['score'],
+                        scores[index]['title'],
+                        scores[index]['description'],
+                        scores[index]['backgroundColor'],
+                      );
+                    },
+                  ),
         ),
       ],
     );

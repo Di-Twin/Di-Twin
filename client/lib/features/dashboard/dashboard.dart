@@ -24,6 +24,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isFirstLaunch = true;
   late AnimationController _animationController;
   late Animation<double> _drawerAnimation;
+  int? healthScore;
 
   @override
   void initState() {
@@ -170,26 +171,39 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void updateHealthScore(int score) {
+    setState(() {
+      healthScore = score;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
       body: NestedScrollView(
         headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [SliverToBoxAdapter(child: SafeArea(child: AppHeader()))];
+          return [
+            SliverToBoxAdapter(
+              child: SafeArea(
+                child: AppHeader(), // Prevents merging with the status bar
+              ),
+            ),
+          ];
         },
         body: ListView(
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           children: [
             const SizedBox(height: 20),
-            const HealthScoreCard(),
+            HealthScoreCard(onScoreUpdated: updateHealthScore), // Removed trailing comma
             const SizedBox(height: 20),
-            HealthMetricsSection(), // Added healthData parameter
+            const HealthMetricsSection(),
             const SizedBox(height: 20),
             const FitnessTrackerSection(),
             const SizedBox(height: 20),
-            const MedicationSection(),
-            const SizedBox(height: 20),
+            // Uncomment if you want to use MedicationSection
+            // const MedicationSection(),
+            // const SizedBox(height: 20),
           ],
         ),
       ),
@@ -409,10 +423,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           name: 'Google Health Connect',
                           icon: Icons.health_and_safety,
                           color: Color(0xFF34A853),
-                          onTap:
-                              () => _connectWatchAndContinue(
-                                'Google Health Connect',
-                              ),
+                          onTap: () => _connectWatchAndContinue('Google Health Connect'),
                         ),
                         SizedBox(height: 16.h),
                         _buildWatchOption(
@@ -426,8 +437,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           name: 'Samsung Health',
                           icon: Icons.monitor_heart,
                           color: Color(0xFF1428A0),
-                          onTap:
-                              () => _connectWatchAndContinue('Samsung Health'),
+                          onTap: () => _connectWatchAndContinue('Samsung Health'),
                         ),
                         SizedBox(height: 16.h),
                         _buildWatchOption(
@@ -450,8 +460,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         width: double.infinity,
                         height: 56.h,
                         child: ElevatedButton(
-                          onPressed:
-                              () => _connectWatchAndContinue('Manual Tracking'),
+                          onPressed: () => _connectWatchAndContinue('Manual Tracking'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF0F67FE),
                             foregroundColor: Colors.white,

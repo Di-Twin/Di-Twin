@@ -1,9 +1,72 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/widgets/dashboard/notification_screen.dart';
+import 'package:client/data/providers/user_profile_provider.dart';
+import 'package:client/data/API/user_profile_data.dart';
+import 'package:intl/intl.dart';
 
-class AppHeader extends StatelessWidget {
-  const AppHeader({super.key});
+class AppHeader extends StatefulWidget {
+  final int? healthScore;
+  const AppHeader({
+    super.key,
+    this.healthScore, // Optional parameter
+  });
+
+  @override
+  State<AppHeader> createState() => _AppHeaderState();
+}
+
+class _AppHeaderState extends State<AppHeader> {
+  final UserProvider _userProvider = UserProvider();
+  UserData? _userData;
+  bool _isLoading = true;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final response = await _userProvider.getUser();
+      if (mounted) {
+        setState(() {
+          _userData = response.data;
+          _isLoading = false;
+          _errorMessage = ''; // Clear any previous errors
+        });
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = 'Failed to load user data';
+          _isLoading = false;
+        });
+        debugPrint('Error fetching user data: $e');
+        // Show a snackbar with the error
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: ${e.toString()}'),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
+  }
+
+  String _getFormattedDate() {
+    return DateFormat('EEE, d MMM y').format(DateTime.now());
+  }
+
+  String _getPlanName() {
+    if (_userData?.userPlan == null || _userData!.userPlan!.isEmpty) {
+      return 'Free Member';
+    }
+    // Capitalize the first letter of the plan
+    return '${_userData!.userPlan![0].toUpperCase()}${_userData!.userPlan!.substring(1)} Member';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,7 +94,7 @@ class AppHeader extends StatelessWidget {
                   ),
                   const SizedBox(width: 10),
                   Text(
-                    'Tue, 18 Feb 2025',
+                    _getFormattedDate(),
                     style: GoogleFonts.plusJakartaSans(
                       color: Colors.white,
                       fontSize: 16,
@@ -42,10 +105,7 @@ class AppHeader extends StatelessWidget {
               ),
               // Notification Icon with rounded rectangle background
               Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 3,
-                  vertical: 3,
-                ),
+                padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
                 decoration: BoxDecoration(
                   color: Colors.white.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(12),
@@ -97,21 +157,21 @@ class AppHeader extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Enlarged "Hi, Username!" text with bold weight
+                    // In the build method, update the greeting text widget:
                     Row(
                       children: [
                         Text(
-                          'Hi, Karishma!',
+                          _userData?.firstName != null
+                              ? 'Hi, ${_userData!.firstName}!'
+                              : 'Hi, User!',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white,
-                            fontSize: 22, // Increased font size
-                            fontWeight: FontWeight.w700, // Bolder font weight
+                            fontSize: 22,
+                            fontWeight: FontWeight.w700,
                           ),
                         ),
                         const SizedBox(width: 6),
-                        const Text(
-                          '👋🏻', // iOS-style light-skinned wave emoji
-                          style: TextStyle(fontSize: 22),
-                        ),
+                        const Text('👋🏻', style: TextStyle(fontSize: 22)),
                       ],
                     ),
                     const SizedBox(height: 6),
@@ -122,7 +182,9 @@ class AppHeader extends StatelessWidget {
                         const Icon(Icons.favorite, color: Colors.red, size: 18),
                         const SizedBox(width: 6),
                         Text(
-                          '88%',
+                          widget.healthScore != null
+                              ? '${widget.healthScore}%'
+                              : '88%',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -131,7 +193,7 @@ class AppHeader extends StatelessWidget {
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          '•', // Dot separator
+                          '•',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 16,
@@ -142,7 +204,7 @@ class AppHeader extends StatelessWidget {
                         const Icon(Icons.bolt, color: Colors.amber, size: 18),
                         const SizedBox(width: 6),
                         Text(
-                          'Pro Member',
+                          _isLoading ? 'Member' : _getPlanName(),
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -162,10 +224,10 @@ class AppHeader extends StatelessWidget {
           // Search Bar with rectangular rounded design
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18),
-            height: 50, // Increased height
+            height: 50,
             decoration: BoxDecoration(
               color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10), // More rectangular shape
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
@@ -175,7 +237,7 @@ class AppHeader extends StatelessWidget {
                   'Search Di-Twin...',
                   style: GoogleFonts.plusJakartaSans(
                     color: Colors.white.withOpacity(0.7),
-                    fontSize: 16, // Larger font size
+                    fontSize: 16,
                     fontWeight: FontWeight.w500,
                   ),
                 ),

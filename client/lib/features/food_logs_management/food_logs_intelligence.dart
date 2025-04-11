@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 class FoodLogsIntelligence extends StatelessWidget{
   const FoodLogsIntelligence({super.key});
 
+  void onButtonTap(BuildContext context) {
+    // Add your desired functionality here
+    print('Button tapped!');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
+import 'package:client/data/providers/sleep_provider.dart';
 
 class MySleepScreen extends StatefulWidget {
   final DateTime userJoinDate;
@@ -25,82 +27,11 @@ class _MySleepScreenState extends State<MySleepScreen>
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
-  // Animation controller for page transition - add 'late' keyword to fix initialization error
+  // Animation controller for page transition
   late AnimationController _pageTransitionController;
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   Offset _slideDirection = const Offset(1.0, 0.0);
-
-  DateTime fromDate = DateTime.now().subtract(Duration(days: 5));
-  DateTime toDate = DateTime.now();
-  String activityType = 'Jogging';
-  double duration = 2.5;
-
-  // Sample data for activities
-  final Map<int, bool> _activityRegularity = {
-    1: true,
-    2: true,
-    3: true,
-    4: true,
-    5: true,
-    6: true,
-    7: true,
-    8: true,
-    9: true,
-    10: true,
-    11: true,
-    13: true,
-    14: true,
-    15: true,
-    16: true,
-    17: true,
-    18: true,
-    24: true,
-    25: true,
-    26: true,
-    28: true,
-    12: false,
-    19: false,
-    20: false,
-    21: false,
-    22: false,
-    27: false,
-    29: false,
-    30: false,
-  };
-
-  final List<Map<String, dynamic>> _sleepHistory = [
-    {
-      'day': 31,
-      'duration': '4.2h',
-      'quality': 'Deep',
-      'date': DateTime(2025, 3, 31),
-    },
-    {
-      'day': 30,
-      'duration': '7.8h',
-      'quality': 'Light',
-      'date': DateTime(2025, 3, 30),
-    },
-    {
-      'day': 29,
-      'duration': '6.5h',
-      'quality': 'Deep',
-      'date': DateTime(2025, 3, 29),
-    },
-    {
-      'day': 28,
-      'duration': '8.1h',
-      'quality': 'Light',
-      'date': DateTime(2025, 3, 28),
-    },
-    {
-      'day': 27,
-      'duration': '5.7h',
-      'quality': 'Deep',
-      'date': DateTime(2025, 3, 27),
-    },
-  ];
 
   @override
   void initState() {
@@ -146,22 +77,24 @@ class _MySleepScreenState extends State<MySleepScreen>
     });
   }
 
-  List<Map<String, dynamic>> _getFilteredSleepRecords() {
-    if (_selectedDate == null) {
-      return _sleepHistory; // Show all if no date is selected
-    }
+  List<Map<String, dynamic>> _getFilteredSleepRecords(WidgetRef ref) {
+  final monthlySleepData = ref.watch(MonthlyuniqueSleepDaysProvider);
+  debugPrint('[UI] Retrieved ${monthlySleepData.length} sleep days');
 
-    List<Map<String, dynamic>> records =
-        _sleepHistory.where((sleep) {
-          if (sleep['date'] == null) return false; // Handle missing date safely
+  return monthlySleepData.map((session) {
+    final dateTime = DateTime.parse(session.date);
+    debugPrint('[UI] Session on ${session.date}: duration=${session.duration}, efficiency=${session.efficiencyScore}');
 
-          return DateFormat('yyyy-MM-dd').format(sleep['date'] as DateTime) ==
-              DateFormat('yyyy-MM-dd').format(_selectedDate!);
-        }).toList();
+    return {
+      'day': dateTime.day,
+      'month': dateTime.month,
+      'duration': session.getDurationInHours(),
+      'quality': session.getSleepQuality(),
+      'date': dateTime,
+    };
+  }).toList();
+}
 
-    print('Found ${records.length} sleep records for $_selectedDate');
-    return records;
-  }
 
   void _generateAvailableYears() {
     _availableYears = [];
@@ -248,34 +181,31 @@ class _MySleepScreenState extends State<MySleepScreen>
                         final isFutureYear = year > _today.year;
 
                         return GestureDetector(
-                          onTap:
-                              isFutureYear
-                                  ? null // Disable future years
-                                  : () {
-                                    setState(() {
-                                      _selectedYear = year;
+                          onTap: isFutureYear
+                              ? null // Disable future years
+                              : () {
+                                  setState(() {
+                                    _selectedYear = year;
 
-                                      // Get months available in the selected year
-                                      List<DateTime> monthsInYear =
-                                          _availableMonths
-                                              .where(
-                                                (month) => month.year == year,
-                                              )
-                                              .toList();
+                                    // Get months available in the selected year
+                                    List<DateTime> monthsInYear = _availableMonths
+                                        .where(
+                                          (month) => month.year == year,
+                                        )
+                                        .toList();
 
-                                      if (monthsInYear.isNotEmpty) {
-                                        // If current year, default to current month; otherwise, use first available
-                                        _selectedMonth =
-                                            (year == _today.year)
-                                                ? DateTime(
-                                                  year,
-                                                  _today.month,
-                                                  1,
-                                                )
-                                                : monthsInYear.first;
-                                      }
-                                    });
-                                  },
+                                    if (monthsInYear.isNotEmpty) {
+                                      // If current year, default to current month; otherwise, use first available
+                                      _selectedMonth = (year == _today.year)
+                                          ? DateTime(
+                                              year,
+                                              _today.month,
+                                              1,
+                                            )
+                                          : monthsInYear.first;
+                                    }
+                                  });
+                                },
                           child: Container(
                             margin: const EdgeInsets.only(right: 8),
                             padding: const EdgeInsets.symmetric(
@@ -283,12 +213,11 @@ class _MySleepScreenState extends State<MySleepScreen>
                               vertical: 8,
                             ),
                             decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : (isFutureYear
-                                          ? Colors.grey.shade300
-                                          : Colors.grey.shade200),
+                              color: isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : (isFutureYear
+                                      ? Colors.grey.shade300
+                                      : Colors.grey.shade200),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Center(
@@ -297,12 +226,11 @@ class _MySleepScreenState extends State<MySleepScreen>
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : (isFutureYear
-                                              ? Colors.grey
-                                              : Colors.black87),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isFutureYear
+                                          ? Colors.grey
+                                          : Colors.black87),
                                 ),
                               ),
                             ),
@@ -330,11 +258,11 @@ class _MySleepScreenState extends State<MySleepScreen>
                       physics: const BouncingScrollPhysics(),
                       gridDelegate:
                           const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            childAspectRatio: 2.5,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
+                        crossAxisCount: 3,
+                        childAspectRatio: 2.5,
+                        crossAxisSpacing: 8,
+                        mainAxisSpacing: 8,
+                      ),
                       itemCount: 12,
                       itemBuilder: (context, index) {
                         final monthNum = index + 1;
@@ -342,31 +270,28 @@ class _MySleepScreenState extends State<MySleepScreen>
 
                         // Check if the month should be disabled
                         bool isAvailable = _isMonthAvailable(monthDate);
-                        bool isSelected =
-                            _selectedMonth.month == monthNum &&
+                        bool isSelected = _selectedMonth.month == monthNum &&
                             _selectedMonth.year == _selectedYear;
 
                         return GestureDetector(
-                          onTap:
-                              isAvailable
-                                  ? () {
-                                    setState(() {
-                                      _selectedMonth = DateTime(
-                                        _selectedYear,
-                                        monthNum,
-                                        1,
-                                      );
-                                    });
-                                  }
-                                  : null,
+                          onTap: isAvailable
+                              ? () {
+                                  setState(() {
+                                    _selectedMonth = DateTime(
+                                      _selectedYear,
+                                      monthNum,
+                                      1,
+                                    );
+                                  });
+                                }
+                              : null,
                           child: Container(
                             decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : (isAvailable
-                                          ? Colors.grey.shade200
-                                          : Colors.grey.shade100),
+                              color: isSelected
+                                  ? Theme.of(context).primaryColor
+                                  : (isAvailable
+                                      ? Colors.grey.shade200
+                                      : Colors.grey.shade100),
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Center(
@@ -375,12 +300,11 @@ class _MySleepScreenState extends State<MySleepScreen>
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : (isAvailable
-                                              ? Colors.black87
-                                              : Colors.grey.shade400),
+                                  color: isSelected
+                                      ? Colors.white
+                                      : (isAvailable
+                                          ? Colors.black87
+                                          : Colors.grey.shade400),
                                 ),
                               ),
                             ),
@@ -539,167 +463,174 @@ class _MySleepScreenState extends State<MySleepScreen>
           userJoinDate: widget.userJoinDate,
         ),
         body: SafeArea(
-          child: SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 16),
+          child: Consumer(
+            builder: (context, ref, child) {
+              final monthlySummary = ref.watch(monthlySleepSummaryProvider);
+              final monthlySleepData = ref.watch(MonthlyuniqueSleepDaysProvider);
+              final activityMap = ref.watch(MonthlyactivityCalendarDataProvider);
 
-                  // Back button and drawer button
-                  Row(
-                    mainAxisAlignment:
-                        MainAxisAlignment
-                            .start, // Aligns the back button to the left
+              return SingleChildScrollView(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      const SizedBox(height: 16),
+
+                      // Back button and drawer button
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.start,
+                        children: [
+                          Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(color: Colors.grey.shade300),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: IconButton(
+                              icon: const Icon(Icons.chevron_left, size: 24),
+                              onPressed: () => Navigator.pop(context),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Header with year selector
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          GestureDetector(
+                            onTap: _showMonthYearPicker,
+                            child: Row(
+                              children: [
+                                Text(
+                                  DateFormat('MMMM yyyy').format(_selectedMonth),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 28,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  Icons.keyboard_arrow_down,
+                                  size: 24,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Sleep score this month card
                       Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(vertical: 24),
                         decoration: BoxDecoration(
-                          border: Border.all(color: Colors.grey.shade300),
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFF1E293B),
+                          borderRadius: BorderRadius.circular(16),
                         ),
-                        child: IconButton(
-                          icon: const Icon(Icons.chevron_left, size: 24),
-                          onPressed: () => Navigator.pop(context),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Header with year selector
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      GestureDetector(
-                        onTap: _showMonthYearPicker,
-                        child: Row(
+                        child: Column(
                           children: [
-                            Text(
-                              DateFormat('MMMM yyyy').format(_selectedMonth),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 28,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1E293B),
-                              ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text('😴', style: TextStyle(fontSize: 40)),
+                                const SizedBox(width: 8),
+                                Text(
+                                  monthlySummary?.averageScore
+                                          
+                                          .toString() ??
+                                      '--',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 40,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(width: 8),
-                            Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 24,
-                              color: const Color(0xFF1E293B),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Sleep score this month card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(vertical: 24),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('😴', style: TextStyle(fontSize: 40)),
-                            const SizedBox(width: 8),
+                            const SizedBox(height: 4),
                             Text(
-                              '25',
+                              'Your Sleep Score this month',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 40,
-                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
                                 color: Colors.white,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Your Sleep Score this month',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 24),
-
-                  // Calendar with animation
-                  FadeTransition(
-                    opacity: _fadeAnimation,
-                    child: SlideTransition(
-                      position: _slideAnimation,
-                      child: ActivityCalendar(
-                        selectedMonth: _selectedMonth,
-                        today: _today,
-                        activityRegularity: _activityRegularity,
-                        userJoinedDate: widget.userJoinDate,
-                        onMonthChanged: _handleMonthChange,
-                        onDateSelected:
-                            _handleDateSelection, // Pass the callback
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(height: 32),
+                      const SizedBox(height: 24),
 
-                  // Sleep History Header
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text(
-                        'Sleep History',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Check if sleep history is empty
-                  if (_getFilteredSleepRecords().isEmpty)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 24.0),
-                        child: Text(
-                          'No sleep records for this period',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
+                      // Calendar with animation
+                      FadeTransition(
+                        opacity: _fadeAnimation,
+                        child: SlideTransition(
+                          position: _slideAnimation,
+                          child: ActivityCalendar(
+                            selectedMonth: _selectedMonth,
+                            today: _today,
+                            activityRegularity: activityMap,
+                            userJoinedDate: widget.userJoinDate,
+                            onMonthChanged: _handleMonthChange,
+                            onDateSelected: _handleDateSelection,
                           ),
                         ),
                       ),
-                    ),
 
-                  // Sleep records list
-                  Column(
-                    children:
-                        _getFilteredSleepRecords()
+                      const SizedBox(height: 32),
+
+                      // Sleep History Header
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Sleep History',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Check if sleep history is empty
+                      if (monthlySleepData.isEmpty)
+                        Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 24.0),
+                            child: Text(
+                              'No sleep records for this period',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                      // Sleep records list
+                      Column(
+                        children: _getFilteredSleepRecords(ref)
                             .map((sleep) => _buildSleepItem(sleep))
                             .toList(),
-                  ),
+                      ),
 
-                  const SizedBox(height: 24),
-                ],
-              ),
-            ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              );
+            },
           ),
         ),
       ),
@@ -734,7 +665,7 @@ class _MySleepScreenState extends State<MySleepScreen>
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Text(
-                  'MAR',
+                  DateFormat('MMM').format(sleep['date']).toUpperCase(),
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.w500,
@@ -785,10 +716,9 @@ class _MySleepScreenState extends State<MySleepScreen>
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color:
-                  sleep['quality'] == 'Deep'
-                      ? Colors.grey.shade200
-                      : const Color(0xFFFFEEEE),
+              color: sleep['quality'] == 'Deep'
+                  ? Colors.grey.shade200
+                  : const Color(0xFFFFEEEE),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
@@ -796,10 +726,9 @@ class _MySleepScreenState extends State<MySleepScreen>
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
-                color:
-                    sleep['quality'] == 'Deep'
-                        ? Colors.grey.shade700
-                        : Colors.red.shade400,
+                color: sleep['quality'] == 'Deep'
+                    ? Colors.grey.shade700
+                    : Colors.red.shade400,
               ),
             ),
           ),
