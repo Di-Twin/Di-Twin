@@ -37,7 +37,6 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
     // ✅ Send PATCH request to backend
     final response = await http.patch(
       Uri.parse("https://test-prod-f427.onrender.com/api/profiles"),
-      Uri.parse("https://test-prod-f427.onrender.com/api/profiles"),
       headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer $accessToken", // Attach token
