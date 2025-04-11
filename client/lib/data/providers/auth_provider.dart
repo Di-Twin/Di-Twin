@@ -127,14 +127,14 @@ class AuthService {
         throw Exception("User credential is null");
       }
     } catch (e) {
-      // print("OTP verification failed: $e");
+      print("OTP verification failed: $e");
       throw Exception("Invalid OTP: ${e.toString()}");
     }
   }
 
   /// **Send Verified OTP Token to Backend**
   Future<void> sendOtpToBackend(String otpToken) async {
-    // print(_accessToken);
+    print(_accessToken);
 
     try {
       if (_accessToken == null) {
@@ -158,12 +158,12 @@ class AuthService {
 
       // ✅ Check if the response contains `success: true`
       if (response.statusCode == 200 && responseData["success"] == true) {
-        // print("✅ OTP verified successfully!");
+        print("✅ OTP verified successfully!");
       } else {
         throw Exception("❌ Failed to verify OTP: ${response.body}");
       }
     } catch (e) {
-      // print("❌ OTP Verification Error: $e");
+      print("❌ OTP Verification Error: $e");
       throw Exception("OTP Verification Error: ${e.toString()}");
     }
   }

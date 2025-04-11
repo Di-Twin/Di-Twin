@@ -6,8 +6,6 @@ import 'package:client/features/activity_management/activity_steps.dart';
 import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
-import 'package:client/features/food_logs_management/food_logs_intelligence.dart';
-import 'package:client/features/food_logs_management/food_logs_nutrition_tracker.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
 import 'package:client/features/health_assessment/health_assessment_symptoms.dart';
@@ -18,7 +16,6 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
-import 'package:client/features/medication_management/medication_management_add_step2.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -75,30 +72,6 @@ class MyApp extends StatelessWidget {
                     ),
                 '/avatar': (context) => const HealthAssessmentAvatar(),
                 '/questions/gender': (context) => const HealthAssessmentGender(),
-
-                '/questions/weight':
-                    (context) =>
-                        PopScope(canPop: false, child: const WeightInputPage()),
-                '/questions/height':
-                    (context) =>
-                        PopScope(canPop: false, child: const HeightInputPage()),
-                '/questions/age':
-                    (context) => 
-                        PopScope(canPop: false, child: const HealthAssessmentAge()),
-                '/loading':
-                    (context) => PopScope(
-                      canPop: false,
-                      child: const HealthAssessmentLoading(
-                        loadingDuration: Duration(seconds: 5),
-                        nextScreen: HealthAssessmentScore(),
-                      ),
-                    ),
-                '/avatar':
-                    (context) => PopScope(
-                      canPop: false,
-                      child: const HealthAssessmentAvatar(),
-                    ),
-                '/questions/gender': (context) =>  const HealthAssessmentGender(),
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
@@ -113,10 +86,6 @@ class MyApp extends StatelessWidget {
                           ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
-
-                '/gggh': (context) => const AddMedicationPage(),
-                '/fhdasupihfas': (context) => FoodLogsIntelligence(),
-                '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
 
                 // '/afnadsio': (context) => const AddMedication(),
               },
