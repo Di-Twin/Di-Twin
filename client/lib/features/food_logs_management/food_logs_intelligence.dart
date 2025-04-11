@@ -18,7 +18,9 @@ class FoodLogsIntelligence extends StatelessWidget{
                   score: '16',
                   subtitle: 'Your Metabolic Score',
                   buttonImage: 'images/SignInAddIcon.png',
-                  onButtonTap: () => onButtonTap(context),
+                  onButtonTap: () => {
+                    print('Button tapped!'),
+                  },
                   backgroundColor: Color(0xFFD9EAFF),
                   backgroundImagePath: 'images/activity_header_background.png',
                   buttonColor: Color(0xFF1E293B),
@@ -36,8 +38,8 @@ class FoodLogsIntelligence extends StatelessWidget{
                   headerHeight: 370.0,
                   showBadge: true,
                   showMenu: false,
-      )
 
+    ),
     );
   }
 }

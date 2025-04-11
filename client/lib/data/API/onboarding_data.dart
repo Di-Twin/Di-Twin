@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/onboarding_provider.dart';
 
 Future<void> updateUserHealthProfile(WidgetRef ref) async {
+
+  // dart(NOTE:) Onboarding data is being sent to backend successfully if access token is available
   final onboardingState = ref.read(onboardingProvider);
 
   try {
     // ✅ Retrieve Access Token from SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString("eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4ZjgyMTA1ZS1iNWJhLTQwNmUtOTFkNi1hMTlkMmU5ODk0YzgiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0MzA5ODc0LCJleHAiOjE3NDQzMTM0NzR9.rEHxrfyDKb2-xj-v-STcraeAI2hLE5hvKTt8pI_4EyA");
+    // final prefs = await SharedPreferences.getInstance();
+    final String accessToken = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYjJhMGI0YS1kYTNjLTRiNjQtOTYxNS0yYmIwOTBmYzg1OTEiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0MzQ1NTI4LCJleHAiOjE3NDQzNDkxMjh9.iGPuSz-hCF9VQ0-6hiKVvGDK5pCzw2mmTGqXKanE548"; // Replace with actual token retrieval logic
 
     if (accessToken == null) {
       print("⚠️ Error: No Access Token Found.");
@@ -29,13 +31,12 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
           onboardingState.medical_conditions ?? [], // ✅ Allergy Data Sent
     };
 
-    print("📡 Sending Data: $requestData");
-
     // ✅ Convert data to JSON
     final String jsonData = jsonEncode(requestData);
 
     // ✅ Send PATCH request to backend
     final response = await http.patch(
+      Uri.parse("https://test-prod-f427.onrender.com/api/profiles"),
       Uri.parse("https://test-prod-f427.onrender.com/api/profiles"),
       headers: {
         "Content-Type": "application/json",
@@ -43,6 +44,9 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
       },
       body: jsonData,
     );
+
+    // ignore: avoid_print
+    print("response: $response");
 
     // ✅ Handle API Response
     if (response.statusCode == 200) {

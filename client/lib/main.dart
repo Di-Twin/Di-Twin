@@ -1,10 +1,13 @@
 import 'package:client/features/activity_management/activity_calories.dart';
+import 'package:client/features/activity_management/activity_my_stats.dart';
 import 'package:client/features/activity_management/activity_nutrition.dart';
 import 'package:client/features/activity_management/activity_stats.dart';
 import 'package:client/features/activity_management/activity_steps.dart';
 import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
+import 'package:client/features/food_logs_management/food_logs_intelligence.dart';
+import 'package:client/features/food_logs_management/food_logs_nutrition_tracker.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
 import 'package:client/features/health_assessment/health_assessment_symptoms.dart';
@@ -26,7 +29,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 
-final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(); // ✅ Unique navigator key
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>(); 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,20 +71,54 @@ class MyApp extends StatelessWidget {
                 '/questions/age': (context) => const HealthAssessmentAge(),
                 '/loading': (context) => const HealthAssessmentLoading(
                       loadingDuration: Duration(seconds: 5),
-                      nextScreen: HealthAssessmentScore(score: 22),
+                      nextScreen: HealthAssessmentScore(),
                     ),
                 '/avatar': (context) => const HealthAssessmentAvatar(),
                 '/questions/gender': (context) => const HealthAssessmentGender(),
+
+                '/questions/weight':
+                    (context) =>
+                        PopScope(canPop: false, child: const WeightInputPage()),
+                '/questions/height':
+                    (context) =>
+                        PopScope(canPop: false, child: const HeightInputPage()),
+                '/questions/age':
+                    (context) => 
+                        PopScope(canPop: false, child: const HealthAssessmentAge()),
+                '/loading':
+                    (context) => PopScope(
+                      canPop: false,
+                      child: const HealthAssessmentLoading(
+                        loadingDuration: Duration(seconds: 5),
+                        nextScreen: HealthAssessmentScore(),
+                      ),
+                    ),
+                '/avatar':
+                    (context) => PopScope(
+                      canPop: false,
+                      child: const HealthAssessmentAvatar(),
+                    ),
+                '/questions/gender': (context) =>  const HealthAssessmentGender(),
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
                 '/dashboard/activity/today': (context) => const ActivityToday(),
                 '/dashboard/activity/stats': (context) => const ActivityStats(),
+                '/dashboard/acitivty/calorieTracker': (context) => const ActivityCaloriesTracker(),
                 '/dashboard/activity/calories': (context) => const ActivityCalories(),
-                '/dashboard/activity/calories_tracker': (context) => const ActivityCaloriesTracker(), // ✅ Fixed Typo
+                '/dashboard/acitivity/myActivities': (context) => MyActivitiesScreen(userJoinDate: DateTime(
+                            2023,
+                            1,
+                            15,
+                          ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
+
                 '/gggh': (context) => const AddMedicationPage(),
+                '/fhdasupihfas': (context) => FoodLogsIntelligence(),
+                '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
+
+                // '/afnadsio': (context) => const AddMedication(),
               },
             );
           },

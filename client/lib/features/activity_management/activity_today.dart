@@ -1,9 +1,123 @@
 import 'package:client/features/activity_management/activity_my_stats.dart';
+import 'dart:convert';
+import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import 'package:client/widgets/CustomActivityHeaderWidget.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
+import 'dart:math' show max, pow;
+
+// API Service for fetching activity data
+class ActivityService {
+  static const String baseUrl = 'http://192.168.11.196:6000/';
+
+  static Future<List<Map<String, dynamic>>> fetchTopActivities(DateTime date) async {
+    try {
+      final formattedDate = DateFormat('yyyy-M-d').format(date);
+      final accessToken = await _getAccessToken();
+      
+      final response = await http.post(
+        Uri.parse('$baseUrl/api/activity/top-activities/$formattedDate'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return _transformActivities(responseData['data']);
+        } else {
+          throw Exception('Failed to load activities: ${responseData['message']}');
+        }
+      } else {
+        throw Exception('Failed to load activities: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching activities: $e');
+    }
+  }
+
+  static Future<int> fetchDailyActivityScore(DateTime date) async {
+    try {
+      final formattedDate = DateFormat('yyyy-M-d').format(date);
+      final accessToken = await _getAccessToken();
+      
+      final response = await http.get(
+        Uri.parse('$baseUrl/api/activity/daily-score/$formattedDate'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        if (responseData['success'] == true && responseData['data'] != null) {
+          return responseData['data']['activity_score'] as int;
+        } else {
+          throw Exception('Failed to load activity score: ${responseData['message']}');
+        }
+      } else {
+        throw Exception('Failed to load activity score: ${response.statusCode}');
+      }
+    } catch (e) {
+      throw Exception('Error fetching activity score: $e');
+    }
+  }
+  
+  static List<Map<String, dynamic>> _transformActivities(List<dynamic> apiActivities) {
+    final List<Map<String, dynamic>> transformedActivities = [];
+    
+    final Map<String, IconData> activityIcons = {
+      'running': FontAwesomeIcons.personRunning,
+      'cycling': FontAwesomeIcons.bicycle,
+      'walking': FontAwesomeIcons.personWalking,
+      'swimming': FontAwesomeIcons.personSwimming,
+      'yoga': Icons.spa,
+      'weightlifting': FontAwesomeIcons.dumbbell,
+    };
+    
+    final Map<String, Color> activityColors = {
+      'running': Colors.redAccent,
+      'cycling': const Color(0xFF0066FF),
+      'walking': const Color(0xFF1E293B),
+      'swimming': Colors.blueAccent,
+      'yoga': Colors.purpleAccent,
+      'weightlifting': Colors.orangeAccent,
+    };
+    
+    for (var activity in apiActivities) {
+      final int durationMinutes = (activity['duration_seconds'] / 60).round();
+      
+      transformedActivities.add({
+        'minutes': durationMinutes.toString(),
+        'label': _capitalizeFirstLetter(activity['activity_type']),
+        'color': activityColors[activity['activity_type']] ?? Colors.grey,
+        'icon': activityIcons[activity['activity_type']] ?? Icons.fitness_center,
+        'id': activity['id'],
+        'calories': activity['calories_burned'],
+        'distance': activity['distance_meters'],
+        'heart_rate_avg': activity['heart_rate_avg'],
+      });
+    }
+    
+    return transformedActivities;
+  }
+  
+  static String _capitalizeFirstLetter(String text) {
+    if (text.isEmpty) return '';
+    return text[0].toUpperCase() + text.substring(1);
+  }
+  
+  static Future<String> _getAccessToken() async {
+    return 'YOUR_ACCESS_TOKEN'; // TODO: Replace with actual token retrieval
+  }
+}
 
 class ActivityToday extends StatefulWidget {
   const ActivityToday({super.key});
@@ -13,137 +127,97 @@ class ActivityToday extends StatefulWidget {
 }
 
 class _ActivityTodayState extends State<ActivityToday> {
-  double x = 165;
-  double y = 275;
-  bool isWatchConnected = true; // Track if watch is connected
-  bool isManualEntryOpen = false; // Track if manual entry drawer is open
-  int currentStep = 0; // 0 for activity selection, 1 for duration entry
+  bool isWatchConnected = true;
+  bool isManualEntryOpen = false;
+  int currentStep = 0;
   String? selectedActivityType;
-  int activityDuration = 30; // Default duration in minutes
+  int activityDuration = 30;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _topActivities = [];
+  String _errorMessage = '';
+  int _totalActivities = 0;
+  int _activityScore = 0;
 
-  List<Map<String, dynamic>> allActivities = [
-    {
-      'minutes': '130',
-      'label': 'Jogging',
-      'color': const Color(0xFF1E293B),
-      'icon': FontAwesomeIcons.personRunning,
-    },
-    {
-      'minutes': '100',
-      'label': 'Yoga',
-      'color': const Color(0xFF0066FF),
-      'icon': Icons.spa,
-    },
-    {
-      'minutes': '200',
-      'label': 'Biking',
-      'color': Colors.redAccent,
-      'icon': FontAwesomeIcons.bicycle,
-    },
-  ];
-
-  // Available activity types for manual entry
   final List<Map<String, dynamic>> activityTypes = [
-    {
-      'label': 'Jogging',
-      'icon': FontAwesomeIcons.personRunning,
-      'color': const Color(0xFF1E293B),
-    },
-    {
-      'label': 'Running',
-      'icon': FontAwesomeIcons.personRunning,
-      'color': const Color(0xFF0066FF),
-    },
-    {
-      'label': 'Walking',
-      'icon': FontAwesomeIcons.personWalking,
-      'color': const Color(0xFF4CAF50),
-    },
-    {
-      'label': 'Outdoor Sport',
-      'icon': FontAwesomeIcons.baseball,
-      'color': const Color(0xFFFF9800),
-    },
-    {
-      'label': 'Elliptical',
-      'icon': FontAwesomeIcons.personWalking,
-      'color': const Color(0xFF9C27B0),
-    },
-    {
-      'label': 'Strength Training',
-      'icon': FontAwesomeIcons.dumbbell,
-      'color': const Color(0xFF795548),
-    },
-    {
-      'label': 'Treadmill',
-      'icon': FontAwesomeIcons.personRunning,
-      'color': const Color(0xFF607D8B),
-    },
-    {
-      'label': 'Cycling',
-      'icon': FontAwesomeIcons.bicycle,
-      'color': const Color(0xFFE91E63),
-    },
-    {
-      'label': 'Bike',
-      'icon': FontAwesomeIcons.bicycle,
-      'color': const Color(0xFF3F51B5),
-    },
-    {
-      'label': 'Swimming',
-      'icon': FontAwesomeIcons.personSwimming,
-      'color': const Color(0xFF00BCD4),
-    },
-    {
-      'label': 'Boxing',
-      'icon': FontAwesomeIcons.handFist,
-      'color': const Color(0xFFFF5722),
-    },
-    {
-      'label': 'Skipping',
-      'icon': FontAwesomeIcons.arrowDown,
-      'color': const Color(0xFF8BC34A),
-    },
-    {
-      'label': 'Table Tennis',
-      'icon': FontAwesomeIcons.tableTennisPaddleBall,
-      'color': const Color(0xFF673AB7),
-    },
-    {
-      'label': 'Badminton',
-      'icon': FontAwesomeIcons.locationArrow,
-      'color': const Color(0xFFCDDC39),
-    },
+    {'label': 'Jogging', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF1E293B)},
+    {'label': 'Running', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF0066FF)},
+    {'label': 'Walking', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF4CAF50)},
+    {'label': 'Outdoor Sport', 'icon': FontAwesomeIcons.baseball, 'color': const Color(0xFFFF9800)},
+    {'label': 'Elliptical', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF9C27B0)},
+    {'label': 'Strength Training', 'icon': FontAwesomeIcons.dumbbell, 'color': const Color(0xFF795548)},
+    {'label': 'Treadmill', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF607D8B)},
+    {'label': 'Cycling', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFFE91E63)},
+    {'label': 'Bike', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFF3F51B5)},
+    {'label': 'Swimming', 'icon': FontAwesomeIcons.personSwimming, 'color': const Color(0xFF00BCD4)},
+    {'label': 'Boxing', 'icon': FontAwesomeIcons.handFist, 'color': const Color(0xFFFF5722)},
+    {'label': 'Skipping', 'icon': FontAwesomeIcons.arrowDown, 'color': const Color(0xFF8BC34A)},
+    {'label': 'Table Tennis', 'icon': FontAwesomeIcons.tableTennisPaddleBall, 'color': const Color(0xFF673AB7)},
+    {'label': 'Badminton', 'icon': FontAwesomeIcons.locationArrow, 'color': const Color(0xFFCDDC39)},
     {'label': 'Yoga', 'icon': Icons.spa, 'color': const Color(0xFF009688)},
-    {
-      'label': 'Skating',
-      'icon': FontAwesomeIcons.personSkating,
-      'color': const Color(0xFF2196F3),
-    },
+    {'label': 'Skating', 'icon': FontAwesomeIcons.personSkating, 'color': const Color(0xFF2196F3)},
   ];
 
-  List<Map<String, dynamic>> getTopActivities() {
-    if (allActivities.isEmpty) {
-      return [];
+  @override
+  void initState() {
+    super.initState();
+    _fetchActivities();
+    _fetchActivityScore();
+  }
+
+  Future<void> _fetchActivities() async {
+    setState(() {
+      _isLoading = true;
+      _errorMessage = '';
+    });
+
+    try {
+      final activities = await ActivityService.fetchTopActivities(DateTime.now());
+      setState(() {
+        _topActivities = activities;
+        _totalActivities = activities.length;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = 'Failed to load activities: $e';
+        _isLoading = false;
+        _topActivities = [
+          {
+            'minutes': '60',
+            'label': 'Cycling',
+            'color': const Color(0xFF0066FF),
+            'icon': FontAwesomeIcons.bicycle,
+          },
+          {
+            'minutes': '30',
+            'label': 'Running',
+            'color': Colors.redAccent,
+            'icon': FontAwesomeIcons.personRunning,
+          },
+        ];
+        _totalActivities = 2;
+      });
     }
+  }
 
-    final sortedActivities = List<Map<String, dynamic>>.from(allActivities);
-
-    sortedActivities.sort(
-      (a, b) => double.parse(
-        b['minutes'].toString(),
-      ).compareTo(double.parse(a['minutes'].toString())),
-    );
-
-    return sortedActivities.take(3).toList();
+  Future<void> _fetchActivityScore() async {
+    try {
+      final score = await ActivityService.fetchDailyActivityScore(DateTime.now());
+      setState(() {
+        _activityScore = score;
+      });
+    } catch (e) {
+      setState(() {
+        _activityScore = 0;
+      });
+    }
   }
 
   void _navigateToMyActivities() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => MyActivitiesScreen(userJoinDate: DateTime(2025, 4, 1)),
+        builder: (context) => MyActivitiesScreen(userJoinDate: DateTime(2025, 4, 1)),
       ),
     );
   }
@@ -159,19 +233,15 @@ class _ActivityTodayState extends State<ActivityToday> {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      isDismissible: true, // Allow dismissing by tapping outside
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setModalState) {
-              return GestureDetector(
-                // Prevent taps from closing the modal when tapping inside it
-                onTap: () {},
-                child: _buildManualEntryDrawer(setModalState),
-              );
-            },
-          ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return GestureDetector(
+            onTap: () {},
+            child: _buildManualEntryDrawer(setModalState),
+          );
+        },
+      ),
     ).then((_) {
-      // Force a rebuild when the modal is closed
       setState(() {
         isManualEntryOpen = false;
       });
@@ -180,13 +250,11 @@ class _ActivityTodayState extends State<ActivityToday> {
 
   void _addActivity(StateSetter setModalState) {
     if (selectedActivityType != null && activityDuration > 0) {
-      // Find the activity color and icon
       final activityData = activityTypes.firstWhere(
         (element) => element['label'] == selectedActivityType,
         orElse: () => activityTypes[0],
       );
 
-      // Create the new activity
       final newActivity = {
         'minutes': activityDuration.toString(),
         'label': selectedActivityType!,
@@ -194,20 +262,15 @@ class _ActivityTodayState extends State<ActivityToday> {
         'icon': activityData['icon'] as IconData,
       };
 
-      // Add the activity to the list and update state
       setState(() {
-        allActivities.add(newActivity);
+        _topActivities.add(newActivity);
       });
 
-      // Close the drawer
       Navigator.pop(context);
 
-      // Show success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            '$selectedActivityType added for $activityDuration minutes',
-          ),
+          content: Text('$selectedActivityType added for $activityDuration minutes'),
           backgroundColor: Colors.green,
           behavior: SnackBarBehavior.floating,
         ),
@@ -217,17 +280,13 @@ class _ActivityTodayState extends State<ActivityToday> {
 
   @override
   Widget build(BuildContext context) {
-    final topActivities = getTopActivities();
-
-    // Fixed header height
-    final double headerHeight = 370.0;
+    final headerHeight = 370.0;
 
     return Scaffold(
       backgroundColor: Colors.grey[100],
-      resizeToAvoidBottomInset: false, // Prevent resizing when keyboard appears
+      resizeToAvoidBottomInset: false,
       body: Column(
         children: [
-          // Static header section with fixed height
           SizedBox(
             height: headerHeight.h,
             child: Stack(
@@ -236,24 +295,24 @@ class _ActivityTodayState extends State<ActivityToday> {
                 CustomActivityHeader(
                   title: 'Activities',
                   badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
-                  score: isWatchConnected ? '16' : '0',
+                  score: isWatchConnected ? _activityScore.toString() : '0',
                   subtitle: 'Activities Today.',
                   buttonImage: 'images/SignInAddIcon.png',
                   onButtonTap: _navigateToMyActivities,
-                  backgroundColor: Color(0xFFD0E4FF),
+                  backgroundColor: const Color(0xFFD0E4FF),
                   backgroundImagePath: 'images/activity_header_background.png',
-                  buttonColor: Color(0xFF242E49),
-                  buttonShadowColor: Color(0xFF242E49),
-                  titleTextColor: Color(0xFF242E49),
-                  scoreTextColor: Color(0xFF242E49),
-                  subtitleTextColor: Color(0xFF242E49),
-                  backButtonBorderColor: Color(0xFF242E49),
-                  badgeBackgroundColor:
-                      isWatchConnected
-                          ? Color(0xFF0F67FE)
-                          : Color(0xFFFF5252).withOpacity(0.1),
-                  badgeTextColor:
-                      isWatchConnected ? Color(0xFF0F67FE) : Color(0xFFFF5252),
+                  buttonColor: const Color(0xFF242E49),
+                  buttonShadowColor: const Color(0xFF242E49),
+                  titleTextColor: const Color(0xFF242E49),
+                  scoreTextColor: const Color(0xFF242E49),
+                  subtitleTextColor: const Color(0xFF242E49),
+                  backButtonBorderColor: const Color(0xFF242E49),
+                  badgeBackgroundColor: isWatchConnected 
+                      ? const Color(0xFF0F67FE) 
+                      : const Color(0xFFFF5252).withOpacity(0.1),
+                  badgeTextColor: isWatchConnected 
+                      ? const Color(0xFF0F67FE) 
+                      : const Color(0xFFFF5252),
                   backButtonBorderWidth: 1.0,
                   bottomLeftRadius: 30,
                   bottomRightRadius: 30,
@@ -265,197 +324,55 @@ class _ActivityTodayState extends State<ActivityToday> {
               ],
             ),
           ),
-
-          // Add padding to prevent overlap with header
           SizedBox(height: 40.h),
-
-          // Content area - either activity charts or empty state
           Expanded(
-            child:
-                isWatchConnected
-                    ? _buildActivityContent(topActivities)
-                    : SingleChildScrollView(
-                      physics: AlwaysScrollableScrollPhysics(),
-                      child: _buildEmptyState(),
-                    ),
+            child: isWatchConnected
+                ? _buildActivityContent()
+                : SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    child: _buildEmptyState(),
+                  ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _fetchActivities,
+        child: const Icon(Icons.refresh),
+        tooltip: 'Refresh activities',
       ),
     );
   }
 
-  Widget _buildActivityContent(List<Map<String, dynamic>> topActivities) {
-    // Check if there are activities to display
-    if (topActivities.isEmpty) {
-      return Container(
-        padding: EdgeInsets.symmetric(horizontal: 24.w),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            // Animated container with gradient background
-            Container(
-              width: 180.w,
-              height: 180.w,
-              decoration: BoxDecoration(
-                gradient: RadialGradient(
-                  colors: [Color(0xFFE6F0FF), Color(0xFFD0E4FF)],
-                  radius: 0.8,
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF0F67FE).withOpacity(0.1),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  // Decorative circles
-                  Positioned(
-                    top: 30.h,
-                    right: 40.w,
-                    child: Container(
-                      width: 24.w,
-                      height: 24.w,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF0F67FE).withOpacity(0.2),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 50.h,
-                    left: 35.w,
-                    child: Container(
-                      width: 18.w,
-                      height: 18.w,
-                      decoration: BoxDecoration(
-                        color: Color(0xFF0F67FE).withOpacity(0.3),
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ),
-                  // Center icon with shadow
-                  Container(
-                    width: 100.w,
-                    height: 100.w,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.08),
-                          blurRadius: 15,
-                          spreadRadius: 0,
-                          offset: Offset(0, 5),
-                        ),
-                      ],
-                    ),
-                    child: Icon(
-                      Icons.directions_run,
-                      size: 50.sp,
-                      color: Color(0xFF0F67FE),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 32.h),
-            Text(
-              'No activities yet',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 24.sp,
-                fontWeight: FontWeight.w700,
-                color: Color(0xFF1E293B),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 12.h),
-            Text(
-              'Start tracking your fitness journey by adding your first activity',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w400,
-                color: Color(0xFF1E293B).withOpacity(0.7),
-                height: 1.5,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            SizedBox(height: 32.h),
-            // Improved button with gradient and animation
-            Container(
-              width: double.infinity,
-              height: 56.h,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
-                  begin: Alignment.centerLeft,
-                  end: Alignment.centerRight,
-                ),
-                borderRadius: BorderRadius.circular(16.r),
-                boxShadow: [
-                  BoxShadow(
-                    color: Color(0xFF0F67FE).withOpacity(0.3),
-                    blurRadius: 12,
-                    offset: Offset(0, 4),
-                  ),
-                ],
-              ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: _openManualEntryDrawer,
-                  borderRadius: BorderRadius.circular(16.r),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.add_circle_outline,
-                        color: Colors.white,
-                        size: 20.sp,
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Add Your First Activity',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
+  Widget _buildActivityContent() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
     }
 
-    // If there are activities, display an enhanced chart
+    if (_errorMessage.isNotEmpty) {
+      return _buildErrorMessage();
+    }
+
+    if (_topActivities.isEmpty) {
+      return _buildEmptyActivityState();
+    }
+
+    final maxMinutesValue = _topActivities.fold(0.0, (max, activity) {
+      final minutes = double.parse(activity['minutes'].toString());
+      return minutes > max ? minutes : max;
+    });
+
     return Column(
       children: [
-        // Bottom section with title and button moved to the top
         Padding(
-          padding: EdgeInsets.fromLTRB(
-            24.w,
-            16.h,
-            24.w,
-            16.h,
-          ), // Changed from (24.w, 0, 24.w, 16.h)
+          padding: EdgeInsets.fromLTRB(24.w, 16.h, 24.w, 16.h),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              // Title "Most Minutes"
               Row(
                 children: [
                   Icon(
                     Icons.local_fire_department,
-                    color: Color(0xFF0F67FE),
+                    color: const Color(0xFF0F67FE),
                     size: 20.sp,
                   ),
                   SizedBox(width: 8.w),
@@ -464,22 +381,17 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF1E293B),
+                      color: const Color(0xFF1E293B),
                     ),
                   ),
                 ],
               ),
-
-              // Add Manually button
               GestureDetector(
                 onTap: _openManualEntryDrawer,
                 child: Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 8.h,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
+                    gradient: const LinearGradient(
                       colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
                       begin: Alignment.centerLeft,
                       end: Alignment.centerRight,
@@ -487,9 +399,9 @@ class _ActivityTodayState extends State<ActivityToday> {
                     borderRadius: BorderRadius.circular(20.r),
                     boxShadow: [
                       BoxShadow(
-                        color: Color(0xFF0F67FE).withOpacity(0.2),
+                        color: const Color(0xFF0F67FE).withOpacity(0.2),
                         blurRadius: 8,
-                        offset: Offset(0, 2),
+                        offset: const Offset(0, 2),
                       ),
                     ],
                   ),
@@ -517,209 +429,195 @@ class _ActivityTodayState extends State<ActivityToday> {
             ],
           ),
         ),
-
-        SizedBox(height: 8.h), // Changed from 16.h
-        // Activity bars section - with increased height
+        SizedBox(height: 8.h),
         Container(
-          height: 300.h, // Increased from 220.h
+          height: 300.h,
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-            children: List.generate(
-              topActivities.length,
-              (index) => Expanded(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 4.w),
-                  child: _buildEnhancedActivityBar(
-                    minutes: topActivities[index]['minutes'] as String,
-                    label: topActivities[index]['label'] as String,
-                    color: topActivities[index]['color'] as Color,
-                    icon: topActivities[index]['icon'] as IconData,
-                    index: index,
-                    maxminutes: topActivities
-                        .map((e) => double.parse(e['minutes'].toString()))
-                        .reduce((a, b) => a > b ? a : b),
-                  ),
+            children: _topActivities.map((activity) => Expanded(
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: 4.w),
+                child: _buildActivityBar(
+                  minutes: activity['minutes'] as String,
+                  label: activity['label'] as String,
+                  color: activity['color'] as Color,
+                  icon: activity['icon'] as IconData,
+                  maxMinutes: maxMinutesValue,
                 ),
               ),
-            ),
+            )).toList(),
           ),
         ),
       ],
     );
   }
 
-  // Add this new enhanced activity bar method
-  Widget _buildEnhancedActivityBar({
-    required String minutes,
-    required String label,
-    required Color color,
-    required IconData icon,
-    required int index,
-    required double maxminutes,
-  }) {
-    double minutesValue = double.parse(minutes);
-    double maxBarHeight = 300.h; // Further reduced from 300.h to 200.h
-    double coloredBarHeight;
-
-    if (minutesValue <= 0) {
-      coloredBarHeight = 0;
-    } else {
-      double ratio = minutesValue / maxminutes;
-      coloredBarHeight = maxBarHeight * ratio;
-    }
-
-    return Container(
-      height: maxBarHeight,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            spreadRadius: 0,
-            offset: Offset(0, 2),
+  Widget _buildErrorMessage() {
+    return Padding(
+      padding: EdgeInsets.all(16.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.error_outline, color: Colors.red, size: 48.sp),
+          SizedBox(height: 16.h),
+          Text(
+            _errorMessage,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              color: Colors.red[700],
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 24.h),
+          ElevatedButton(
+            onPressed: _fetchActivities,
+            child: const Text('Try Again'),
           ),
         ],
       ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+    );
+  }
+
+  Widget _buildEmptyActivityState() {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Background pattern for visual interest
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.03,
-              child: Container(
-                decoration: BoxDecoration(
-                  image: DecorationImage(
-                    image: AssetImage('images/pattern.png'),
-                    repeat: ImageRepeat.repeat,
-                    fit: BoxFit.cover,
+          Container(
+            width: 180.w,
+            height: 180.w,
+            decoration: BoxDecoration(
+              gradient: const RadialGradient(
+                colors: [Color(0xFFE6F0FF), Color(0xFFD0E4FF)],
+                radius: 0.8,
+              ),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F67FE).withOpacity(0.1),
+                  blurRadius: 20,
+                  spreadRadius: 5,
+                ),
+              ],
+            ),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                Positioned(
+                  top: 30.h,
+                  right: 40.w,
+                  child: Container(
+                    width: 24.w,
+                    height: 24.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F67FE).withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
+                Positioned(
+                  bottom: 50.h,
+                  left: 35.w,
+                  child: Container(
+                    width: 18.w,
+                    height: 18.w,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0F67FE).withOpacity(0.3),
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                ),
+                Container(
+                  width: 100.w,
+                  height: 100.w,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.08),
+                        blurRadius: 15,
+                        spreadRadius: 0,
+                        offset: const Offset(0, 5),
+                      ),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.directions_run,
+                    size: 50.sp,
+                    color: const Color(0xFF0F67FE),
+                  ),
+                ),
+              ],
             ),
           ),
-
-          // Colored bar with gradient
-          if (minutesValue > 0)
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              child: Container(
-                height: coloredBarHeight,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [color, Color.lerp(color, Colors.white, 0.3)!],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  ),
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(16.r),
-                    bottomRight: Radius.circular(16.r),
-                  ),
+          SizedBox(height: 32.h),
+          Text(
+            'No activities yet',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 12.h),
+          Text(
+            'Start tracking your fitness journey by adding your first activity',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF1E293B).withOpacity(0.7),
+              height: 1.5,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 32.h),
+          Container(
+            width: double.infinity,
+            height: 56.h,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+              ),
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF0F67FE).withOpacity(0.3),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
                 ),
-                // Add subtle pattern overlay
-                child: Opacity(
-                  opacity: 0.1,
-                  child: Container(
-                    decoration: BoxDecoration(
-                      image: DecorationImage(
-                        image: AssetImage('images/pattern.png'),
-                        repeat: ImageRepeat.repeat,
-                        fit: BoxFit.cover,
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: _openManualEntryDrawer,
+                borderRadius: BorderRadius.circular(16.r),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.add_circle_outline,
+                      color: Colors.white,
+                      size: 20.sp,
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Add Your First Activity',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-
-          // Minutes and label text
-          Positioned(
-            bottom: 16.h,
-            left: 0,
-            right: 0,
-            child: Padding(
-              padding: EdgeInsets.all(16.r),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.end,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Text(
-                    minutes,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.w700,
-                      color:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? Colors.white
-                              : Colors.grey[600],
-                      shadows:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  offset: Offset(0, 1),
-                                  blurRadius: 2,
-                                ),
-                              ]
-                              : null,
-                    ),
-                  ),
-                  SizedBox(height: 4.h),
-                  Text(
-                    label,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w500,
-                      color:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? Colors.white
-                              : Colors.grey[600],
-                      shadows:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? [
-                                Shadow(
-                                  color: Colors.black.withOpacity(0.2),
-                                  offset: Offset(0, 1),
-                                  blurRadius: 2,
-                                ),
-                              ]
-                              : null,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Icon at the top with enhanced styling
-          Positioned(
-            top: 16.h,
-            left: 0,
-            right: 0,
-            child: Container(
-              alignment: Alignment.center,
-              child: Container(
-                padding: EdgeInsets.all(10.r),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.1),
-                      blurRadius: 6,
-                      spreadRadius: 0,
-                      offset: const Offset(0, 2),
-                    ),
                   ],
-                  border: Border.all(color: color.withOpacity(0.2), width: 2),
                 ),
-                child: Icon(icon, size: 18.sp, color: color),
               ),
             ),
           ),
@@ -730,31 +628,28 @@ class _ActivityTodayState extends State<ActivityToday> {
 
   Widget _buildEmptyState() {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 24.w),
+      padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 32.h),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          // Animated illustration container
           Container(
             width: 160.w,
             height: 160.w,
             decoration: BoxDecoration(
-              color: Color(0xFFEEF6FF),
+              color: const Color(0xFFEEF6FF),
               shape: BoxShape.circle,
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // Outer circle
                 Container(
                   width: 140.w,
                   height: 140.w,
                   decoration: BoxDecoration(
-                    color: Color(0xFFD0E4FF),
+                    color: const Color(0xFFD0E4FF),
                     shape: BoxShape.circle,
                   ),
                 ),
-                // Inner circle with icon
                 Container(
                   width: 100.w,
                   height: 100.w,
@@ -772,10 +667,9 @@ class _ActivityTodayState extends State<ActivityToday> {
                   child: Icon(
                     Icons.watch_outlined,
                     size: 50.sp,
-                    color: Color(0xFFFF5252),
+                    color: const Color(0xFFFF5252),
                   ),
                 ),
-                // Small decorative circles
                 Positioned(
                   top: 30.h,
                   right: 30.w,
@@ -783,7 +677,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                     width: 20.w,
                     height: 20.w,
                     decoration: BoxDecoration(
-                      color: Color(0xFFFF5252).withOpacity(0.2),
+                      color: const Color(0xFFFF5252).withOpacity(0.2),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -795,7 +689,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                     width: 15.w,
                     height: 15.w,
                     decoration: BoxDecoration(
-                      color: Color(0xFFFF5252).withOpacity(0.3),
+                      color: const Color(0xFFFF5252).withOpacity(0.3),
                       shape: BoxShape.circle,
                     ),
                   ),
@@ -809,7 +703,7 @@ class _ActivityTodayState extends State<ActivityToday> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 24.sp,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
+              color: const Color(0xFF1E293B),
             ),
             textAlign: TextAlign.center,
           ),
@@ -819,18 +713,17 @@ class _ActivityTodayState extends State<ActivityToday> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16.sp,
               fontWeight: FontWeight.w400,
-              color: Color(0xFF1E293B).withOpacity(0.7),
+              color: const Color(0xFF1E293B).withOpacity(0.7),
               height: 1.5,
             ),
             textAlign: TextAlign.center,
           ),
           SizedBox(height: 32.h),
-          // Improved button with icon
           Container(
             width: double.infinity,
             height: 56.h,
             decoration: BoxDecoration(
-              gradient: LinearGradient(
+              gradient: const LinearGradient(
                 colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
@@ -838,9 +731,9 @@ class _ActivityTodayState extends State<ActivityToday> {
               borderRadius: BorderRadius.circular(16.r),
               boxShadow: [
                 BoxShadow(
-                  color: Color(0xFF0F67FE).withOpacity(0.3),
+                  color: const Color(0xFF0F67FE).withOpacity(0.3),
                   blurRadius: 12,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -877,14 +770,13 @@ class _ActivityTodayState extends State<ActivityToday> {
   }
 
   Widget _buildManualEntryDrawer(StateSetter setModalState) {
-    // Calculate the fixed height for the drawer (50% of screen height)
     final double drawerHeight = MediaQuery.of(context).size.height * 0.50;
 
     return Container(
       height: drawerHeight,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24.r)),
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.1),
@@ -895,7 +787,6 @@ class _ActivityTodayState extends State<ActivityToday> {
       ),
       child: Column(
         children: [
-          // Drawer handle
           Container(
             margin: EdgeInsets.only(top: 12.h),
             width: 40.w,
@@ -906,17 +797,15 @@ class _ActivityTodayState extends State<ActivityToday> {
             ),
           ),
           SizedBox(height: 16.h),
-          // Title
           Text(
             currentStep == 0 ? 'Select Activity Type' : 'Set Duration',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 20.sp,
               fontWeight: FontWeight.w700,
-              color: Color(0xFF1E293B),
+              color: const Color(0xFF1E293B),
             ),
           ),
           SizedBox(height: 8.h),
-          // Stepper indicator
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -924,8 +813,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color:
-                      currentStep >= 0 ? Color(0xFF0F67FE) : Colors.grey[300],
+                  color: currentStep >= 0 ? const Color(0xFF0F67FE) : Colors.grey[300],
                   borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
@@ -934,20 +822,17 @@ class _ActivityTodayState extends State<ActivityToday> {
                 width: 40.w,
                 height: 4.h,
                 decoration: BoxDecoration(
-                  color:
-                      currentStep >= 1 ? Color(0xFF0F67FE) : Colors.grey[300],
+                  color: currentStep >= 1 ? const Color(0xFF0F67FE) : Colors.grey[300],
                   borderRadius: BorderRadius.circular(4.r),
                 ),
               ),
             ],
           ),
           SizedBox(height: 24.h),
-          // Content based on current step - this is the scrollable part
           Expanded(
-            child:
-                currentStep == 0
-                    ? _buildActivityTypeSelection(setModalState)
-                    : _buildDurationSelection(setModalState),
+            child: currentStep == 0 
+                ? _buildActivityTypeSelection(setModalState)
+                : _buildDurationSelection(setModalState),
           ),
         ],
       ),
@@ -957,15 +842,14 @@ class _ActivityTodayState extends State<ActivityToday> {
   Widget _buildActivityTypeSelection(StateSetter setModalState) {
     return Column(
       children: [
-        // Scrollable activities grid
         Expanded(
           child: SingleChildScrollView(
-            physics: BouncingScrollPhysics(),
+            physics: const BouncingScrollPhysics(),
             child: Padding(
               padding: EdgeInsets.symmetric(horizontal: 24.w),
               child: GridView.builder(
                 shrinkWrap: true,
-                physics: NeverScrollableScrollPhysics(),
+                physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: 3,
                   childAspectRatio: 0.9,
@@ -975,30 +859,26 @@ class _ActivityTodayState extends State<ActivityToday> {
                 itemCount: activityTypes.length,
                 itemBuilder: (context, index) {
                   final activity = activityTypes[index];
-                  final bool isSelected =
-                      selectedActivityType == activity['label'];
+                  final bool isSelected = selectedActivityType == activity['label'];
 
                   return GestureDetector(
                     onTap: () {
                       setModalState(() {
                         selectedActivityType = activity['label'] as String;
-                        currentStep =
-                            1; // Directly go to next step when activity is selected
+                        currentStep = 1;
                       });
                     },
                     child: AnimatedContainer(
-                      duration: Duration(milliseconds: 200),
+                      duration: const Duration(milliseconds: 200),
                       decoration: BoxDecoration(
-                        color:
-                            isSelected
-                                ? (activity['color'] as Color).withOpacity(0.1)
-                                : Colors.grey[100],
+                        color: isSelected
+                            ? (activity['color'] as Color).withOpacity(0.1)
+                            : Colors.grey[100],
                         borderRadius: BorderRadius.circular(16.r),
                         border: Border.all(
-                          color:
-                              isSelected
-                                  ? activity['color'] as Color
-                                  : Colors.grey[300]!,
+                          color: isSelected
+                              ? activity['color'] as Color
+                              : Colors.grey[300]!,
                           width: isSelected ? 2 : 1,
                         ),
                       ),
@@ -1008,18 +888,16 @@ class _ActivityTodayState extends State<ActivityToday> {
                           Container(
                             padding: EdgeInsets.all(12.r),
                             decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? activity['color'] as Color
-                                      : Colors.white,
+                              color: isSelected
+                                  ? activity['color'] as Color
+                                  : Colors.white,
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               activity['icon'] as IconData,
-                              color:
-                                  isSelected
-                                      ? Colors.white
-                                      : activity['color'] as Color,
+                              color: isSelected
+                                  ? Colors.white
+                                  : activity['color'] as Color,
                               size: 20.sp,
                             ),
                           ),
@@ -1030,14 +908,12 @@ class _ActivityTodayState extends State<ActivityToday> {
                               activity['label'] as String,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
-                                fontWeight:
-                                    isSelected
-                                        ? FontWeight.w700
-                                        : FontWeight.w500,
-                                color:
-                                    isSelected
-                                        ? activity['color'] as Color
-                                        : Color(0xFF1E293B),
+                                fontWeight: isSelected
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                                color: isSelected
+                                    ? activity['color'] as Color
+                                    : const Color(0xFF1E293B),
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 2,
@@ -1059,9 +935,8 @@ class _ActivityTodayState extends State<ActivityToday> {
 
   Widget _buildDurationSelection(StateSetter setModalState) {
     return Column(
-      mainAxisSize: MainAxisSize.min, // Use minimum space needed
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Activity info section
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Row(
@@ -1079,17 +954,13 @@ class _ActivityTodayState extends State<ActivityToday> {
                 ),
                 child: Icon(
                   activityTypes.firstWhere(
-                        (element) => element['label'] == selectedActivityType,
-                        orElse: () => activityTypes[0],
-                      )['icon']
-                      as IconData,
-                  color:
-                      activityTypes.firstWhere(
-                            (element) =>
-                                element['label'] == selectedActivityType,
-                            orElse: () => activityTypes[0],
-                          )['color']
-                          as Color,
+                    (element) => element['label'] == selectedActivityType,
+                    orElse: () => activityTypes[0],
+                  )['icon'] as IconData,
+                  color: activityTypes.firstWhere(
+                    (element) => element['label'] == selectedActivityType,
+                    orElse: () => activityTypes[0],
+                  )['color'] as Color,
                   size: 24.sp,
                 ),
               ),
@@ -1100,7 +971,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w600,
-                    color: Color(0xFF1E293B),
+                    color: const Color(0xFF1E293B),
                   ),
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1116,7 +987,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF0F67FE),
+                    color: const Color(0xFF0F67FE),
                   ),
                 ),
               ),
@@ -1124,8 +995,6 @@ class _ActivityTodayState extends State<ActivityToday> {
           ),
         ),
         SizedBox(height: 8.h),
-
-        // Duration content - no longer in a scrollable container
         Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.w),
           child: Column(
@@ -1136,7 +1005,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
-                  color: Color(0xFF1E293B),
+                  color: const Color(0xFF1E293B),
                 ),
               ),
               SizedBox(height: 8.h),
@@ -1161,7 +1030,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 48.sp,
                         fontWeight: FontWeight.w700,
-                        color: Color(0xFF1E293B),
+                        color: const Color(0xFF1E293B),
                       ),
                       textAlign: TextAlign.center,
                     ),
@@ -1178,7 +1047,6 @@ class _ActivityTodayState extends State<ActivityToday> {
                 ],
               ),
               SizedBox(height: 8.h),
-              // Quick duration buttons
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                 children: [
@@ -1191,11 +1059,7 @@ class _ActivityTodayState extends State<ActivityToday> {
             ],
           ),
         ),
-
-        // Spacer to push buttons to the bottom
-        Spacer(),
-
-        // Fixed buttons at the bottom
+        const Spacer(),
         Padding(
           padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 16.h),
           child: Row(
@@ -1208,7 +1072,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                     });
                   },
                   style: OutlinedButton.styleFrom(
-                    side: BorderSide(color: Color(0xFF0F67FE)),
+                    side: const BorderSide(color: Color(0xFF0F67FE)),
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12.r),
@@ -1219,7 +1083,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16.sp,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F67FE),
+                      color: const Color(0xFF0F67FE),
                     ),
                   ),
                 ),
@@ -1229,7 +1093,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                 child: ElevatedButton(
                   onPressed: () => _addActivity(setModalState),
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Color(0xFF0F67FE),
+                    backgroundColor: const Color(0xFF0F67FE),
                     foregroundColor: Colors.white,
                     padding: EdgeInsets.symmetric(vertical: 16.h),
                     shape: RoundedRectangleBorder(
@@ -1263,10 +1127,10 @@ class _ActivityTodayState extends State<ActivityToday> {
         width: 48.w,
         height: 48.w,
         decoration: BoxDecoration(
-          color: Color(0xFFEEF2F6),
+          color: const Color(0xFFEEF2F6),
           borderRadius: BorderRadius.circular(12.r),
         ),
-        child: Icon(icon, color: Color(0xFF1E293B), size: 24.sp),
+        child: Icon(icon, color: const Color(0xFF1E293B), size: 24.sp),
       ),
     );
   }
@@ -1283,7 +1147,7 @@ class _ActivityTodayState extends State<ActivityToday> {
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF0F67FE) : Color(0xFFEEF2F6),
+          color: isSelected ? const Color(0xFF0F67FE) : const Color(0xFFEEF2F6),
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Text(
@@ -1291,7 +1155,7 @@ class _ActivityTodayState extends State<ActivityToday> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14.sp,
             fontWeight: FontWeight.w500,
-            color: isSelected ? Colors.white : Color(0xFF1E293B),
+            color: isSelected ? Colors.white : const Color(0xFF1E293B),
           ),
         ),
       ),
@@ -1303,19 +1167,11 @@ class _ActivityTodayState extends State<ActivityToday> {
     required String label,
     required Color color,
     required IconData icon,
-    required int index,
-    required double maxminutes,
+    required double maxMinutes,
   }) {
-    double minutesValue = double.parse(minutes);
-    double maxBarHeight = 300.h; // Changed from 400.h to 200.h
-    double coloredBarHeight;
-
-    if (minutesValue <= 0) {
-      coloredBarHeight = 0;
-    } else {
-      double ratio = minutesValue / maxminutes;
-      coloredBarHeight = maxBarHeight * ratio;
-    }
+    final minutesValue = double.parse(minutes);
+    final maxBarHeight = 300.h;
+    final coloredBarHeight = minutesValue <= 0 ? 0 : maxBarHeight * (minutesValue / maxMinutes);
 
     return Container(
       height: maxBarHeight,
@@ -1333,10 +1189,9 @@ class _ActivityTodayState extends State<ActivityToday> {
               right: 0,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16.r),
-                child: Container(height: coloredBarHeight, color: color),
+                child: Container(height: coloredBarHeight.toDouble(), color: color),
               ),
             ),
-
           Positioned(
             bottom: 16.h,
             left: 0,
@@ -1352,10 +1207,9 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 24.sp,
                       fontWeight: FontWeight.w700,
-                      color:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? Colors.white
-                              : Colors.grey[600],
+                      color: (minutesValue > 0 && coloredBarHeight > 80.h)
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                   SizedBox(height: 4.h),
@@ -1364,17 +1218,15 @@ class _ActivityTodayState extends State<ActivityToday> {
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14.sp,
                       fontWeight: FontWeight.w500,
-                      color:
-                          (minutesValue > 0 && coloredBarHeight > 80.h)
-                              ? Colors.white
-                              : Colors.grey[600],
+                      color: (minutesValue > 0 && coloredBarHeight > 80.h)
+                          ? Colors.white
+                          : Colors.grey[600],
                     ),
                   ),
                 ],
               ),
             ),
           ),
-
           Positioned(
             top: 16.h,
             left: 0,
