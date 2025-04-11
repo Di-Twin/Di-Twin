@@ -4,8 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
-import 'package:http/http.dart' as http;
-import 'dart:convert';
 
 class MyActivitiesScreen extends StatefulWidget {
   final DateTime userJoinDate;
@@ -24,8 +22,8 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   DateTime _today = DateTime.now();
   DateTime _selectedMonth = DateTime.now();
   int _selectedYear = DateTime.now().year;
-  DateTime? _selectedDate = DateTime.now(); // Default to today
-  bool _isLoading = false;
+  DateTime? _selectedDate;
+  List<DateTime> _last5Days = [];
 
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
@@ -75,14 +73,15 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     30: false,
   };
 
-  // Default activity data
-  final List<Map<String, dynamic>> _defaultActivityHistory = [
+  final List<Map<String, dynamic>> _activityHistory = [
     {
       'name': 'Weightlifting at Home',
       'calories': 241,
       'icon': Icons.fitness_center,
       'color': Color(0xFF5D6B89),
-      'date': DateTime(2025, 3, 21),
+      'date': DateTime.now().subtract(Duration(days: 2)),
+      'duration': '45 min',
+      'distance': null,
     },
     {
       'name': 'Jogging',
@@ -116,13 +115,11 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       'calories': 241,
       'icon': Icons.hiking,
       'color': Color(0xFF9C27B0),
-      'date': DateTime(2025, 3, 24),
+      'date': DateTime.now().subtract(Duration(days: 5)),
+      'duration': '120 min',
+      'distance': '5.8 km',
     },
   ];
-
-  // List to store actual API fetched activities
-  List<Map<String, dynamic>> _activityHistory = [];
-  List<DateTime> _last5Days = [];
 
   @override
   void initState() {
@@ -187,12 +184,11 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     );
 
     _pageTransitionController.forward();
-    
-    // Initialize with default data
-    _activityHistory = List.from(_defaultActivityHistory);
-    
-    // Fetch activities for the selected date
-    _fetchActivities();
+
+    // Start score animation after a short delay
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scoreAnimationController.forward();
+    });
   }
 
   void _generateLast5Days() {
@@ -209,134 +205,10 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
     super.dispose();
   }
 
-  // Method to fetch activities from the API
-  Future<void> _fetchActivities() async {
-    if (_selectedDate == null) return;
-
-    setState(() {
-      _isLoading = true;
-    });
-
-    // Format the date for the API call
-    String formattedDate = DateFormat('yyyy-M-d').format(_selectedDate!);
-    
-    try {
-      // Get the access token (in a real app, this would come from your auth service)
-      String accessToken = "YOUR_ACCESS_TOKEN"; // Replace with actual token retrieval
-      
-      // Create the API endpoint URL
-      final url = Uri.parse('/api/activity/top-activities/$formattedDate?all=true');
-      
-      // Make the API call
-      final response = await http.post(
-        url,
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-          'Content-Type': 'application/json',
-        },
-      );
-      
-      if (response.statusCode == 200) {
-        final Map<String, dynamic> responseData = json.decode(response.body);
-        
-        if (responseData['success'] == true && responseData['data'] != null) {
-          // Convert API data to the format used by our UI
-          List<Map<String, dynamic>> fetchedActivities = [];
-          
-          for (var activity in responseData['data']) {
-            // Map activity types to corresponding icons
-            IconData activityIcon;
-            Color activityColor;
-            
-            switch (activity['activity_type'].toString().toLowerCase()) {
-              case 'cycling':
-              case 'bike':
-                activityIcon = Icons.directions_bike;
-                activityColor = Color(0xFF1976D2);
-                break;
-              case 'running':
-                activityIcon = Icons.directions_run;
-                activityColor = Color(0xFFFF5A5A);
-                break;
-              case 'strength training':
-              case 'weightlifting':
-                activityIcon = Icons.fitness_center;
-                activityColor = Color(0xFF5D6B89);
-                break;
-              case 'yoga':
-                activityIcon = Icons.self_improvement;
-                activityColor = Color(0xFF66BB6A);
-                break;
-              case 'hiking':
-                activityIcon = Icons.hiking;
-                activityColor = Color(0xFF9C27B0);
-                break;
-              default:
-                activityIcon = Icons.directions_run;
-                activityColor = Color(0xFFFF5A5A);
-            }
-            
-            // Format the activity data
-            fetchedActivities.add({
-              'name': _capitalizeActivityType(activity['activity_type']),
-              'calories': activity['calories_burned'] ?? 0,
-              'icon': activityIcon,
-              'color': activityColor,
-              'date': DateTime.parse(activity['start_time']),
-              'duration': activity['duration_seconds'] ?? 0,
-              'heart_rate_avg': activity['heart_rate_avg'] ?? 0,
-              'heart_rate_max': activity['heart_rate_max'] ?? 0,
-              'distance': activity['distance_meters'] ?? 0,
-              'source': activity['source_device'] ?? 'Unknown',
-            });
-          }
-          
-          setState(() {
-            _activityHistory = fetchedActivities;
-            _isLoading = false;
-          });
-        } else {
-          // If the API returns a success:false or no data, use default data
-          setState(() {
-            _activityHistory = List.from(_defaultActivityHistory);
-            _isLoading = false;
-          });
-        }
-      } else {
-        // If the API call fails, use default data
-        setState(() {
-          _activityHistory = List.from(_defaultActivityHistory);
-          _isLoading = false;
-        });
-      }
-    } catch (e) {
-      // If there's an exception, use default data
-      setState(() {
-        _activityHistory = List.from(_defaultActivityHistory);
-        _isLoading = false;
-      });
-    }
-  }
-
-  // Helper method to capitalize activity type
-  String _capitalizeActivityType(String activityType) {
-    // Split by space to capitalize each word
-    List<String> words = activityType.split(' ');
-    for (int i = 0; i < words.length; i++) {
-      if (words[i].isNotEmpty) {
-        words[i] = words[i][0].toUpperCase() + words[i].substring(1);
-      }
-    }
-    return words.join(' ');
-  }
-
   void _handleDateSelection(DateTime selectedDate) {
     setState(() {
       _selectedDate = selectedDate;
     });
-    
-    // Fetch activities when a new date is selected
-    _fetchActivities();
   }
 
   List<Map<String, dynamic>> _getFilteredActivities() {
@@ -587,70 +459,96 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                                 final isSelected = year == _selectedYear;
                                 final isFutureYear = year > _today.year;
 
-                        return GestureDetector(
-                          onTap:
-                              isFutureYear
-                                  ? null // Disable future years
-                                  : () {
-                                      setState(() {
-                                        _selectedYear = year;
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                    vertical: 8,
+                                  ),
+                                  child: AnimatedContainer(
+                                    duration: Duration(milliseconds: 200),
+                                    curve: Curves.easeInOut,
+                                    padding: EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color:
+                                          isSelected
+                                              ? Color(0xFF0F67FE)
+                                              : Colors.transparent,
+                                      borderRadius: BorderRadius.circular(20),
+                                      boxShadow:
+                                          isSelected
+                                              ? [
+                                                BoxShadow(
+                                                  color: Color(
+                                                    0xFF0F67FE,
+                                                  ).withOpacity(0.3),
+                                                  blurRadius: 4,
+                                                  spreadRadius: 0,
+                                                  offset: Offset(0, 2),
+                                                ),
+                                              ]
+                                              : null,
+                                    ),
+                                    child: Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        onTap:
+                                            isFutureYear
+                                                ? null
+                                                : () {
+                                                  setState(() {
+                                                    _selectedYear = year;
 
-                                        // Get months available in the selected year
-                                        List<DateTime> monthsInYear =
-                                            _availableMonths
-                                                .where(
-                                                  (month) => month.year == year,
-                                                )
-                                                .toList();
+                                                    // Get months available in the selected year
+                                                    List<DateTime>
+                                                    monthsInYear =
+                                                        _availableMonths
+                                                            .where(
+                                                              (month) =>
+                                                                  month.year ==
+                                                                  year,
+                                                            )
+                                                            .toList();
 
-                                        if (monthsInYear.isNotEmpty) {
-                                          // If current year, default to current month; otherwise, use first available
-                                          _selectedMonth =
-                                              (year == _today.year)
-                                                  ? DateTime(
-                                                    year,
-                                                    _today.month,
-                                                    1,
-                                                  )
-                                                  : monthsInYear.first;
-                                        }
-                                      });
-                                    },
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : (isFutureYear
-                                          ? Colors.grey.shade300
-                                          : Colors.grey.shade200),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Text(
-                                year.toString(),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : (isFutureYear
-                                              ? Colors.grey
-                                              : Colors.black87),
-                                ),
-                              ),
+                                                    if (monthsInYear
+                                                        .isNotEmpty) {
+                                                      // If current year, default to current month; otherwise, use first available
+                                                      _selectedMonth =
+                                                          (year == _today.year)
+                                                              ? DateTime(
+                                                                year,
+                                                                _today.month,
+                                                                1,
+                                                              )
+                                                              : monthsInYear
+                                                                  .first;
+                                                    }
+                                                  });
+                                                },
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Center(
+                                          child: Text(
+                                            year.toString(),
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  isSelected
+                                                      ? Colors.white
+                                                      : (isFutureYear
+                                                          ? Colors.grey.shade400
+                                                          : Color(0xFF1E293B)),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
 
                           SizedBox(height: 24),
 
@@ -693,49 +591,105 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                                     _selectedMonth.month == monthNum &&
                                     _selectedMonth.year == _selectedYear;
 
-                        return GestureDetector(
-                          onTap:
-                              isAvailable
-                                  ? () {
-                                      setState(() {
-                                        _selectedMonth = DateTime(
-                                          _selectedYear,
-                                          monthNum,
-                                          1,
-                                        );
-                                      });
-                                    }
-                                  : null,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color:
-                                  isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : (isAvailable
-                                          ? Colors.grey.shade200
-                                          : Colors.grey.shade100),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Text(
-                                DateFormat('MMM').format(monthDate),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color:
-                                      isSelected
-                                          ? Colors.white
-                                          : (isAvailable
-                                              ? Colors.black87
-                                              : Colors.grey.shade400),
-                                ),
-                              ),
+                                return AnimatedContainer(
+                                  duration: Duration(milliseconds: 200),
+                                  curve: Curves.easeInOut,
+                                  decoration: BoxDecoration(
+                                    gradient:
+                                        isSelected
+                                            ? LinearGradient(
+                                              colors: [
+                                                Color(0xFF0F67FE),
+                                                Color(0xFF4D8EFF),
+                                              ],
+                                              begin: Alignment.topLeft,
+                                              end: Alignment.bottomRight,
+                                            )
+                                            : null,
+                                    color:
+                                        isSelected
+                                            ? null
+                                            : (isAvailable
+                                                ? Colors.white
+                                                : Colors.grey.shade100),
+                                    borderRadius: BorderRadius.circular(12),
+                                    boxShadow:
+                                        isSelected
+                                            ? [
+                                              BoxShadow(
+                                                color: Color(
+                                                  0xFF0F67FE,
+                                                ).withOpacity(0.2),
+                                                blurRadius: 4,
+                                                spreadRadius: 0,
+                                                offset: Offset(0, 2),
+                                              ),
+                                            ]
+                                            : null,
+                                    border:
+                                        !isSelected && isAvailable
+                                            ? Border.all(
+                                              color: Colors.grey.shade200,
+                                              width: 1,
+                                            )
+                                            : null,
+                                  ),
+                                  child: Material(
+                                    color: Colors.transparent,
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: InkWell(
+                                      onTap:
+                                          isAvailable
+                                              ? () {
+                                                setState(() {
+                                                  _selectedMonth = DateTime(
+                                                    _selectedYear,
+                                                    monthNum,
+                                                    1,
+                                                  );
+                                                });
+                                              }
+                                              : null,
+                                      borderRadius: BorderRadius.circular(12),
+                                      child: Column(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            monthName,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.w600,
+                                              color:
+                                                  isSelected
+                                                      ? Colors.white
+                                                      : (isAvailable
+                                                          ? Color(0xFF1E293B)
+                                                          : Colors
+                                                              .grey
+                                                              .shade400),
+                                            ),
+                                          ),
+                                          SizedBox(height: 4),
+                                          Container(
+                                            width: 6,
+                                            height: 6,
+                                            decoration: BoxDecoration(
+                                              shape: BoxShape.circle,
+                                              color:
+                                                  isSelected
+                                                      ? Colors.white
+                                                      : Colors.transparent,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
                             ),
                           ),
-                        );
-                      },
-                    ),
-                  ),
 
                           SizedBox(height: 20),
 
@@ -1029,16 +983,356 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
                       const SizedBox(height: 16),
 
-                  // Suggestion card
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(16),
+                      // Enhanced suggestion card
+                      _buildAISuggestionCard(),
+
+                      const SizedBox(height: 32),
+
+                      // Activity History - removed filter button
+                      Text(
+                        _selectedDate != null
+                            ? 'Activity on ${DateFormat('MMM d, yyyy').format(_selectedDate!)}'
+                            : 'Recent Activities',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Activity list - filtered by selected date or showing last 5 days
+                      ..._getFilteredActivities().map(
+                        (activity) => _buildEnhancedActivityItem(activity),
+                      ),
+
+                      // Show message if no activities
+                      if (_getFilteredActivities().isEmpty)
+                        Container(
+                          padding: EdgeInsets.symmetric(vertical: 32),
+                          alignment: Alignment.center,
+                          child: Column(
+                            children: [
+                              Icon(
+                                Icons.calendar_today_outlined,
+                                size: 48,
+                                color: Colors.grey.shade400,
+                              ),
+                              SizedBox(height: 16),
+                              Text(
+                                'No activities found',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                      const SizedBox(height: 24),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMonthlyScoreCard() {
+    // Reduced height monthly score card
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E293B), Color(0xFF0F67FE)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        children: [
+          // Left side - Score and title
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text('🔥', style: TextStyle(fontSize: 20)),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      '25',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 32,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Text(
+                      'Activities this month',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Right side - Stats in a row
+          Row(
+            children: [
+              _buildCompactStatItem(
+                Icons.local_fire_department,
+                '1,250',
+                'kcal',
+              ),
+              SizedBox(width: 16),
+              _buildCompactStatItem(Icons.timer, '8h', 'total'),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactStatItem(IconData icon, String value, String label) {
+    return Column(
+      children: [
+        Row(
+          children: [
+            Icon(icon, color: Colors.white, size: 16),
+            SizedBox(width: 4),
+            Text(
+              value,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 12,
+            color: Colors.white.withOpacity(0.8),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAISuggestionCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Color(0xFF0F67FE).withOpacity(0.2),
+            blurRadius: 10,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  Icons.directions_run,
+                  color: Colors.white,
+                  size: 22,
+                ),
+              ),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Morning Jog',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                    SizedBox(height: 2),
+                    Text(
+                      'Recommended for today',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: Colors.white.withOpacity(0.9),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(Icons.favorite, color: Colors.white, size: 16),
+              ),
+            ],
+          ),
+          SizedBox(height: 16),
+          Container(
+            padding: EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                _buildSuggestionDetail(Icons.timer, '30 min'),
+                _buildSuggestionDetail(Icons.local_fire_department, '250 kcal'),
+                _buildSuggestionDetail(Icons.speed, '5 km'),
+              ],
+            ),
+          ),
+          SizedBox(height: 16),
+          GestureDetector(
+            onTap: () => _showSuggestionDetails(),
+            child: Container(
+              width: double.infinity,
+              padding: EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 4,
+                    offset: Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'View Suggestion',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color(0xFF0F67FE),
+                    ),
+                  ),
+                  SizedBox(width: 8),
+                  Icon(Icons.arrow_forward, size: 16, color: Color(0xFF0F67FE)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSuggestionDetail(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: Colors.white, size: 14),
+        SizedBox(width: 4),
+        Text(
+          text,
+          style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white),
+        ),
+      ],
+    );
+  }
+
+  void _showSuggestionDetails() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return Container(
+          height: MediaQuery.of(context).size.height * 0.7,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                spreadRadius: 0,
+                offset: Offset(0, -2),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Handle
+              Center(
+                child: Container(
+                  margin: EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                ),
+              ),
+
+              // Header
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [Color(0xFF0F67FE), Color(0xFF4D8EFF)],
+                  ),
+                  borderRadius: BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
                           'Morning Jog',
@@ -1048,105 +1342,209 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                             color: Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            const Icon(
-                              Icons.lightbulb_outline,
-                              color: Colors.white,
-                              size: 18,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '12+ AI Suggestions',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
+                        Container(
+                          padding: EdgeInsets.all(8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.2),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.directions_run,
+                            color: Colors.white,
+                            size: 24,
+                          ),
                         ),
                       ],
                     ),
-                  ),
+                    SizedBox(height: 16),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: [
+                        _buildDetailStat(Icons.timer, '30', 'Minutes'),
+                        _buildDetailStat(
+                          Icons.local_fire_department,
+                          '250',
+                          'Calories',
+                        ),
+                        _buildDetailStat(Icons.speed, '5', 'Kilometers'),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
-                  const SizedBox(height: 32),
-
-                  // Activity History
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              // Content
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.all(20),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Activity History',
+                        'Why This Workout?',
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
+                          color: Color(0xFF1E293B),
                         ),
                       ),
-                      if (_selectedDate != null)
-                        Text(
-                          DateFormat('MMM d, yyyy').format(_selectedDate!),
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            color: Colors.grey.shade600,
+                      SizedBox(height: 12),
+                      Text(
+                        'Based on your recent activity patterns and fitness goals, a morning jog would be ideal for today. This moderate-intensity workout will help improve your cardiovascular health and burn calories efficiently.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          color: Color(0xFF64748B),
+                          height: 1.5,
+                        ),
+                      ),
+
+                      SizedBox(height: 24),
+
+                      Text(
+                        'Recommended Route',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
+                      SizedBox(height: 12),
+                      Container(
+                        height: 180,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade200,
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: Center(
+                          child: Icon(
+                            Icons.map,
+                            size: 48,
+                            color: Colors.grey.shade400,
                           ),
                         ),
-                    ],
-                  ),
-
-                  const SizedBox(height: 16),
-
-                  // Loading indicator
-                  if (_isLoading)
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 20.0),
-                        child: CircularProgressIndicator(),
                       ),
-                    )
-                  else if (_getFilteredActivities().isEmpty)
-                    // No activities found message
-                    Center(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 40.0),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.sports_gymnastics,
-                              size: 48,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'No activities found for this date',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
+
+                      SizedBox(height: 24),
+
+                      Text(
+                        'Benefits',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Color(0xFF1E293B),
                         ),
                       ),
-                    )
-                  else
-                    // Activity list
-                    ..._getFilteredActivities().map(
-                      (activity) => _buildActivityItem(activity),
-                    ),
-
-                  const SizedBox(height: 24),
-                ],
+                      SizedBox(height: 12),
+                      _buildBenefitItem(
+                        icon: Icons.favorite,
+                        title: 'Cardiovascular Health',
+                        description:
+                            'Improves heart function and blood circulation',
+                      ),
+                      SizedBox(height: 12),
+                      _buildBenefitItem(
+                        icon: Icons.local_fire_department,
+                        title: 'Calorie Burning',
+                        description:
+                            'Helps maintain healthy weight and metabolism',
+                      ),
+                      SizedBox(height: 12),
+                      _buildBenefitItem(
+                        icon: Icons.psychology,
+                        title: 'Mental Wellbeing',
+                        description: 'Reduces stress and improves mood',
+                      ),
+                    ],
+                  ),
+                ),
               ),
-            ),
+
+              // Button
+              Padding(
+                padding: EdgeInsets.all(20),
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Color(0xFF0F67FE),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Start Workout',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ),
-      ),
-    ),
+        );
+      },
     );
   }
 
-  Widget _buildActivityItem(Map<String, dynamic> activity) {
+  Widget _buildBenefitItem({
+    required IconData icon,
+    required String title,
+    required String description,
+  }) {
+    return Container(
+      padding: EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: Color(0xFF0F67FE).withOpacity(0.1),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, color: Color(0xFF0F67FE), size: 20),
+          ),
+          SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 4),
+                Text(
+                  description,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: Color(0xFF64748B),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEnhancedActivityItem(Map<String, dynamic> activity) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(

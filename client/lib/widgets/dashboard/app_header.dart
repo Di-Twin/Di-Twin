@@ -84,7 +84,7 @@ class AppHeader extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: Image.network(
-                    'https://via.placeholder.com/60',
+                    '',
                     fit: BoxFit.cover,
                   ),
                 ),

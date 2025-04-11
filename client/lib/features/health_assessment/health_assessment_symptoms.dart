@@ -92,6 +92,8 @@ class _SymptomsSelectionPageState extends ConsumerState<SymptomsSelectionPage> {
                     text: "Continue",
                     iconPath: 'images/SignInAddIcon.png',
                     onPressed: () async {
+                      Navigator.pushNamed(context, '/loading');
+                      FocusScope.of(context).unfocus();
                       final onboardingState = ref.read(onboardingProvider);
 
                       // Debugging check

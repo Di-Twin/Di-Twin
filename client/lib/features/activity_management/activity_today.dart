@@ -1189,7 +1189,7 @@ class _ActivityTodayState extends State<ActivityToday> {
               right: 0,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16.r),
-                child: Container(height: coloredBarHeight, color: color),
+                child: Container(height: coloredBarHeight.toDouble(), color: color),
               ),
             ),
           Positioned(
