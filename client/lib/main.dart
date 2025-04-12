@@ -18,6 +18,7 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
+import 'package:client/features/health_stats/heart_rate_detail.dart';
 import 'package:client/features/medication_management/medication_management_add_step2.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
@@ -117,6 +118,7 @@ class MyApp extends StatelessWidget {
                 '/gggh': (context) => const AddMedicationPage(),
                 '/fhdasupihfas': (context) => FoodLogsIntelligence(),
                 '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
+                '/fdiao;fadio': (context) => const HeartRateDetailScreen()
 
                 // '/afnadsio': (context) => const AddMedication(),
               },
