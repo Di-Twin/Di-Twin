@@ -54,35 +54,36 @@ class _SignUpScreenState extends ConsumerState<SignUpScreen> {
     if (!_validateFields()) return;
 
     final authService = ref.read(authProvider);
-    String phoneNumber = "$countryCode${phoneController.text.trim()}";
+    final fullPhone = "$countryCode${phoneController.text.trim()}";
 
-    // Update state providers with latest values
+    // Update providers
     ref.read(phoneProvider.notifier).state = phoneController.text.trim();
     ref.read(firstNameProvider.notifier).state =
         firstNameController.text.trim();
     ref.read(lastNameProvider.notifier).state = lastNameController.text.trim();
 
-    // Show loading
     ref.read(loadingProvider.notifier).state = true;
 
     try {
-      await authService.registerUser(
-        phoneNumber: phoneNumber,
-        firstName: firstNameController.text.trim(),
-        lastName: lastNameController.text.trim(),
-      );
+      // Step 1: Send OTP to the phone number
+      await authService.startUserRegistration(phoneNumber: fullPhone);
 
-      // Navigate to OTP screen if registration is successful
       ref.read(loadingProvider.notifier).state = false;
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder:
-              (context) => OtpVerificationScreen(
-                phoneNumber: phoneNumber
-              ),
-        ),
-      );
+
+      // Step 2: Navigate to OTP screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder:
+                (context) => OtpVerificationScreen(
+                  phoneNumber: fullPhone,
+                  firstName: firstNameController.text.trim(),
+                  lastName: lastNameController.text.trim(),
+                ),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         _showErrorSnackBar(e.toString());

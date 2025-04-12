@@ -31,7 +31,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     super.dispose();
   }
 
-    void _showErrorSnackBar(String message) {
+  void _showErrorSnackBar(String message) {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -63,7 +63,11 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => OtpVerificationScreen(phoneNumber: phoneNumber),
+          builder:
+              (context) => OtpVerificationScreen(
+                phoneNumber: phoneNumber,
+                // No firstName or lastName passed = sign-in
+              ),
         ),
       );
     } catch (e) {

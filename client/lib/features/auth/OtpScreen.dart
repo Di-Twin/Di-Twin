@@ -9,8 +9,15 @@ import 'package:client/data/providers/auth_provider.dart';
 
 class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String phoneNumber;
+  final String? firstName;
+  final String? lastName;
 
-  const OtpVerificationScreen({super.key, required this.phoneNumber});
+  const OtpVerificationScreen({
+    Key? key,
+    required this.phoneNumber,
+    this.firstName,
+    this.lastName,
+  }) : super(key: key);
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -90,28 +97,35 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
 
   void _verifyOtp() async {
     String otp = _controllers.map((controller) => controller.text).join();
+
     if (otp.length == 6) {
       setState(() => loading = true);
 
       try {
         final authService = ref.read(authProvider);
 
-        // Check if access token exists
-        final String? accessToken = authService.getAccessToken();
-
-        if (accessToken == null) {
-          // If no token, it's a sign-in process
+        if (widget.firstName == null || widget.lastName == null) {
+          // 🔐 Sign In flow
           await authService.signInUser(
             phoneNumber: widget.phoneNumber,
             otpCode: otp,
           );
         } else {
-          // If token exists, proceed with OTP verification
-          await authService.verifyOtp(otpCode: otp);
+          // 🆕 Sign Up flow
+          await authService.completeRegistration(
+            phoneNumber: widget.phoneNumber,
+            firstName: widget.firstName!,
+            lastName: widget.lastName!,
+            otpCode: otp,
+          );
         }
 
         if (mounted) {
-          Navigator.pushNamed(context, '/questions/goal');
+          Navigator.pushNamedAndRemoveUntil(
+            context,
+            '/questions/goal',
+            (route) => false,
+          );
         }
       } catch (e) {
         setState(() => loading = false);

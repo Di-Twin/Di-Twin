@@ -22,17 +22,29 @@ class AuthService {
   }
 
   /// **Register User & Initiate OTP Verification**
-  Future<void> registerUser({
+  Future<void> startUserRegistration({required String phoneNumber}) async {
+    await sendOtp(phoneNumber);
+  }
+
+  Future<void> completeRegistration({
     required String phoneNumber,
     required String firstName,
     required String lastName,
+    required String otpCode,
   }) async {
     try {
-      print("Registering user...");
+      // ✅ Step 1: Verify OTP with Firebase and get ID Token
+      String? idToken = await verifyOtp(otpCode);
+      print("ID Token: $idToken");
+      if (idToken == null) {
+        throw Exception("Unable to retrieve Firebase ID token");
+      }
 
-      // Get user location
+      // ✅ Step 2: Get user location
       String location = await _getUserLocation();
-      const String backendUrl = "https://test-prod-f427.onrender.com/api/users/signup";
+
+      const String backendUrl =
+          "https://test-prod-f427.onrender.com/api/users/signup";
 
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -42,28 +54,27 @@ class AuthService {
           "first_name": firstName,
           "last_name": lastName,
           "location": location,
+          "idToken": idToken, // ✅ New addition
         }),
       );
 
-      if (response.statusCode == 201) {
-        final data = jsonDecode(response.body);
+      final data = jsonDecode(response.body);
 
-        if (data["success"] == true && data["data"] != null) {
-          _accessToken = data["data"]["tokens"]["accessToken"]; // Fix here
-          print("User registered successfully. Access Token: $_accessToken");
+      if (response.statusCode == 201 && data["success"] == true) {
+        _accessToken = data["data"]["tokens"]["accessToken"];
+        _refreshToken = data["data"]["tokens"]["refreshToken"];
 
-          // Send OTP
-          await sendOtp(phoneNumber);
-          print("OTP sent successfully!");
-        } else {
-          throw Exception("Unexpected response format: ${response.body}");
-        }
+        await _saveTokens(_accessToken!, _refreshToken!);
+        _startTokenRefreshTimer();
+
+        print("✅ User registered and logged in successfully!");
       } else {
-        throw Exception("Failed to register user: ${response.body}");
+        print("❌ Registration failed: ${data["message"]}");
+        throw Exception("Registration failed: ${response.body}");
       }
     } catch (e) {
-      print("Error registering user: $e");
-      throw Exception("Registration Error: ${e.toString()}");
+      print("❌ Error completing registration: $e");
+      throw Exception("Complete Registration Error: ${e.toString()}");
     }
   }
 
@@ -102,36 +113,6 @@ class AuthService {
     await sendOtp(phoneNumber);
   }
 
-  /// **Verify OTP & Authenticate User**
-  Future<void> verifyOtp({required String otpCode}) async {
-    try {
-      if (_verificationId == null) {
-        throw Exception("OTP not sent yet. Please request OTP first.");
-      }
-
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: otpCode,
-      );
-
-      UserCredential userCredential = await _auth.signInWithCredential(
-        credential,
-      );
-
-      if (userCredential.user != null) {
-        print(
-          "User phone number from Firebase: ${userCredential.user?.phoneNumber}",
-        );
-        await sendOtpToBackend(await userCredential.user?.getIdToken() ?? "");
-      } else {
-        throw Exception("User credential is null");
-      }
-    } catch (e) {
-      print("OTP verification failed: $e");
-      throw Exception("Invalid OTP: ${e.toString()}");
-    }
-  }
-
   /// **Send Verified OTP Token to Backend**
   Future<void> sendOtpToBackend(String otpToken) async {
     print(_accessToken);
@@ -141,7 +122,8 @@ class AuthService {
         throw Exception("Access token missing. Please register first.");
       }
 
-      const String otpUrl = "https://test-prod-f427.onrender.com/api/users/verify-token";
+      const String otpUrl =
+          "https://test-prod-f427.onrender.com/api/users/verify-token";
 
       final response = await http.post(
         Uri.parse(otpUrl),
@@ -231,21 +213,19 @@ class AuthService {
   }
 
   /// **Verify OTP & Get Firebase ID Token**
-  Future<String?> verifySigInOtp(String otpCode) async {
+  Future<String?> verifyOtp(String otpCode) async {
     try {
       if (_verificationId == null) {
         throw Exception("OTP not sent yet. Please request OTP first.");
       }
 
       // ✅ Create a credential using the verification ID and OTP
-      PhoneAuthCredential credential = PhoneAuthProvider.credential(
-        verificationId: _verificationId!,
-        smsCode: otpCode,
-      );
-
       // ✅ Sign in with the credential
       UserCredential userCredential = await _auth.signInWithCredential(
-        credential,
+        PhoneAuthProvider.credential(
+          verificationId: _verificationId!,
+          smsCode: otpCode,
+        ),
       );
 
       if (userCredential.user != null) {
@@ -255,8 +235,6 @@ class AuthService {
         if (freshIdToken == null) {
           throw Exception("Failed to retrieve Firebase ID Token");
         }
-
-        
 
         return freshIdToken; // Return valid ID Token
       } else {
@@ -274,13 +252,14 @@ class AuthService {
   }) async {
     try {
       // ✅ Step 1: Verify OTP and Get ID Token
-      String? idToken = await verifySigInOtp(otpCode);
+      String? idToken = await verifyOtp(otpCode);
 
       if (idToken == null) {
         throw Exception("❌ Failed to retrieve verified OTP code.");
       }
 
-      const String signInUrl = "https://test-prod-f427.onrender.com/api/users/signin";
+      const String signInUrl =
+          "https://test-prod-f427.onrender.com/api/users/signin";
 
       // ✅ Step 2: Send Verified ID Token for Sign-in
       final response = await http.post(
@@ -404,7 +383,6 @@ class AuthService {
 
   /// **Get Access Token**
   String? getAccessToken() {
-    _accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYjJhMGI0YS1kYTNjLTRiNjQtOTYxNS0yYmIwOTBmYzg1OTEiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0Mzk4NzE0LCJleHAiOjE3NDQ0MDIzMTR9.QzEYp3l_awC6x2NcATWzBcWCMbU8p_bTWnH_kvOp01o'; // Retrieve from SharedPreferences
     return _accessToken;
   }
 }
