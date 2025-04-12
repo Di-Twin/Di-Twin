@@ -88,7 +88,6 @@ class MyApp extends StatelessWidget {
                           ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
-
                 '/gggh': (context) => const AddMedicationPage(),
                 '/ dvjbnlB': (context) => const HeartRateDetailScreen()
 
