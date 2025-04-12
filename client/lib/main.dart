@@ -88,10 +88,7 @@ class MyApp extends StatelessWidget {
                           ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
-
                 '/gggh': (context) => const AddMedicationPage(),
-                '/fhdasupihfas': (context) => FoodLogsIntelligence(),
-                '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
                 '/ dvjbnlB': (context) => const HeartRateDetailScreen()
 
                 // '/afnadsio': (context) => const AddMedication(),

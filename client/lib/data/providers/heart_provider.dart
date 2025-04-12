@@ -1,16 +1,24 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:client/data/API/heart_data.dart';
 
 class HeartProvider {
   final String baseUrl = 'https://test-prod-f427.onrender.com/api';
-  // Token stored directly in the class
-  final String token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYjJhMGI0YS1kYTNjLTRiNjQtOTYxNS0yYmIwOTBmYzg1OTEiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0Mzk4NzE0LCJleHAiOjE3NDQ0MDIzMTR9.QzEYp3l_awC6x2NcATWzBcWCMbU8p_bTWnH_kvOp01o';
+
+  Future<String?> _getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
 
   Future<HeartRateResponse> getHeartRateData(String date) async {
     try {
+      final token = await _getAccessToken();
+      if (token == null) {
+        throw Exception('No access token found. Please log in.');
+      }
+
       final urls = Uri.parse('$baseUrl/health-metrics/heart?date=$date');
 
       final response = await http.get(
