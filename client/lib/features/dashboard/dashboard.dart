@@ -5,7 +5,6 @@ import 'package:client/widgets/dashboard/app_header.dart';
 import 'package:client/widgets/dashboard/health_score_card.dart';
 import 'package:client/widgets/dashboard/health_metrics_section.dart';
 import 'package:client/widgets/dashboard/fitness_tracker_section.dart';
-import 'package:client/widgets/dashboard/medication_section.dart';
 import 'package:client/widgets/dashboard/bottom_navigation.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -195,7 +194,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           padding: const EdgeInsets.symmetric(horizontal: 16.0),
           children: [
             const SizedBox(height: 20),
-            HealthScoreCard(onScoreUpdated: updateHealthScore), // Removed trailing comma
+            HealthScoreCard(
+              onScoreUpdated: updateHealthScore,
+            ), // Removed trailing comma
             const SizedBox(height: 20),
             const HealthMetricsSection(),
             const SizedBox(height: 20),
@@ -423,7 +424,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           name: 'Google Health Connect',
                           icon: Icons.health_and_safety,
                           color: Color(0xFF34A853),
-                          onTap: () => _connectWatchAndContinue('Google Health Connect'),
+                          onTap:
+                              () => _connectWatchAndContinue(
+                                'Google Health Connect',
+                              ),
                         ),
                         SizedBox(height: 16.h),
                         _buildWatchOption(
@@ -437,7 +441,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           name: 'Samsung Health',
                           icon: Icons.monitor_heart,
                           color: Color(0xFF1428A0),
-                          onTap: () => _connectWatchAndContinue('Samsung Health'),
+                          onTap:
+                              () => _connectWatchAndContinue('Samsung Health'),
                         ),
                         SizedBox(height: 16.h),
                         _buildWatchOption(
@@ -460,7 +465,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         width: double.infinity,
                         height: 56.h,
                         child: ElevatedButton(
-                          onPressed: () => _connectWatchAndContinue('Manual Tracking'),
+                          onPressed:
+                              () => _connectWatchAndContinue('Manual Tracking'),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: Color(0xFF0F67FE),
                             foregroundColor: Colors.white,

@@ -1,4 +1,5 @@
 import 'package:client/features/dashboard/settings_page.dart';
+import 'package:client/features/food_management/food_management_score.dart';
 import 'package:flutter/material.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 
@@ -18,7 +19,7 @@ class BottomNavigation extends StatelessWidget {
           _buildNavItem(context, Icons.home_outlined, true, "home"),
           _buildNavItem(context, Icons.bar_chart_outlined, false, ""),
           const SizedBox(width: 40), // Space for FAB
-          _buildNavItem(context, Icons.restaurant_menu_outlined, false, ""),
+          _buildNavItem(context, Icons.restaurant_menu_outlined, false, "food"),
           _buildNavItem(context, Icons.settings_outlined, false, "settings"),
         ],
       ),
@@ -43,6 +44,12 @@ class BottomNavigation extends StatelessWidget {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const HomeScreen()),
+          );
+        } else if (route == "food") {
+          // Navigate to Dashboard
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => const FoodIntelligenceScreen()),
           );
         }
       },

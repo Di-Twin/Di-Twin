@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/features/health_stats/heart_rate_detail.dart';
 import 'package:client/features/health_stats/blood_pressure_detail.dart';
+import 'animated_heart_rate_graph.dart';
 
 class HealthMetricCard extends StatelessWidget {
   final String title;
@@ -11,6 +12,7 @@ class HealthMetricCard extends StatelessWidget {
   final Color color;
   final IconData icon;
   final String? status;
+  final List<Map<String, dynamic>>? heartRateData;
 
   const HealthMetricCard({
     super.key,
@@ -20,6 +22,7 @@ class HealthMetricCard extends StatelessWidget {
     required this.color,
     required this.icon,
     this.status,
+    this.heartRateData,
   });
 
   void _navigateToDetails(BuildContext context) {
@@ -78,24 +81,8 @@ class HealthMetricCard extends StatelessWidget {
             ),
             const SizedBox(height: 6),
 
-            // Placeholder for Graph
-            Container(
-              height: 50,
-              width: double.infinity,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                "Graph Placeholder",
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withOpacity(0.6),
-                ),
-              ),
-            ),
+            // Graph based on metric type
+            _buildGraphForMetric(),
 
             const Spacer(),
 
@@ -152,4 +139,160 @@ class HealthMetricCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildGraphForMetric() {
+    switch (title) {
+      case 'Heart Rate':
+        return Center(
+          child: AnimatedHeartRateGraph(
+            color: Colors.white,
+            height: 50,
+            width: 156, // Match the card width minus padding
+            initialData: [
+              0.5,
+              0.7,
+              0.6,
+              0.8,
+              0.5,
+              0.6,
+              0.7,
+            ], // 7 data points (35 hours)
+          ),
+        );
+      case 'Blood Pressure':
+        return _buildBloodPressureGraph();
+      case 'Sleep':
+        return _buildSleepGraph();
+      default:
+        return Container(
+          height: 50,
+          width: double.infinity,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.2),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(
+            "Graph Placeholder",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.white.withOpacity(0.6),
+            ),
+          ),
+        );
+    }
+  }
+
+  Widget _buildBloodPressureGraph() {
+    return Container(
+      height: 50,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: CustomPaint(
+        painter: BloodPressureGraphPainter(color: Colors.white),
+        size: Size.infinite,
+      ),
+    );
+  }
+
+  Widget _buildSleepGraph() {
+    return Container(
+      height: 50,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: CustomPaint(
+        painter: SleepGraphPainter(color: Colors.white),
+        size: Size.infinite,
+      ),
+    );
+  }
+}
+
+class BloodPressureGraphPainter extends CustomPainter {
+  final Color color;
+
+  BloodPressureGraphPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeCap = StrokeCap.round;
+
+    // Draw a simple blood pressure graph
+    final path = Path();
+
+    // Starting point
+    path.moveTo(0, size.height * 0.5);
+
+    // Draw some peaks and valleys to represent blood pressure
+    for (int i = 0; i < 4; i++) {
+      final segmentWidth = size.width / 4;
+      final x1 = segmentWidth * i;
+      final x2 = segmentWidth * (i + 0.5);
+      final x3 = segmentWidth * (i + 1);
+
+      final y1 = size.height * 0.5;
+      final y2 =
+          size.height * (0.3 + (i % 2) * 0.4); // Alternate between high and low
+
+      path.lineTo(x1, y1);
+      path.lineTo(x2, y2);
+      path.lineTo(x3, y1);
+    }
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
+}
+
+class SleepGraphPainter extends CustomPainter {
+  final Color color;
+
+  SleepGraphPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2.5
+          ..strokeCap = StrokeCap.round;
+
+    // Draw a simple sleep cycle graph
+    final path = Path();
+
+    // Starting point
+    path.moveTo(0, size.height * 0.7);
+
+    // Draw sleep cycles (REM, deep sleep, light sleep)
+    path.lineTo(size.width * 0.1, size.height * 0.5);
+    path.lineTo(size.width * 0.2, size.height * 0.8);
+    path.lineTo(size.width * 0.3, size.height * 0.3);
+    path.lineTo(size.width * 0.4, size.height * 0.6);
+    path.lineTo(size.width * 0.5, size.height * 0.2);
+    path.lineTo(size.width * 0.6, size.height * 0.5);
+    path.lineTo(size.width * 0.7, size.height * 0.7);
+    path.lineTo(size.width * 0.8, size.height * 0.4);
+    path.lineTo(size.width * 0.9, size.height * 0.6);
+    path.lineTo(size.width, size.height * 0.5);
+
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => true;
 }
