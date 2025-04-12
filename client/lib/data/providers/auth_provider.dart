@@ -404,7 +404,7 @@ class AuthService {
 
   /// **Get Access Token**
   String? getAccessToken() {
-    _accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4ZjgyMTA1ZS1iNWJhLTQwNmUtOTFkNi1hMTlkMmU5ODk0YzgiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0MzA5ODc0LCJleHAiOjE3NDQzMTM0NzR9.rEHxrfyDKb2-xj-v-STcraeAI2hLE5hvKTt8pI_4EyA'; // Retrieve from SharedPreferences
+    _accessToken = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYjJhMGI0YS1kYTNjLTRiNjQtOTYxNS0yYmIwOTBmYzg1OTEiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0Mzk4NzE0LCJleHAiOjE3NDQ0MDIzMTR9.QzEYp3l_awC6x2NcATWzBcWCMbU8p_bTWnH_kvOp01o'; // Retrieve from SharedPreferences
     return _accessToken;
   }
 }

@@ -16,6 +16,8 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
+import 'package:client/features/health_stats/heart_rate_detail.dart';
+import 'package:client/features/medication_management/medication_management_add_step2.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -86,6 +88,11 @@ class MyApp extends StatelessWidget {
                           ),), 
                 '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
                 '/dashboard/activity/steps': (context) => const ActivitySteps(),
+
+                '/gggh': (context) => const AddMedicationPage(),
+                '/fhdasupihfas': (context) => FoodLogsIntelligence(),
+                '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
+                '/ dvjbnlB': (context) => const HeartRateDetailScreen()
 
                 // '/afnadsio': (context) => const AddMedication(),
               },
