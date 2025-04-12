@@ -118,7 +118,7 @@ class MyApp extends StatelessWidget {
                 '/gggh': (context) => const AddMedicationPage(),
                 '/fhdasupihfas': (context) => FoodLogsIntelligence(),
                 '/abifuahdi': (context) => const FoodLogsNutritionTracker(),
-                '/fdiao;fadio': (context) => const HeartRateDetailScreen()
+                '/ dvjbnlB': (context) => const HeartRateDetailScreen()
 
                 // '/afnadsio': (context) => const AddMedication(),
               },
