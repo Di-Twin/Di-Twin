@@ -2,15 +2,17 @@ import 'package:client/data/API/health_score_data.dart';
 import 'package:client/widgets/CustomSecondaryButton.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/data/providers/onboarding_provider.dart';
 
-class HealthAssessmentScore extends StatefulWidget {
+class HealthAssessmentScore extends ConsumerStatefulWidget {
   const HealthAssessmentScore({super.key});
 
   @override
-  State<HealthAssessmentScore> createState() => _HealthAssessmentScoreState();
+  ConsumerState<HealthAssessmentScore> createState() => _HealthAssessmentScoreState();
 }
 
-class _HealthAssessmentScoreState extends State<HealthAssessmentScore> {
+class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
   final HealthScoreService _healthScoreService = HealthScoreService();
   bool _isLoading = true;
   int _score = 0;
@@ -23,28 +25,62 @@ class _HealthAssessmentScoreState extends State<HealthAssessmentScore> {
   }
 
   Future<void> _fetchHealthScore() async {
-    try {
-      final score = 55; // Default score for testing
-      setState(() {
-        _score = score;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _errorMessage = e.toString();
-        _isLoading = false;
-      });
+  try {
+    final onboarding = ref.read(onboardingProvider);
+
+    if (onboarding.age == null ||
+        onboarding.weight_kg == null ||
+        onboarding.height_cm == null ||
+        onboarding.gender == null) {
+      throw Exception("Missing onboarding data");
     }
+
+    final score = calculateScore(
+      age: onboarding.age,
+      weight: onboarding.weight_kg,
+      height: onboarding.height_cm,
+      gender: onboarding.gender,
+    );
+
+    setState(() {
+      _score = score;
+      _isLoading = false;
+    });
+  } catch (e) {
+    setState(() {
+      _errorMessage = e.toString();
+      _isLoading = false;
+    });
+  }
+}
+
+  int calculateScore({
+    required int age,
+    required double weight,
+    required double height,
+    required String gender,
+  }) {
+    final bmiValue = weight / ((height / 100) * (height / 100));
+    final ageScore = (100 - age * 0.5).clamp(0, 100);
+    double bmiScore;
+
+    if (bmiValue < 18.5) {
+      bmiScore = 70 + (bmiValue - 18.5) * 6;
+    } else if (bmiValue <= 25) {
+      bmiScore = 100 - ((bmiValue - 21.75) * (bmiValue - 21.75) * 4);
+    } else {
+      bmiScore = 85 - ((bmiValue - 25) * 3);
+    }
+
+    final genderFactor = gender.toLowerCase() == 'female' ? 1.05 : 1.0;
+    double finalScore = (ageScore * 0.3 + bmiScore * 0.7) * genderFactor;
+    return finalScore.clamp(0, 100).round();
   }
 
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (_errorMessage.isNotEmpty) {

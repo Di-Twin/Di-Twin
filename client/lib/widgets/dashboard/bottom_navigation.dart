@@ -17,7 +17,7 @@ class BottomNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(context, Icons.home_outlined, true, "home"),
-          _buildNavItem(context, Icons.bar_chart_outlined, false, ""),
+          _buildNavItem(context, Icons.bar_chart_outlined, false, "activity"),
           const SizedBox(width: 40), // Space for FAB
           _buildNavItem(context, Icons.restaurant_menu_outlined, false, "food"),
           _buildNavItem(context, Icons.settings_outlined, false, "settings"),
@@ -49,8 +49,13 @@ class BottomNavigation extends StatelessWidget {
           // Navigate to Dashboard
           Navigator.push(
             context,
-            MaterialPageRoute(builder: (context) => const FoodIntelligenceScreen()),
+            MaterialPageRoute(
+              builder: (context) => const FoodIntelligenceScreen(),
+            ),
           );
+        } else if (route == "activity") {
+          // Navigate to Dashboard
+          Navigator.pushNamed(context, '/questions/goal');
         }
       },
       child: Container(
