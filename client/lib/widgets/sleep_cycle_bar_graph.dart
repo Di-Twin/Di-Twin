@@ -7,8 +7,7 @@ class SleepCycleBarGraph extends StatelessWidget {
   final double lightValue;
   final double deepValue;
 
-  const SleepCycleBarGraph({
-    Key?key,
+  const SleepCycleBarGraph({super.key,
     required this.awakeValue,
     required this.remValue,
     required this.lightValue,

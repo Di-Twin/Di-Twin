@@ -7,7 +7,6 @@ import 'package:dotted_border/dotted_border.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:io';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 import 'dart:developer' as developer; // Import developer for better logging
 
 import 'package:client/widgets/CustomButton.dart';

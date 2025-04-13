@@ -9,12 +9,12 @@ class AnimatedHeartRateGraph extends StatefulWidget {
   final double width;
 
   const AnimatedHeartRateGraph({
-    Key? key,
+    super.key,
     required this.color,
     this.initialData,
     this.height = 50,
     this.width = double.infinity,
-  }) : super(key: key);
+  });
 
   @override
   State<AnimatedHeartRateGraph> createState() => _AnimatedHeartRateGraphState();

@@ -1,9 +1,5 @@
 import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/activity_management/activity_my_stats.dart';
-import 'package:client/features/activity_management/activity_steps.dart';
-import 'package:client/features/activity_management/activity_today.dart';
-import 'package:client/features/food_management/nutrition_tracking_screen.dart';
-import 'package:client/features/weight_management/weight_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/health_metrics_provider.dart';

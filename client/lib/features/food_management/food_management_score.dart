@@ -1290,7 +1290,7 @@ Widget _buildSimplifiedBloodSugarResponse(Map<String, dynamic> food, String impa
     curveType = 'High';
   }
   
-  return Container(
+  return SizedBox(
     height: 120.h,
     child: Row(
       children: [

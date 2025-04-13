@@ -13,11 +13,11 @@ class OtpVerificationScreen extends ConsumerStatefulWidget {
   final String? lastName;
 
   const OtpVerificationScreen({
-    Key? key,
+    super.key,
     required this.phoneNumber,
     this.firstName,
     this.lastName,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<OtpVerificationScreen> createState() =>
@@ -110,6 +110,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             phoneNumber: widget.phoneNumber,
             otpCode: otp,
           );
+
+          // ➡️ Redirect signed-in users to dashboard
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/dashboard',
+              (route) => false,
+            );
+          }
         } else {
           // 🆕 Sign Up flow
           await authService.completeRegistration(
@@ -118,14 +127,15 @@ class _OtpVerificationScreenState extends ConsumerState<OtpVerificationScreen> {
             lastName: widget.lastName!,
             otpCode: otp,
           );
-        }
 
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            '/questions/goal',
-            (route) => false,
-          );
+          // ➡️ Redirect newly signed-up users to health questions
+          if (mounted) {
+            Navigator.pushNamedAndRemoveUntil(
+              context,
+              '/questions/goal',
+              (route) => false,
+            );
+          }
         }
       } catch (e) {
         setState(() => loading = false);

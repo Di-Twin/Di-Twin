@@ -461,7 +461,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   padding: EdgeInsets.all(24.r),
                   child: Column(
                     children: [
-                      Container(
+                      SizedBox(
                         width: double.infinity,
                         height: 56.h,
                         child: ElevatedButton(
