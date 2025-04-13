@@ -295,15 +295,17 @@ class AuthService {
 
   /// **Auto-Refresh Token Every Hour**
   void _startTokenRefreshTimer() {
-    _tokenRefreshTimer
-        ?.cancel(); // Cancel existing timer to prevent duplication
-    if (_refreshToken == null) return; // Ensure a valid refresh token exists
+    _tokenRefreshTimer?.cancel(); // Prevent duplicates
+    if (_refreshToken == null) return;
 
-    _tokenRefreshTimer = Timer.periodic(const Duration(seconds: 10), (
-      Timer timer,
+    // 🔁 Refresh token every 30 minutes
+    _tokenRefreshTimer = Timer.periodic(const Duration(minutes: 30), (
+      timer,
     ) async {
       await _refreshAccessToken();
     });
+
+    print("🔁 Token refresh timer started (every 30 minutes)");
   }
 
   /// **Refresh Access Token using Refresh Token**

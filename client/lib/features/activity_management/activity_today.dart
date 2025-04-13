@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
-import 'dart:math' show max, pow;
 
 // API Service for fetching activity data
 class ActivityService {
@@ -337,8 +336,8 @@ class _ActivityTodayState extends State<ActivityToday> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _fetchActivities,
-        child: const Icon(Icons.refresh),
         tooltip: 'Refresh activities',
+        child: const Icon(Icons.refresh),
       ),
     );
   }

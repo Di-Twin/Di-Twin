@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/dashboard_provider.dart';
-import 'package:client/data/API/dashboard_data.dart';
 
 class HealthScoreCard extends StatefulWidget {
   final Function(int)? onScoreUpdated; // Add this callback

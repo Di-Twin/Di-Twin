@@ -1,10 +1,3 @@
-import 'package:client/features/activity_management/activity_calories.dart';
-import 'package:client/features/activity_management/activity_my_stats.dart';
-import 'package:client/features/activity_management/activity_nutrition.dart';
-import 'package:client/features/activity_management/activity_stats.dart';
-import 'package:client/features/activity_management/activity_steps.dart';
-import 'package:client/features/activity_management/activity_today.dart';
-import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/auth/signup.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
@@ -16,8 +9,6 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
-import 'package:client/features/health_stats/heart_rate_detail.dart';
-import 'package:client/features/medication_management/medication_management_add_step2.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
@@ -77,21 +68,6 @@ class MyApp extends StatelessWidget {
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
-                '/dashboard/activity/today': (context) => const ActivityToday(),
-                '/dashboard/activity/stats': (context) => const ActivityStats(),
-                '/dashboard/acitivty/calorieTracker': (context) => const ActivityCaloriesTracker(),
-                '/dashboard/activity/calories': (context) => const ActivityCalories(),
-                '/dashboard/acitivity/myActivities': (context) => MyActivitiesScreen(userJoinDate: DateTime(
-                            2023,
-                            1,
-                            15,
-                          ),), 
-                '/dashboard/activity/nutrition': (context) => const ActivityNutrition(),
-                '/dashboard/activity/steps': (context) => const ActivitySteps(),
-                '/gggh': (context) => const AddMedicationPage(),
-                '/ dvjbnlB': (context) => const HeartRateDetailScreen()
-
-                // '/afnadsio': (context) => const AddMedication(),
               },
             );
           },

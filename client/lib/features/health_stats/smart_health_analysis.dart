@@ -19,7 +19,7 @@ class _SmartHealthAnalysisScreenState extends State<SmartHealthAnalysisScreen> {
   String _selectedBloodPressurePeriod = 'Day';
   
   // Current date for API queries
-  DateTime _currentDate = DateTime.now();
+  final DateTime _currentDate = DateTime.now();
   
   // Data states
   bool _isLoadingHeartRate = true;
