@@ -1,9 +1,9 @@
 import 'package:client/features/sleep_management/sleep_my_stats.dart';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/features/health_stats/heart_rate_detail.dart';
 import 'package:client/features/health_stats/blood_pressure_detail.dart';
-import 'animated_heart_rate_graph.dart';
 
 class HealthMetricCard extends StatelessWidget {
   final String title;
@@ -143,20 +143,58 @@ class HealthMetricCard extends StatelessWidget {
   Widget _buildGraphForMetric() {
     switch (title) {
       case 'Heart Rate':
-        return Center(
-          child: AnimatedHeartRateGraph(
-            color: Colors.white,
+        return ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
             height: 50,
             width: 156, // Match the card width minus padding
-            initialData: [
-              0.5,
-              0.7,
-              0.6,
-              0.8,
-              0.5,
-              0.6,
-              0.7,
-            ], // 7 data points (35 hours)
+            alignment: Alignment.center,
+            // If the GIF is in your assets folder:
+            child: Image.asset(
+              'images/heart_rate.gif', // Update this path to the location of your GIF
+              fit: BoxFit.cover,
+              width: 156,
+              height: 50,
+              gaplessPlayback: true, // Ensures smooth looping
+              repeat: ImageRepeat.noRepeat,
+              frameBuilder: (context, child, frame, wasSynchronouslyLoaded) {
+                if (wasSynchronouslyLoaded || frame != null) {
+                  return child;
+                }
+                return Container(
+                  height: 50,
+                  width: 156,
+                  color: Colors.white.withOpacity(0.2),
+                  child: Center(
+                    child: SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                // Fallback in case the GIF fails to load
+                return Container(
+                  height: 50,
+                  width: 156,
+                  color: Colors.white.withOpacity(0.2),
+                  alignment: Alignment.center,
+                  child: Text(
+                    "Failed to load GIF",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white.withOpacity(0.6),
+                    ),
+                  ),
+                );
+              },
+            ),
           ),
         );
       case 'Blood Pressure':
