@@ -53,7 +53,7 @@ class MyApp extends StatelessWidget {
               ),
               initialRoute: '/',
               routes: {
-                '/01': (context) => const Startpage(),
+                '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
@@ -70,7 +70,7 @@ class MyApp extends StatelessWidget {
                 '/questions/allergy': (context) => const SymptomsSelectionPage(),
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
-                '/': (context) => const MedicationsScreen(),
+                // '/': (context) => const MedicationsScreen(),
               },
             );
           },
