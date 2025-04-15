@@ -1,197 +1,329 @@
+import 'package:client/data/API/health_metrics_data.dart';
+import 'package:client/data/providers/health_metrics_provider.dart';
+import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:client/features/health_stats/smart_health_analysis.dart'; // Import the analysis screen
+import 'package:intl/intl.dart';
 
-class BloodPressureDetailScreen extends StatelessWidget {
-  const BloodPressureDetailScreen({super.key});
+class SPO2Page extends StatefulWidget {
+  const SPO2Page({Key? key}) : super(key: key);
+
+  @override
+  State<SPO2Page> createState() => _SPO2PageState();
+}
+
+class _SPO2PageState extends State<SPO2Page> {
+  final HealthMetricsProvider _healthMetricsProvider = HealthMetricsProvider();
+  bool isLoading = true;
+  String errorMessage = '';
+  
+  HealthMetrics? spo2Data;
+  Map<String, dynamic> displayData = {
+    'avg': 0,
+    'min': 0,
+    'max': 0,
+    'status': 'Loading...',
+    'healthStatus': 'Loading...',
+    'abnormality': 'Fetching health data...',
+  };
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchSPO2Data();
+  }
+
+  Future<void> _fetchSPO2Data() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = '';
+    });
+
+    try {
+      // Get today's date in YYYY-MM-DD format
+      String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+      
+      // Fetch SPO2 data
+      final response = await _healthMetricsProvider.getHealthMetrics(today);
+      
+      // Update state with fetched data
+      setState(() {
+        spo2Data = response.data;
+        
+        // Get SPO2 values from the health metrics
+        int avgSPO2 = spo2Data?.spo2Avg ?? 0;
+        int minSPO2 = spo2Data?.spo2Min ?? 0;
+        int maxSPO2 = spo2Data?.spo2Max ?? 0;
+        
+        // Update display data
+        displayData = {
+          'min': minSPO2,
+          'max': maxSPO2,
+          'avg': avgSPO2,
+          'status': _determineSPO2Status(avgSPO2),
+          'healthStatus': _determineHealthStatus(avgSPO2),
+          'abnormality': _determineAbnormality(avgSPO2),
+        };
+        
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        errorMessage = e.toString();
+        isLoading = false;
+        // Set default values in case of error
+        displayData = {
+          'avg': 0,
+          'min': 0,
+          'max': 0,
+          'status': 'No Data',
+          'healthStatus': 'Unavailable',
+          'abnormality': 'SPO2 data unavailable',
+        };
+      });
+    }
+  }
+  
+  String _determineSPO2Status(int spo2) {
+    if (spo2 == 0) return 'No Data';
+    if (spo2 < 90) return 'Low';
+    if (spo2 >= 90 && spo2 <= 100) return 'Normal';
+    return 'Invalid';
+  }
+  
+  String _determineHealthStatus(int spo2) {
+    if (spo2 == 0) return 'Unavailable';
+    if (spo2 >= 95 && spo2 <= 100) return 'Healthy';
+    if (spo2 >= 90 && spo2 < 95) return 'Acceptable';
+    return 'Needs Attention';
+  }
+  
+  String _determineAbnormality(int spo2) {
+    if (spo2 == 0) return 'SPO2 data unavailable';
+    if (spo2 < 90) return 'Blood oxygen level below normal range';
+    if (spo2 >= 90 && spo2 < 95) return 'Blood oxygen slightly below optimal level';
+    if (spo2 >= 95 && spo2 <= 100) return 'No health abnormality';
+    return 'Invalid SPO2 reading';
+  }
 
   @override
   Widget build(BuildContext context) {
+    // Calculate the percentage fill for the graph (100% would be at 100% SPO2)
+    // Scale appropriately for SPO2 which ranges from 0-100%
+    final avgPercentage = displayData['avg'] > 0 ? displayData['avg'].toDouble() : 0.0;
+    final minPercentage = displayData['min'] > 0 ? displayData['min'].toDouble() : 0.0;
+    final maxPercentage = displayData['max'] > 0 ? displayData['max'].toDouble() : 0.0;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF1F5F9),
       body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            // Header
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16.0,
-                vertical: 12.0,
-              ),
-              child: Row(
+            Container(
+              color: const Color(0xFFF8FAFC), // slate-50
+              width: double.infinity,
+              height: double.infinity,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(
-                        color: const Color(0xFFCBD5E1),
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: const Center(
-                      child: Icon(
-                        Icons.chevron_left,
-                        color: Color(0xFF1E293B),
-                        size: 28,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(width: 16),
-
-                  // Title aligned after back button
-                  Text(
-                    'Blood Pressure',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-
-                  const Spacer(),
-
-                  // Menu
-                  const Icon(
-                    Icons.more_horiz,
-                    color: Color(0xFF64748B),
-                    size: 28,
-                  ),
-                ],
-              ),
-            ),
-
-            // Main content (scrollable)
-            Expanded(
-              child: SingleChildScrollView(
-                child: Padding(
-                  padding: const EdgeInsets.all(24.0),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Status badge
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24,
-                          vertical: 12,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFBFDBFE),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: Text(
-                          'Healthy',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF2563EB),
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 24),
-
-                      // Normal status
-                      Text(
-                        'Normal',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 36,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-
-                      // Subtitle
-                      Text(
-                        'No health abnormality',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-
-                      const SizedBox(height: 40),
-
-                      // Stats section
-                      Text(
-                        'Stats',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Blood pressure cards (with reduced width)
-                      SizedBox(
-                        width: MediaQuery.of(context).size.width * 0.45,
-                        child: Column(
+                  // Header
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Row(
                           children: [
-                            _buildBloodPressureCard(
-                              value: '120',
-                              label: 'Systolic BP',
-                              color: const Color(0xFF2563EB),
+                            GestureDetector(
+                              onTap: () {
+                                Navigator.pop(context);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: const Color(0xFFD1D5DB),
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(
+                                  Icons.chevron_left,
+                                  size: 20,
+                                  color: Color(0xFF1E293B),
+                                ),
+                              ),
                             ),
-                            const SizedBox(height: 16),
-                            _buildBloodPressureCard(
-                              value: '80',
-                              label: 'Diastolic BP',
-                              color: const Color(0xFF1E293B),
+                            const SizedBox(width: 16),
+                            Text(
+                              'Blood Oxygen',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 24,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ],
+                        ),
+                        IconButton(
+                          icon: const Icon(
+                            Icons.more_horiz,
+                            size: 24,
+                            color: Color(0xFF1E293B),
+                          ),
+                          onPressed: () {},
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content
+                  Expanded(
+                    child: isLoading 
+                    ? Center(child: CircularProgressIndicator()) 
+                    : errorMessage.isNotEmpty && displayData['avg'] == 0
+                      ? Center(
+                          child: Text(
+                            'Error: $errorMessage',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.red,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            // Status Indicator
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 24),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 24,
+                                  vertical: 8,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFDBEAFE),
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                child: Text(
+                                  displayData['healthStatus'],
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF2563EB),
+                                  ),
+                                ),
+                              ),
+                            ),
+
+                            // Status Title
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 32),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    displayData['status'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 36,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    displayData['abnormality'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.normal,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+
+                            // Stats Section
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Stats',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+
+                                  // Stats layout in column
+                                  Column(
+                                    children: [
+                                      // Max SPO2
+                                      buildStatCard(
+                                        value: displayData['max'],
+                                        label: 'Max SPO2',
+                                        color: const Color(0xFFEF4444),
+                                        unit: '%',
+                                      ),
+                                      SizedBox(height: 25),
+                                      
+                                      // Min SPO2
+                                      buildStatCard(
+                                        value: displayData['min'],
+                                        label: 'Min SPO2',
+                                        color: const Color(0xFF1E293B),
+                                        unit: '%',
+                                      ),
+                                      SizedBox(height: 25),
+
+                                      // Average SPO2
+                                      buildStatCard(
+                                        value: displayData['avg'],
+                                        label: 'Avg SPO2',
+                                        color: const Color(0xFF3B82F6),
+                                        unit: '%',
+                                      ),
+                                    ],
+                                  ),
+                                ],
+                              ),
                             ),
                           ],
                         ),
                       ),
-
-                      // Additional space at the bottom for comfortable scrolling
-                      const SizedBox(height: 20),
-                    ],
                   ),
-                ),
+
+                  // Footer Button
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: CustomButton(
+                      height: 50,
+                      text: "View Detailed Report",
+                      iconPath: 'images/SignInAddIcon.png',
+                      onPressed: () {
+                        Navigator.pushNamed(context, '/dashboard');
+                      },
+                    ),
+                  ),
+                ],
               ),
             ),
-
-            // Bottom button
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: ElevatedButton(
-                onPressed: () {
-                  // Navigate to the SmartHealthAnalysisScreen when button is pressed
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const SmartHealthAnalysisScreen(),
-                    ),
-                  );
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2563EB),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 20),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: 0,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      'View Detailed Report',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Icon(Icons.add, size: 20),
-                  ],
-                ),
+            // The graph - positioned at the right edge of the screen
+            if (!isLoading) Positioned(
+              right: -130,
+              top: 100,
+              bottom: 200,
+              child: AnimatedSPO2Graph(
+                avgPercentage: avgPercentage,
+                minPercentage: minPercentage,
+                maxPercentage: maxPercentage,
               ),
             ),
           ],
@@ -200,73 +332,235 @@ class BloodPressureDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBloodPressureCard({
-    required String value,
+  // Helper method to build stat cards with consistent style
+  Widget buildStatCard({
+    required int value,
     required String label,
     required Color color,
+    required String unit,
   }) {
     return Container(
+      width: 200,
+      margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          // Top section with value
-          Text(
-            value,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 56,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1E293B),
-              height: 1.0, // Reduce line height
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.baseline,
+                  textBaseline: TextBaseline.alphabetic,
+                  children: [
+                    Text(
+                      value > 0 ? '$value' : '---',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w900,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      value > 0 ? unit : '',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                        color: const Color(0xFF94A3B8),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 16,
+                      height: 16,
+                      decoration: BoxDecoration(
+                        color: color,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      label,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.normal,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
-          ),
-
-          // Unit aligned at the bottom adjacent to the number
-          Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.end, // Align items at the bottom
-            children: [
-              Text(
-                'mmHg',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
-                  color: Colors.grey.shade400,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(height: 12),
-
-          // Bottom section with label and indicator
-          Row(
-            children: [
-              Container(
-                width: 14,
-                height: 14,
-                decoration: BoxDecoration(
-                  color: color,
-                  borderRadius: BorderRadius.circular(4),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                label,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  color: Colors.grey.shade500,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
           ),
         ],
       ),
     );
+  }
+}
+
+// Custom widget for the SPO2 graph
+class AnimatedSPO2Graph extends StatelessWidget {
+  final double avgPercentage;
+  final double minPercentage;
+  final double maxPercentage;
+
+  const AnimatedSPO2Graph({
+    Key? key,
+    required this.avgPercentage,
+    required this.minPercentage,
+    required this.maxPercentage,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 280,
+      height: MediaQuery.of(context).size.height * 0.7,
+      child: CustomPaint(
+        painter: SPO2GraphPainter(
+          avgPercentage: avgPercentage,
+          minPercentage: minPercentage,
+          maxPercentage: maxPercentage,
+        ),
+      ),
+    );
+  }
+}
+
+// Custom painter for the SPO2 graph
+class SPO2GraphPainter extends CustomPainter {
+  final double avgPercentage;
+  final double minPercentage;
+  final double maxPercentage;
+
+  SPO2GraphPainter({
+    required this.avgPercentage,
+    required this.minPercentage,
+    required this.maxPercentage,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final height = size.height;
+    final width = size.width;
+
+    // Draw the filled rings according to their percentages
+    _drawFilledRing(
+      canvas,
+      Rect.fromLTWH(0, 0, width, height),
+      const Color(0xFF0066FF),
+      28,
+      avgPercentage / 2,
+      startAngle: 220,
+    );
+
+    _drawFilledRing(
+      canvas,
+      Rect.fromLTWH(55, 55, width - 110, height - 110),
+      const Color(0xFF1E293B),
+      28,
+      minPercentage / 2,
+      startAngle: 220,
+    );
+
+    _drawFilledRing(
+      canvas,
+      Rect.fromLTWH(110, 110, width - 220, height - 220),
+      const Color(0xFFFF4D6D),
+      28,
+      maxPercentage / 2,
+      startAngle: 220,
+    );
+  }
+
+  void _drawFilledRing(Canvas canvas, Rect rect, Color color, double strokeWidth, double percentage, {double startAngle = -90}) {
+    // Create the base empty paint
+    final emptyPaint = Paint()
+      ..color = color.withOpacity(0.2)
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+    
+    // Create the filled paint
+    final filledPaint = Paint()
+      ..color = color
+      ..strokeWidth = strokeWidth
+      ..style = PaintingStyle.stroke;
+    
+    // Create the rounded rectangle shape
+    final radius = Radius.circular(rect.width / 2);
+    final rrect = RRect.fromRectAndRadius(rect, radius);
+    
+    // Draw the complete empty ring
+    canvas.drawRRect(rrect, emptyPaint);
+    
+    // Only draw filled portion if there's a value
+    if (percentage > 0) {
+      // Calculate how much of the path to draw based on percentage
+      // First we need the total length of the path
+      final path = Path()
+        ..addRRect(rrect);
+      
+      // Calculate the filled length
+      final pathMetrics = path.computeMetrics().first;
+      final totalLength = pathMetrics.length;
+      
+      // Calculate starting point based on startAngle
+      // The path follows: top -> right -> bottom -> left -> top
+      // So we need to calculate the starting offset
+      final angleOffset = (startAngle + 90) / 360 * totalLength;
+      
+      // Calculate the filled length
+      final filledLength = totalLength * (percentage / 100);
+      
+      // Extract the filled portion of the path
+      final filledPath = Path();
+      
+      // If the path wraps around, we need to handle it
+      if (angleOffset + filledLength > totalLength) {
+        // First part (from offset to end)
+        filledPath.addPath(
+          pathMetrics.extractPath(angleOffset, totalLength),
+          Offset.zero,
+        );
+        
+        // Second part (from start to remaining length)
+        filledPath.addPath(
+          pathMetrics.extractPath(0, (angleOffset + filledLength) % totalLength),
+          Offset.zero,
+        );
+      } else {
+        // Normal case - just extract the path from offset
+        filledPath.addPath(
+          pathMetrics.extractPath(angleOffset, angleOffset + filledLength),
+          Offset.zero,
+        );
+      }
+      
+      // Draw the filled portion
+      canvas.drawPath(filledPath, filledPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SPO2GraphPainter oldDelegate) {
+    return oldDelegate.avgPercentage != avgPercentage ||
+        oldDelegate.minPercentage != minPercentage ||
+        oldDelegate.maxPercentage != maxPercentage;
   }
 }

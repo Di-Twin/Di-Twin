@@ -29,10 +29,10 @@ class HealthMetricCard extends StatelessWidget {
     Widget page;
     switch (title) {
       case 'Heart Rate':
-        page = const HeartRateDetailScreen();
+        page = const HeartRatePage();
         break;
-      case 'Blood Pressure':
-        page = const BloodPressureDetailScreen();
+      case 'SPO2':
+        page = const SPO2Page();
         break;
       case 'Sleep':
         page = MySleepScreen(
