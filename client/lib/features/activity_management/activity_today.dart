@@ -279,68 +279,72 @@ class _ActivityTodayState extends State<ActivityToday> {
 
   @override
   Widget build(BuildContext context) {
-    final headerHeight = 370.0;
-
-    return Scaffold(
-      backgroundColor: Colors.grey[100],
-      resizeToAvoidBottomInset: false,
-      body: Column(
-        children: [
-          SizedBox(
-            height: headerHeight.h,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                CustomActivityHeader(
-                  title: 'Activities',
-                  badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
-                  score: isWatchConnected ? _activityScore.toString() : '0',
-                  subtitle: 'Activities Today.',
-                  buttonImage: 'images/SignInAddIcon.png',
-                  onButtonTap: _navigateToMyActivities,
-                  backgroundColor: const Color(0xFFD0E4FF),
-                  backgroundImagePath: 'images/activity_header_background.png',
-                  buttonColor: const Color(0xFF242E49),
-                  buttonShadowColor: const Color(0xFF242E49),
-                  titleTextColor: const Color(0xFF242E49),
-                  scoreTextColor: const Color(0xFF242E49),
-                  subtitleTextColor: const Color(0xFF242E49),
-                  backButtonBorderColor: const Color(0xFF242E49),
-                  badgeBackgroundColor: isWatchConnected 
-                      ? const Color(0xFF0F67FE) 
-                      : const Color(0xFFFF5252).withOpacity(0.1),
-                  badgeTextColor: isWatchConnected 
-                      ? const Color(0xFF0F67FE) 
-                      : const Color(0xFFFF5252),
-                  backButtonBorderWidth: 1.0,
-                  bottomLeftRadius: 30,
-                  bottomRightRadius: 30,
-                  buttonShadowSpread: 4,
-                  headerHeight: headerHeight,
-                  showBadge: true,
-                  showMenu: false,
-                ),
-              ],
-            ),
-          ),
-          SizedBox(height: 40.h),
-          Expanded(
-            child: isWatchConnected
-                ? _buildActivityContent()
-                : SingleChildScrollView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    child: _buildEmptyState(),
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final headerHeight = constraints.maxHeight;
+      
+      return Scaffold(
+        backgroundColor: Colors.grey[100],
+        resizeToAvoidBottomInset: false,
+        body: Column(
+          children: [
+            SizedBox(
+              height: headerHeight.h,
+              child: Stack(
+                clipBehavior: Clip.none,
+                children: [
+                  CustomActivityHeader(
+                    title: 'Activities',
+                    badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
+                    score: isWatchConnected ? _activityScore.toString() : '0',
+                    subtitle: 'Activities Today.',
+                    buttonImage: 'images/SignInAddIcon.png',
+                    onButtonTap: _navigateToMyActivities,
+                    backgroundColor: const Color(0xFFD0E4FF),
+                    backgroundImagePath: 'images/activity_header_background.png',
+                    buttonColor: const Color(0xFF242E49),
+                    buttonShadowColor: const Color(0xFF242E49),
+                    titleTextColor: const Color(0xFF242E49),
+                    scoreTextColor: const Color(0xFF242E49),
+                    subtitleTextColor: const Color(0xFF242E49),
+                    backButtonBorderColor: const Color(0xFF242E49),
+                    badgeBackgroundColor: isWatchConnected 
+                        ? const Color(0xFF0F67FE) 
+                        : const Color(0xFFFF5252).withOpacity(0.1),
+                    badgeTextColor: isWatchConnected 
+                        ? const Color(0xFF0F67FE) 
+                        : const Color(0xFFFF5252),
+                    backButtonBorderWidth: 1.0,
+                    bottomLeftRadius: 30,
+                    bottomRightRadius: 30,
+                    buttonShadowSpread: 4,
+                    headerHeight: headerHeight,
+                    showBadge: true,
+                    showMenu: false,
                   ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _fetchActivities,
-        tooltip: 'Refresh activities',
-        child: const Icon(Icons.refresh),
-      ),
-    );
-  }
+                ],
+              ),
+            ),
+            SizedBox(height: 40.h),
+            Expanded(
+              child: isWatchConnected
+                  ? _buildActivityContent()
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      child: _buildEmptyState(),
+                    ),
+            ),
+          ],
+        ),
+        floatingActionButton: FloatingActionButton(
+          onPressed: _fetchActivities,
+          tooltip: 'Refresh activities',
+          child: const Icon(Icons.refresh),
+        ),
+      );
+    }
+  );
+}
 
   Widget _buildActivityContent() {
     if (_isLoading) {
