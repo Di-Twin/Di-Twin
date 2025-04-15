@@ -272,7 +272,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
                                           ..onTap = () {
                                             Navigator.pushNamed(
                                               context,
-                                              '/terms',
+                                              '/questions/goal',
                                             );
                                           },
                                   ),
