@@ -585,7 +585,7 @@ class _SmartHealthAnalysisScreenState extends State<SmartHealthAnalysisScreen> {
                         ),
                         const SizedBox(width: 12),
                         Text(
-                          'Blood Pressure Stats',
+                          'SPO2 Stats',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 20,
                             fontWeight: FontWeight.bold,
