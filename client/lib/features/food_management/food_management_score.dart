@@ -1,3 +1,4 @@
+import 'package:client/data/providers/food_management_provider.dart';
 import 'package:client/features/food_management/food_management_my_stats.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -18,22 +19,27 @@ class SugarDataPoint {
 class IdealResponsePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.grey.shade400
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 2;
-    
+    final paint =
+        Paint()
+          ..color = Colors.grey.shade400
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 2;
+
     final path = Path();
     path.moveTo(0, size.height * 0.6);
     path.quadraticBezierTo(
-      size.width * 0.3, size.height * 0.5,
-      size.width * 0.5, size.height * 0.5,
+      size.width * 0.3,
+      size.height * 0.5,
+      size.width * 0.5,
+      size.height * 0.5,
     );
     path.quadraticBezierTo(
-      size.width * 0.7, size.height * 0.5,
-      size.width, size.height * 0.6,
+      size.width * 0.7,
+      size.height * 0.5,
+      size.width,
+      size.height * 0.6,
     );
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -45,63 +51,80 @@ class IdealResponsePainter extends CustomPainter {
 class ActualResponsePainter extends CustomPainter {
   final String curveType;
   final Color color;
-  
+
   ActualResponsePainter(this.curveType, this.color);
-  
+
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..style = PaintingStyle.stroke
-      ..strokeWidth = 3;
-    
+    final paint =
+        Paint()
+          ..color = color
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 3;
+
     final path = Path();
     path.moveTo(0, size.height * 0.6);
-    
+
     switch (curveType) {
       case 'Low':
         // Gentle curve
         path.quadraticBezierTo(
-          size.width * 0.3, size.height * 0.45,
-          size.width * 0.5, size.height * 0.5,
+          size.width * 0.3,
+          size.height * 0.45,
+          size.width * 0.5,
+          size.height * 0.5,
         );
         path.quadraticBezierTo(
-          size.width * 0.7, size.height * 0.55,
-          size.width, size.height * 0.6,
+          size.width * 0.7,
+          size.height * 0.55,
+          size.width,
+          size.height * 0.6,
         );
         break;
       case 'Moderate':
         // Medium curve
         path.quadraticBezierTo(
-          size.width * 0.25, size.height * 0.3,
-          size.width * 0.4, size.height * 0.3,
+          size.width * 0.25,
+          size.height * 0.3,
+          size.width * 0.4,
+          size.height * 0.3,
         );
         path.quadraticBezierTo(
-          size.width * 0.6, size.height * 0.3,
-          size.width * 0.7, size.height * 0.5,
+          size.width * 0.6,
+          size.height * 0.3,
+          size.width * 0.7,
+          size.height * 0.5,
         );
         path.quadraticBezierTo(
-          size.width * 0.8, size.height * 0.6,
-          size.width, size.height * 0.6,
+          size.width * 0.8,
+          size.height * 0.6,
+          size.width,
+          size.height * 0.6,
         );
         break;
       case 'High':
         // Sharp spike
         path.quadraticBezierTo(
-          size.width * 0.2, size.height * 0.1,
-          size.width * 0.3, size.height * 0.1,
+          size.width * 0.2,
+          size.height * 0.1,
+          size.width * 0.3,
+          size.height * 0.1,
         );
         path.quadraticBezierTo(
-          size.width * 0.4, size.height * 0.1,
-          size.width * 0.5, size.height * 0.3,
+          size.width * 0.4,
+          size.height * 0.1,
+          size.width * 0.5,
+          size.height * 0.3,
         );
         path.quadraticBezierTo(
-          size.width * 0.7, size.height * 0.5,
-          size.width, size.height * 0.6,
+          size.width * 0.7,
+          size.height * 0.5,
+          size.width,
+          size.height * 0.6,
         );
         break;
     }
-    
+
     canvas.drawPath(path, paint);
   }
 
@@ -119,7 +142,8 @@ class FoodIntelligenceScreen extends StatefulWidget {
 class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   // ScrollController for auto-scrolling
   final ScrollController _scrollController = ScrollController();
-  
+  final FoodManagementProvider _foodProvider = FoodManagementProvider();
+
   // Current time period
   String _currentTimePeriod = 'Morning';
 
@@ -131,101 +155,13 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
 
   // Sample meal data
   final Map<String, List<Map<String, dynamic>>> _mealData = {
-    'breakfast': [
-      {
-        'name': 'Oatmeal with Berries',
-        'calories': 320,
-        'protein': 12,
-        'carbs': 58,
-        'fat': 6,
-        'time': '08:30 AM',
-        'timeValue': 8.5,
-        'color': Color(0xFF4CAF50),
-        'icon': Icons.breakfast_dining,
-        'image': 'images/oatmeal.png',
-      },
-      {
-        'name': 'Greek Yogurt',
-        'calories': 150,
-        'protein': 15,
-        'carbs': 8,
-        'fat': 5,
-        'time': '08:45 AM',
-        'timeValue': 8.75,
-        'color': Color(0xFF42A5F5),
-        'icon': Icons.breakfast_dining,
-        'image': 'images/yogurt.png',
-      },
-    ],
-    'lunch': [
-      {
-        'name': 'Grilled Chicken Salad',
-        'calories': 420,
-        'protein': 35,
-        'carbs': 25,
-        'fat': 18,
-        'time': '12:30 PM',
-        'timeValue': 12.5,
-        'color': Color(0xFFFFA726),
-        'icon': Icons.lunch_dining,
-        'image': 'images/salad.png',
-      },
-    ],
-    'dinner': [
-      {
-        'name': 'Salmon with Vegetables',
-        'calories': 520,
-        'protein': 40,
-        'carbs': 30,
-        'fat': 22,
-        'time': '07:15 PM',
-        'timeValue': 19.25,
-        'color': Color(0xFFEC407A),
-        'icon': Icons.dinner_dining,
-        'image': 'images/salmon.png',
-      },
-    ],
-    'snacks': [
-      {
-        'name': 'Apple',
-        'calories': 95,
-        'protein': 0,
-        'carbs': 25,
-        'fat': 0,
-        'time': '03:45 PM',
-        'timeValue': 15.75,
-        'color': Color(0xFF7E57C2),
-        'icon': Icons.apple,
-        'image': 'images/apple.png',
-      },
-      {
-        'name': 'Almonds (30g)',
-        'calories': 180,
-        'protein': 6,
-        'carbs': 6,
-        'fat': 14,
-        'time': '05:20 PM',
-        'timeValue': 17.33,
-        'color': Color(0xFF7E57C2),
-        'icon': Icons.food_bank,
-        'image': 'images/almonds.png',
-      },
-    ],
-    'custom': [
-      {
-        'name': 'Protein Shake',
-        'calories': 220,
-        'protein': 30,
-        'carbs': 15,
-        'fat': 5,
-        'time': '09:45 PM',
-        'timeValue': 21.75,
-        'color': Color(0xFF26A69A),
-        'icon': Icons.local_drink,
-        'image': 'images/protein_shake.png',
-      },
-    ],
+    'breakfast': [],
+    'lunch': [],
+    'dinner': [],
+    'snacks': [],
+    'custom': [],
   };
+  
 
   // Popular food suggestions
   final List<Map<String, dynamic>> _popularFoods = [
@@ -323,7 +259,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   void initState() {
     super.initState();
     _searchResults = List.from(_popularFoods);
-    
+
     // Determine current time period based on current hour
     final currentHour = DateTime.now().hour;
     if (currentHour >= 6 && currentHour < 12) {
@@ -333,7 +269,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
     } else {
       _currentTimePeriod = 'Evening';
     }
-    
+
     // Schedule auto-scroll after the widget is built
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scrollToCurrentTimePeriod();
@@ -350,11 +286,13 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   // Scroll to current time period
   void _scrollToCurrentTimePeriod() {
     // Find the index of the current time period
-    int index = _timePeriods.indexWhere((period) => period['name'] == _currentTimePeriod);
+    int index = _timePeriods.indexWhere(
+      (period) => period['name'] == _currentTimePeriod,
+    );
     if (index != -1) {
       // Calculate approximate scroll position (each section is about 300 height units)
       double scrollPosition = index * 300.0;
-      
+
       // Animate to the position
       _scrollController.animateTo(
         scrollPosition,
@@ -395,7 +333,7 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   // Get all foods sorted by time
   List<Map<String, dynamic>> _getAllFoodsSortedByTime() {
     List<Map<String, dynamic>> allFoods = [];
-    
+
     _mealData.forEach((mealType, foods) {
       for (var food in foods) {
         // Add meal type to the food data
@@ -404,10 +342,12 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
         allFoods.add(foodWithType);
       }
     });
-    
+
     // Sort by time value
-    allFoods.sort((a, b) => (a['timeValue'] as double).compareTo(b['timeValue'] as double));
-    
+    allFoods.sort(
+      (a, b) => (a['timeValue'] as double).compareTo(b['timeValue'] as double),
+    );
+
     return allFoods;
   }
 
@@ -673,759 +613,833 @@ class _FoodIntelligenceScreenState extends State<FoodIntelligenceScreen> {
   }
 
   // Show food detail sheet with improved UI and Syncfusion charts
-void _showFoodDetailSheet(Map<String, dynamic> food, String mealType) {
-  TimeOfDay selectedTime = TimeOfDay.now();
-  double servingSize = 1.0;
-  String servingUnit = 'g'; // Default unit
+  void _showFoodDetailSheet(Map<String, dynamic> food, String mealType) {
+    TimeOfDay selectedTime = TimeOfDay.now();
+    double servingSize = 1.0;
+    String servingUnit = 'g'; // Default unit
 
-  // Generate data for charts
-  final int metabolicImpact = _calculateMetabolicImpact(food);
-  final String impactLevel = _getImpactLevel(metabolicImpact);
-  final Color impactColor = _getImpactColor(metabolicImpact);
+    // Generate data for charts
+    final int metabolicImpact = _calculateMetabolicImpact(food);
+    final String impactLevel = _getImpactLevel(metabolicImpact);
+    final Color impactColor = _getImpactColor(metabolicImpact);
 
-  // Calculate nutrition values based on serving size
-  int calories = food['calories'] as int;
-  int protein = food.containsKey('protein') ? food['protein'] as int : 0;
-  int carbs = food.containsKey('carbs') ? food['carbs'] as int : 0;
-  int fat = food.containsKey('fat') ? food['fat'] as int : 0;
+    // Calculate nutrition values based on serving size
+    int calories = food['calories'] as int;
+    int protein = food.containsKey('protein') ? food['protein'] as int : 0;
+    int carbs = food.containsKey('carbs') ? food['carbs'] as int : 0;
+    int fat = food.containsKey('fat') ? food['fat'] as int : 0;
 
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return StatefulBuilder(
-        builder: (context, setState) {
-          // Calculate adjusted nutrition values based on serving size
-          int adjustedCalories = (calories * servingSize).round();
-          int adjustedProtein = (protein * servingSize).round();
-          int adjustedCarbs = (carbs * servingSize).round();
-          int adjustedFat = (fat * servingSize).round();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setState) {
+            // Calculate adjusted nutrition values based on serving size
+            int adjustedCalories = (calories * servingSize).round();
+            int adjustedProtein = (protein * servingSize).round();
+            int adjustedCarbs = (carbs * servingSize).round();
+            int adjustedFat = (fat * servingSize).round();
 
-          return Container(
-            height: MediaQuery.of(context).size.height * 0.85,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(24.r),
-                topRight: Radius.circular(24.r),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Handle bar
-                Center(
-                  child: Container(
-                    margin: EdgeInsets.only(top: 12.h),
-                    width: 40.w,
-                    height: 4.h,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(2.r),
-                    ),
-                  ),
+            return Container(
+              height: MediaQuery.of(context).size.height * 0.85,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24.r),
+                  topRight: Radius.circular(24.r),
                 ),
-
-                // Header with food info
-                Container(
-                  padding: EdgeInsets.all(16.r),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFF0F67FE).withOpacity(0.05),
-                        Color(0xFF4D8EFF).withOpacity(0.1),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(24.r),
-                      topRight: Radius.circular(24.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Handle bar
+                  Center(
+                    child: Container(
+                      margin: EdgeInsets.only(top: 12.h),
+                      width: 40.w,
+                      height: 4.h,
+                      decoration: BoxDecoration(
+                        color: Colors.grey[300],
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Title and close button
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Add to ${mealType.substring(0, 1).toUpperCase() + mealType.substring(1)}',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 20.sp,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF1E293B),
-                            ),
-                          ),
-                          IconButton(
-                            onPressed: () => Navigator.pop(context),
-                            icon: Icon(Icons.close, color: Color(0xFF64748B)),
-                            style: IconButton.styleFrom(
-                              backgroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                            ),
-                          ),
+
+                  // Header with food info
+                  Container(
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          Color(0xFF0F67FE).withOpacity(0.05),
+                          Color(0xFF4D8EFF).withOpacity(0.1),
                         ],
                       ),
-
-                      SizedBox(height: 12.h),
-
-                      // Food info card with compact layout
-                      Container(
-                        padding: EdgeInsets.all(12.r),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16.r),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 8,
-                              offset: Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            // Food icon
-                            Container(
-                              width: 56.w,
-                              height: 56.w,
-                              decoration: BoxDecoration(
-                                color: Color(0xFFF1F5F9),
-                                borderRadius: BorderRadius.circular(12.r),
-                              ),
-                              child: Icon(
-                                food['icon'] ?? Icons.restaurant,
-                                size: 28.sp,
-                                color: Color(0xFF0F67FE),
-                              ),
-                            ),
-
-                            SizedBox(width: 12.w),
-
-                            // Food details
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    food['name'],
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                  SizedBox(height: 4.h),
-                                  Row(
-                                    children: [
-                                      Icon(
-                                        Icons.local_fire_department,
-                                        size: 14.sp,
-                                        color: Color(0xFFFF9800),
-                                      ),
-                                      SizedBox(width: 4.w),
-                                      Text(
-                                        '$adjustedCalories cal',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14.sp,
-                                          fontWeight: FontWeight.w500,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Container(
-                                        width: 4.w,
-                                        height: 4.h,
-                                        decoration: BoxDecoration(
-                                          color: Color(0xFF64748B),
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      SizedBox(width: 8.w),
-                                      Text(
-                                        food['weight'],
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14.sp,
-                                          color: Color(0xFF64748B),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(24.r),
+                        topRight: Radius.circular(24.r),
                       ),
-                    ],
-                  ),
-                ),
-
-                // Scrollable content
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.symmetric(horizontal: 16.r),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        SizedBox(height: 16.h),
-
-                        // Time selection - MOVED TO TOP
+                        // Title and close button
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Time',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  InkWell(
-                                    onTap: () async {
-                                      final TimeOfDay? time = await showTimePicker(
-                                        context: context,
-                                        initialTime: selectedTime,
-                                      );
+                            Text(
+                              'Add to ${mealType.substring(0, 1).toUpperCase() + mealType.substring(1)}',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 20.sp,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                            IconButton(
+                              onPressed: () => Navigator.pop(context),
+                              icon: Icon(Icons.close, color: Color(0xFF64748B)),
+                              style: IconButton.styleFrom(
+                                backgroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
 
-                                      if (time != null) {
-                                        setState(() {
-                                          selectedTime = time;
-                                        });
-                                      }
-                                    },
-                                    child: Container(
+                        SizedBox(height: 12.h),
+
+                        // Food info card with compact layout
+                        Container(
+                          padding: EdgeInsets.all(12.r),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 8,
+                                offset: Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              // Food icon
+                              Container(
+                                width: 56.w,
+                                height: 56.w,
+                                decoration: BoxDecoration(
+                                  color: Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(12.r),
+                                ),
+                                child: Icon(
+                                  food['icon'] ?? Icons.restaurant,
+                                  size: 28.sp,
+                                  color: Color(0xFF0F67FE),
+                                ),
+                              ),
+
+                              SizedBox(width: 12.w),
+
+                              // Food details
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      food['name'],
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 18.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    SizedBox(height: 4.h),
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.local_fire_department,
+                                          size: 14.sp,
+                                          color: Color(0xFFFF9800),
+                                        ),
+                                        SizedBox(width: 4.w),
+                                        Text(
+                                          '$adjustedCalories cal',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14.sp,
+                                            fontWeight: FontWeight.w500,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Container(
+                                          width: 4.w,
+                                          height: 4.h,
+                                          decoration: BoxDecoration(
+                                            color: Color(0xFF64748B),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Text(
+                                          food['weight'],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14.sp,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Scrollable content
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.symmetric(horizontal: 16.r),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          SizedBox(height: 16.h),
+
+                          // Time selection - MOVED TO TOP
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Time',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    InkWell(
+                                      onTap: () async {
+                                        final TimeOfDay? time =
+                                            await showTimePicker(
+                                              context: context,
+                                              initialTime: selectedTime,
+                                            );
+
+                                        if (time != null) {
+                                          setState(() {
+                                            selectedTime = time;
+                                          });
+                                        }
+                                      },
+                                      child: Container(
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 12.r,
+                                          vertical: 12.h,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: Colors.white,
+                                          border: Border.all(
+                                            color: Color(0xFFE2E8F0),
+                                          ),
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
+                                          ),
+                                        ),
+                                        child: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.access_time,
+                                              color: Color(0xFF0F67FE),
+                                              size: 20.sp,
+                                            ),
+                                            SizedBox(width: 8.w),
+                                            Text(
+                                              selectedTime.format(context),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    fontSize: 16.sp,
+                                                    fontWeight: FontWeight.w500,
+                                                    color: const Color(
+                                                      0xFF1E293B,
+                                                    ),
+                                                  ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              SizedBox(width: 12.w),
+                              // Serving size - COMPACT VERSION
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Serving Size',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16.sp,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                    SizedBox(height: 8.h),
+                                    Container(
                                       padding: EdgeInsets.symmetric(
                                         horizontal: 12.r,
-                                        vertical: 12.h,
+                                        vertical: 8.h,
                                       ),
                                       decoration: BoxDecoration(
                                         color: Colors.white,
-                                        border: Border.all(color: Color(0xFFE2E8F0)),
-                                        borderRadius: BorderRadius.circular(12.r),
+                                        border: Border.all(
+                                          color: Color(0xFFE2E8F0),
+                                        ),
+                                        borderRadius: BorderRadius.circular(
+                                          12.r,
+                                        ),
                                       ),
                                       child: Row(
                                         children: [
-                                          Icon(
-                                            Icons.access_time,
+                                          IconButton(
+                                            onPressed: () {
+                                              // Extract base weight from food weight string
+                                              final baseWeight = double.parse(
+                                                food['weight']
+                                                    .toString()
+                                                    .replaceAll(
+                                                      RegExp(r'[^0-9.]'),
+                                                      '',
+                                                    ),
+                                              );
+                                              if (servingSize > 0.5) {
+                                                setState(() {
+                                                  // Decrease by 50g
+                                                  servingSize =
+                                                      ((baseWeight *
+                                                              servingSize) -
+                                                          50) /
+                                                      baseWeight;
+                                                  servingSize = servingSize
+                                                      .clamp(0.5, 5.0);
+                                                });
+                                              }
+                                            },
+                                            icon: Icon(
+                                              Icons.remove_circle_outline,
+                                            ),
                                             color: Color(0xFF0F67FE),
-                                            size: 20.sp,
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(),
+                                            iconSize: 20.sp,
                                           ),
-                                          SizedBox(width: 8.w),
+                                          Expanded(
+                                            child: Center(
+                                              child: Text(
+                                                '${(double.parse(food['weight'].toString().replaceAll(RegExp(r'[^0-9.]'), '')) * servingSize).toStringAsFixed(0)}$servingUnit',
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      fontSize: 14.sp,
+                                                      fontWeight:
+                                                          FontWeight.w500,
+                                                      color: const Color(
+                                                        0xFF1E293B,
+                                                      ),
+                                                    ),
+                                              ),
+                                            ),
+                                          ),
+                                          IconButton(
+                                            onPressed: () {
+                                              // Extract base weight from food weight string
+                                              final baseWeight = double.parse(
+                                                food['weight']
+                                                    .toString()
+                                                    .replaceAll(
+                                                      RegExp(r'[^0-9.]'),
+                                                      '',
+                                                    ),
+                                              );
+                                              if (servingSize < 5.0) {
+                                                setState(() {
+                                                  // Increase by 50g
+                                                  servingSize =
+                                                      ((baseWeight *
+                                                              servingSize) +
+                                                          50) /
+                                                      baseWeight;
+                                                  servingSize = servingSize
+                                                      .clamp(0.5, 5.0);
+                                                });
+                                              }
+                                            },
+                                            icon: Icon(
+                                              Icons.add_circle_outline,
+                                            ),
+                                            color: Color(0xFF0F67FE),
+                                            padding: EdgeInsets.zero,
+                                            constraints: BoxConstraints(),
+                                            iconSize: 20.sp,
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+
+                          SizedBox(height: 16.h),
+
+                          // Nutrition info - COMPACT CARD
+                          Container(
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(color: Color(0xFFE2E8F0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Nutrition Facts',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                SizedBox(height: 12.h),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceAround,
+                                  children: [
+                                    _buildNutrientCircle(
+                                      'Protein',
+                                      adjustedProtein,
+                                      Color(0xFF4CAF50),
+                                      'g',
+                                    ),
+                                    _buildNutrientCircle(
+                                      'Carbs',
+                                      adjustedCarbs,
+                                      Color(0xFF2196F3),
+                                      'g',
+                                    ),
+                                    _buildNutrientCircle(
+                                      'Fat',
+                                      adjustedFat,
+                                      Color(0xFFFF9800),
+                                      'g',
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: 16.h),
+
+                          // Metabolic impact - SIMPLIFIED
+                          Container(
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              gradient: LinearGradient(
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                                colors: [
+                                  impactColor.withOpacity(0.8),
+                                  impactColor,
+                                ],
+                              ),
+                              borderRadius: BorderRadius.circular(16.r),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: impactColor.withOpacity(0.3),
+                                  blurRadius: 8,
+                                  offset: Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: EdgeInsets.all(10.r),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        shape: BoxShape.circle,
+                                      ),
+                                      child: Icon(
+                                        _getImpactIcon(metabolicImpact),
+                                        color: Colors.white,
+                                        size: 20.sp,
+                                      ),
+                                    ),
+                                    SizedBox(width: 12.w),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
                                           Text(
-                                            selectedTime.format(context),
+                                            '$impactLevel Impact',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 16.sp,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF1E293B),
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                          SizedBox(height: 4.h),
+                                          Text(
+                                            'This food will ${metabolicImpact > 0 ? 'increase' : 'decrease'} your metabolic score by ${metabolicImpact.abs()}',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12.sp,
+                                              color: Colors.white.withOpacity(
+                                                0.9,
+                                              ),
                                             ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            SizedBox(width: 12.w),
-                            // Serving size - COMPACT VERSION
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Serving Size',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1E293B),
-                                    ),
-                                  ),
-                                  SizedBox(height: 8.h),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.r,
-                                      vertical: 8.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      border: Border.all(color: Color(0xFFE2E8F0)),
-                                      borderRadius: BorderRadius.circular(12.r),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        IconButton(
-                                          onPressed: () {
-                                            // Extract base weight from food weight string
-                                            final baseWeight = double.parse(food['weight'].toString().replaceAll(RegExp(r'[^0-9.]'), ''));
-                                            if (servingSize > 0.5) {
-                                              setState(() {
-                                                // Decrease by 50g
-                                                servingSize = ((baseWeight * servingSize) - 50) / baseWeight;
-                                                servingSize = servingSize.clamp(0.5, 5.0);
-                                              });
-                                            }
-                                          },
-                                          icon: Icon(Icons.remove_circle_outline),
-                                          color: Color(0xFF0F67FE),
-                                          padding: EdgeInsets.zero,
-                                          constraints: BoxConstraints(),
-                                          iconSize: 20.sp,
-                                        ),
-                                        Expanded(
-                                          child: Center(
-                                            child: Text(
-                                              '${(double.parse(food['weight'].toString().replaceAll(RegExp(r'[^0-9.]'), '')) * servingSize).toStringAsFixed(0)}$servingUnit',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 14.sp,
-                                                fontWeight: FontWeight.w500,
-                                                color: const Color(0xFF1E293B),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        IconButton(
-                                          onPressed: () {
-                                            // Extract base weight from food weight string
-                                            final baseWeight = double.parse(food['weight'].toString().replaceAll(RegExp(r'[^0-9.]'), ''));
-                                            if (servingSize < 5.0) {
-                                              setState(() {
-                                                // Increase by 50g
-                                                servingSize = ((baseWeight * servingSize) + 50) / baseWeight;
-                                                servingSize = servingSize.clamp(0.5, 5.0);
-                                              });
-                                            }
-                                          },
-                                          icon: Icon(Icons.add_circle_outline),
-                                          color: Color(0xFF0F67FE),
-                                          padding: EdgeInsets.zero,
-                                          constraints: BoxConstraints(),
-                                          iconSize: 20.sp,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-
-                        SizedBox(height: 16.h),
-
-                        // Nutrition info - COMPACT CARD
-                        Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(color: Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Nutrition Facts',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1E293B),
+                                  ],
                                 ),
-                              ),
-                              SizedBox(height: 12.h),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _buildNutrientCircle('Protein', adjustedProtein, Color(0xFF4CAF50), 'g'),
-                                  _buildNutrientCircle('Carbs', adjustedCarbs, Color(0xFF2196F3), 'g'),
-                                  _buildNutrientCircle('Fat', adjustedFat, Color(0xFFFF9800), 'g'),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-
-                        SizedBox(height: 16.h),
-
-                        // Metabolic impact - SIMPLIFIED
-                        Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                impactColor.withOpacity(0.8),
-                                impactColor,
                               ],
                             ),
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: impactColor.withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
-                            ],
                           ),
-                          child: Column(
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: EdgeInsets.all(10.r),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withOpacity(0.2),
-                                      shape: BoxShape.circle,
-                                    ),
-                                    child: Icon(
-                                      _getImpactIcon(metabolicImpact),
-                                      color: Colors.white,
-                                      size: 20.sp,
-                                    ),
-                                  ),
-                                  SizedBox(width: 12.w),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          '$impactLevel Impact',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 16.sp,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4.h),
-                                        Text(
-                                          'This food will ${metabolicImpact > 0 ? 'increase' : 'decrease'} your metabolic score by ${metabolicImpact.abs()}',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12.sp,
-                                            color: Colors.white.withOpacity(0.9),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
 
-                        SizedBox(height: 16.h),
+                          SizedBox(height: 16.h),
 
-                        // Blood Sugar Response - SIMPLIFIED
-                        Container(
-                          padding: EdgeInsets.all(16.r),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(16.r),
-                            border: Border.all(color: Color(0xFFE2E8F0)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Blood Sugar Response',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1E293B),
+                          // Blood Sugar Response - SIMPLIFIED
+                          Container(
+                            padding: EdgeInsets.all(16.r),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(16.r),
+                              border: Border.all(color: Color(0xFFE2E8F0)),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Blood Sugar Response',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1E293B),
+                                  ),
                                 ),
-                              ),
-                              SizedBox(height: 12.h),
-                              
-                              // Simplified blood sugar response visualization
-                              _buildSimplifiedBloodSugarResponse(food, impactLevel, impactColor),
-                              
-                              SizedBox(height: 8.h),
-                              
-                              // Simple explanation
-                              Text(
-                                _getSimplifiedSugarExplanation(food['name'], impactLevel),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  color: Color(0xFF64748B),
+                                SizedBox(height: 12.h),
+
+                                // Simplified blood sugar response visualization
+                                _buildSimplifiedBloodSugarResponse(
+                                  food,
+                                  impactLevel,
+                                  impactColor,
                                 ),
-                              ),
-                            ],
+
+                                SizedBox(height: 8.h),
+
+                                // Simple explanation
+                                Text(
+                                  _getSimplifiedSugarExplanation(
+                                    food['name'],
+                                    impactLevel,
+                                  ),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    color: Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Add button
+                  Container(
+                    padding: EdgeInsets.all(16.r),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(24.r),
+                        bottomRight: Radius.circular(24.r),
+                      ),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 8,
+                          offset: Offset(0, -2),
                         ),
                       ],
                     ),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50.h,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          // Add food to meal
+                          Navigator.pop(context);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                '${food['name']} added to $mealType',
+                              ),
+                              behavior: SnackBarBehavior.floating,
+                              backgroundColor: Color(0xFF4CAF50),
+                            ),
+                          );
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Color(0xFF0F67FE),
+                          foregroundColor: Colors.white,
+                          elevation: 2,
+                          shadowColor: Color(0xFF0F67FE).withOpacity(0.3),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Add to $mealType',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Build nutrient circle
+  Widget _buildNutrientCircle(
+    String label,
+    int value,
+    Color color,
+    String unit,
+  ) {
+    return Column(
+      children: [
+        Container(
+          width: 60.w,
+          height: 60.w,
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+            border: Border.all(color: color.withOpacity(0.5), width: 2),
+          ),
+          child: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value.toString(),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: color,
                   ),
                 ),
-
-                // Add button
-                Container(
-                  padding: EdgeInsets.all(16.r),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      bottomLeft: Radius.circular(24.r),
-                      bottomRight: Radius.circular(24.r),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 8,
-                        offset: Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    height: 50.h,
-                    child: ElevatedButton(
-                      onPressed: () {
-                        // Add food to meal
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              '${food['name']} added to $mealType',
-                            ),
-                            behavior: SnackBarBehavior.floating,
-                            backgroundColor: Color(0xFF4CAF50),
-                          ),
-                        );
-                      },
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Color(0xFF0F67FE),
-                        foregroundColor: Colors.white,
-                        elevation: 2,
-                        shadowColor: Color(0xFF0F67FE).withOpacity(0.3),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16.r),
-                        ),
-                      ),
-                      child: Text(
-                        'Add to $mealType',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
+                Text(
+                  unit,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    color: color.withOpacity(0.8),
                   ),
                 ),
               ],
             ),
-          );
-        },
-      );
-    },
-  );
-}
-
-// Build nutrient circle
-Widget _buildNutrientCircle(String label, int value, Color color, String unit) {
-  return Column(
-    children: [
-      Container(
-        width: 60.w,
-        height: 60.w,
-        decoration: BoxDecoration(
-          color: color.withOpacity(0.1),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: color.withOpacity(0.5),
-            width: 2,
           ),
         ),
-        child: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value.toString(),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: color,
-                ),
-              ),
-              Text(
-                unit,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.sp,
-                  color: color.withOpacity(0.8),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-      SizedBox(height: 8.h),
-      Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 14.sp,
-          color: Color(0xFF64748B),
-        ),
-      ),
-    ],
-  );
-}
-
-// Build simplified blood sugar response
-Widget _buildSimplifiedBloodSugarResponse(Map<String, dynamic> food, String impactLevel, Color impactColor) {
-  // Determine the curve type based on impact level
-  String curveType = 'Moderate';
-  if (impactLevel == 'Excellent' || impactLevel == 'Good') {
-    curveType = 'Low';
-  } else if (impactLevel == 'High') {
-    curveType = 'High';
-  }
-  
-  return SizedBox(
-    height: 120.h,
-    child: Row(
-      children: [
-        // Y-axis label
-        Column(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'High',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                color: Color(0xFF64748B),
-              ),
-            ),
-            Text(
-              'Blood\nSugar',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                color: Color(0xFF64748B),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            Text(
-              'Low',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12.sp,
-                color: Color(0xFF64748B),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(width: 8.w),
-        // Graph area
-        Expanded(
-          child: Stack(
-            children: [
-              // Background grid
-              Positioned.fill(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Container(height: 1, color: Color(0xFFE2E8F0)),
-                    Container(height: 1, color: Color(0xFFE2E8F0)),
-                    Container(height: 1, color: Color(0xFFE2E8F0)),
-                  ],
-                ),
-              ),
-              
-              // Ideal response curve
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: CustomPaint(
-                  painter: IdealResponsePainter(),
-                ),
-              ),
-              
-              // Actual response curve based on impact
-              Positioned(
-                left: 0,
-                right: 0,
-                top: 0,
-                bottom: 0,
-                child: CustomPaint(
-                  painter: ActualResponsePainter(curveType, impactColor),
-                ),
-              ),
-              
-              // Time labels
-              Positioned(
-                left: 0,
-                right: 0,
-                bottom: 0,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '0h',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    Text(
-                      '1h',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    Text(
-                      '2h',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                    Text(
-                      '3h',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        color: Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+        SizedBox(height: 8.h),
+        Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            color: Color(0xFF64748B),
           ),
         ),
       ],
-    ),
-  );
-}
-
-// Get simplified sugar explanation
-String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
-  switch (impactLevel) {
-    case 'Excellent':
-    case 'Good':
-      return '$foodName has a minimal effect on blood sugar levels, making it a good choice for metabolic health.';
-    case 'Neutral':
-      return '$foodName causes a moderate rise in blood sugar that returns to normal within 2-3 hours.';
-    case 'Moderate':
-      return '$foodName may cause a moderate blood sugar spike. Consider pairing with protein or fiber.';
-    case 'High':
-      return '$foodName may cause a significant blood sugar spike. Consider smaller portions or alternatives.';
-    default:
-      return 'This shows how $foodName affects your blood sugar over time after eating.';
+    );
   }
-}
 
-// Generate sugar spike data based on food type
+  // Build simplified blood sugar response
+  Widget _buildSimplifiedBloodSugarResponse(
+    Map<String, dynamic> food,
+    String impactLevel,
+    Color impactColor,
+  ) {
+    // Determine the curve type based on impact level
+    String curveType = 'Moderate';
+    if (impactLevel == 'Excellent' || impactLevel == 'Good') {
+      curveType = 'Low';
+    } else if (impactLevel == 'High') {
+      curveType = 'High';
+    }
+
+    return SizedBox(
+      height: 120.h,
+      child: Row(
+        children: [
+          // Y-axis label
+          Column(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'High',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.sp,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              Text(
+                'Blood\nSugar',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.sp,
+                  color: Color(0xFF64748B),
+                ),
+                textAlign: TextAlign.center,
+              ),
+              Text(
+                'Low',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.sp,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(width: 8.w),
+          // Graph area
+          Expanded(
+            child: Stack(
+              children: [
+                // Background grid
+                Positioned.fill(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Container(height: 1, color: Color(0xFFE2E8F0)),
+                      Container(height: 1, color: Color(0xFFE2E8F0)),
+                      Container(height: 1, color: Color(0xFFE2E8F0)),
+                    ],
+                  ),
+                ),
+
+                // Ideal response curve
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: CustomPaint(painter: IdealResponsePainter()),
+                ),
+
+                // Actual response curve based on impact
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  top: 0,
+                  bottom: 0,
+                  child: CustomPaint(
+                    painter: ActualResponsePainter(curveType, impactColor),
+                  ),
+                ),
+
+                // Time labels
+                Positioned(
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '0h',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        '1h',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        '2h',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                      Text(
+                        '3h',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          color: Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Get simplified sugar explanation
+  String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
+    switch (impactLevel) {
+      case 'Excellent':
+      case 'Good':
+        return '$foodName has a minimal effect on blood sugar levels, making it a good choice for metabolic health.';
+      case 'Neutral':
+        return '$foodName causes a moderate rise in blood sugar that returns to normal within 2-3 hours.';
+      case 'Moderate':
+        return '$foodName may cause a moderate blood sugar spike. Consider pairing with protein or fiber.';
+      case 'High':
+        return '$foodName may cause a significant blood sugar spike. Consider smaller portions or alternatives.';
+      default:
+        return 'This shows how $foodName affects your blood sugar over time after eating.';
+    }
+  }
+
+  // Generate sugar spike data based on food type
   List<SugarDataPoint> _generateSugarSpikeData(Map<String, dynamic> food) {
     final List<SugarDataPoint> data = [];
     final String foodName = food['name'].toString().toLowerCase();
@@ -2247,20 +2261,18 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
   // Build time period section
   Widget _buildTimePeriodSection(Map<String, dynamic> timePeriod) {
     // Filter foods that belong to this time period
-    List<Map<String, dynamic>> periodFoods = _getAllFoodsSortedByTime().where((food) {
-      double timeValue = food['timeValue'] as double;
-      return timeValue >= timePeriod['startTime'] && timeValue < timePeriod['endTime'];
-    }).toList();
-    
+    List<Map<String, dynamic>> periodFoods =
+        _foodProvider.getFoodsForTimePeriod(_mealData, timePeriod);
+
     // Calculate total calories for this period
     int totalCalories = 0;
     for (var food in periodFoods) {
       totalCalories += food['calories'] as int;
     }
-    
+
     // Check if this is the current time period
     bool isCurrentTimePeriod = timePeriod['name'] == _currentTimePeriod;
-    
+
     return Container(
       margin: EdgeInsets.only(bottom: 24.h),
       decoration: BoxDecoration(
@@ -2270,13 +2282,16 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
           color: isCurrentTimePeriod ? timePeriod['color'] : Color(0xFFE2E8F0),
           width: isCurrentTimePeriod ? 2.0 : 1.0,
         ),
-        boxShadow: isCurrentTimePeriod ? [
-          BoxShadow(
-            color: (timePeriod['color'] as Color).withOpacity(0.2),
-            blurRadius: 8,
-            offset: Offset(0, 2),
-          ),
-        ] : null,
+        boxShadow:
+            isCurrentTimePeriod
+                ? [
+                  BoxShadow(
+                    color: (timePeriod['color'] as Color).withOpacity(0.2),
+                    blurRadius: 8,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+                : null,
       ),
       child: Column(
         children: [
@@ -2358,11 +2373,14 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
                       ],
                     ),
                   ),
-                  
+
                   // Current time indicator
                   if (isCurrentTimePeriod)
                     Container(
-                      padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 6.h),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10.w,
+                        vertical: 6.h,
+                      ),
                       decoration: BoxDecoration(
                         color: timePeriod['color'].withOpacity(0.2),
                         borderRadius: BorderRadius.circular(12.r),
@@ -2389,12 +2407,13 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
               itemCount: periodFoods.length,
-              separatorBuilder: (context, index) => Divider(
-                color: Color(0xFFE2E8F0),
-                height: 1,
-                indent: 20.r,
-                endIndent: 20.r,
-              ),
+              separatorBuilder:
+                  (context, index) => Divider(
+                    color: Color(0xFFE2E8F0),
+                    height: 1,
+                    indent: 20.r,
+                    endIndent: 20.r,
+                  ),
               itemBuilder: (context, index) {
                 final food = periodFoods[index];
                 return _buildFoodItem(food);
@@ -2408,7 +2427,10 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
               width: double.infinity,
               height: 48.h,
               child: ElevatedButton.icon(
-                onPressed: () => _showAddFoodBottomSheet(timePeriod['name'].toString().toLowerCase()),
+                onPressed:
+                    () => _showAddFoodBottomSheet(
+                      timePeriod['name'].toString().toLowerCase(),
+                    ),
                 icon: Icon(Icons.add, size: 18.sp),
                 label: Text(
                   'Add ${timePeriod['name']} Food',
@@ -2497,32 +2519,38 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
             child: Stack(
               clipBehavior: Clip.none,
               children: [
-                CustomActivityHeader(
-                  title: 'Food Intelligence',
-                  badgeText: 'Healthy',
-                  score: '16',
-                  subtitle: 'Your Metabolic Score',
-                  buttonImage: 'images/SignInAddIcon.png',
-                  onButtonTap: () => onButtonTap(context),
-                  backgroundColor: Color(0xFFD9EAFF),
-                  backgroundImagePath: 'images/activity_header_background.png',
-                  buttonColor: Color(0xFF1E293B),
-                  buttonShadowColor: Color(0xFF1E293B),
-                  titleTextColor: Color(0xFF1E293B),
-                  scoreTextColor: Color(0xFF1E293B),
-                  subtitleTextColor: Color(0xFF1E293B),
-                  backButtonBorderColor: Color(0xFF1E293B),
-                  badgeBackgroundColor: Colors.blue.withOpacity(0.2),
-                  badgeTextColor: Colors.blue,
-                  backButtonBorderWidth: 1.0,
-                  bottomLeftRadius: 30,
-                  bottomRightRadius: 30,
-                  buttonShadowSpread: 0,
-                  headerHeight: headerHeight,
-                  showBadge: true,
-                  showMenu: false,
-                  // Add spacing between title and content
-                  
+                FutureBuilder<String>(
+                  future: _foodProvider.getTodayFoodScore(),
+                  builder: (context, snapshot) {
+                    // Default score if data is not loaded yet or there's an error
+                    String score = snapshot.hasData ? snapshot.data! : '0';
+                    return CustomActivityHeader(
+                      title: 'Food Intelligence',
+                      badgeText: 'Healthy',
+                      score: score,
+                      subtitle: 'Your Metabolic Score',
+                      buttonImage: 'images/SignInAddIcon.png',
+                      onButtonTap: () => onButtonTap(context),
+                      backgroundColor: Color(0xFFD9EAFF),
+                      backgroundImagePath:
+                          'images/activity_header_background.png',
+                      buttonColor: Color(0xFF1E293B),
+                      buttonShadowColor: Color(0xFF1E293B),
+                      titleTextColor: Color(0xFF1E293B),
+                      scoreTextColor: Color(0xFF1E293B),
+                      subtitleTextColor: Color(0xFF1E293B),
+                      backButtonBorderColor: Color(0xFF1E293B),
+                      badgeBackgroundColor: Colors.blue.withOpacity(0.2),
+                      badgeTextColor: Colors.blue,
+                      backButtonBorderWidth: 1.0,
+                      bottomLeftRadius: 30,
+                      bottomRightRadius: 30,
+                      buttonShadowSpread: 0,
+                      headerHeight: headerHeight,
+                      showBadge: true,
+                      showMenu: false,
+                    );
+                  },
                 ),
               ],
             ),
@@ -2543,7 +2571,10 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 12.w,
+                    vertical: 6.h,
+                  ),
                   decoration: BoxDecoration(
                     color: Color(0xFFEDF2FF),
                     borderRadius: BorderRadius.circular(20.r),
@@ -2577,7 +2608,12 @@ String _getSimplifiedSugarExplanation(String foodName, String impactLevel) {
               controller: _scrollController,
               padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
               child: Column(
-                children: _timePeriods.map((timePeriod) => _buildTimePeriodSection(timePeriod)).toList(),
+                children:
+                    _timePeriods
+                        .map(
+                          (timePeriod) => _buildTimePeriodSection(timePeriod),
+                        )
+                        .toList(),
               ),
             ),
           ),
