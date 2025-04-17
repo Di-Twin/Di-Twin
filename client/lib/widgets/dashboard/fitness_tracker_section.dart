@@ -138,12 +138,12 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
               progress: _getCaloriesProgress(),
               progressColor: const Color(0xFFEF4444),
               onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ActivityCaloriesTracker(),
-                  ),
-                );
+                // Navigator.push(
+                //   context,
+                //   MaterialPageRoute(
+                //     builder: (context) => ActivityCaloriesTracker(),
+                //   ),
+                // );
               },
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
