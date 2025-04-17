@@ -28,13 +28,6 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
   try {
     final onboarding = ref.read(onboardingProvider);
 
-    if (onboarding.age == null ||
-        onboarding.weight_kg == null ||
-        onboarding.height_cm == null ||
-        onboarding.gender == null) {
-      throw Exception("Missing onboarding data");
-    }
-
     final score = calculateScore(
       age: onboarding.age,
       weight: onboarding.weight_kg,

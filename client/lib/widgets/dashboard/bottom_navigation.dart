@@ -1,3 +1,4 @@
+import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/dashboard/settings_page.dart';
 import 'package:client/features/food_management/food_intelligence_screen.dart';
 import 'package:flutter/material.dart';
@@ -55,7 +56,7 @@ class BottomNavigation extends StatelessWidget {
           );
         } else if (route == "activity") {
           // Navigate to Dashboard
-          Navigator.pushNamed(context, '/questions/goal');
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityToday()));
         }
       },
       child: Container(

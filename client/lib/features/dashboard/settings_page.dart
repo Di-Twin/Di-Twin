@@ -2,7 +2,6 @@ import 'package:client/data/API/user_profile_data.dart';
 import 'package:client/data/providers/user_profile_provider.dart';
 import 'package:client/widgets/settings/notification_settings_screen.dart';
 import 'package:client/widgets/settings/personal_informations_screen.dart';
-import 'package:client/widgets/settings/linked_devices_screen.dart';
 import 'package:client/widgets/settings/security_settings_screen.dart';
 import 'package:client/widgets/settings/about_us_screen.dart';
 import 'package:client/widgets/settings/contact_information_screen.dart';
@@ -433,18 +432,18 @@ Container(
                     );
                   },
                 ),
-                _buildSettingItem(
-                  icon: Icons.watch_outlined,
-                  title: 'Linked Device',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LinkedDeviceScreen(),
-                      ),
-                    );
-                  },
-                ),
+                // _buildSettingItem(
+                //   icon: Icons.watch_outlined,
+                //   title: 'Linked Device',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const LinkedDeviceScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
                 _buildSettingItem(
                   icon: Icons.lock_outline,
                   title: 'Security',
@@ -459,19 +458,19 @@ Container(
                 ),
                 const SizedBox(height: 24),
 
-                // Help & Support
-                _buildSectionHeader('Help & Support'),
-                _buildToggleItem(
-                  icon: Icons.remove_red_eye_outlined,
-                  title: 'Dark Mode',
-                  value: isDarkMode,
-                  onChanged: (value) {
-                    setState(() {
-                      isDarkMode = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 24),
+                // // Help & Support
+                // _buildSectionHeader('Help & Support'),
+                // _buildToggleItem(
+                //   icon: Icons.remove_red_eye_outlined,
+                //   title: 'Dark Mode',
+                //   value: isDarkMode,
+                //   onChanged: (value) {
+                //     setState(() {
+                //       isDarkMode = value;
+                //     });
+                //   },
+                // ),
+                // const SizedBox(height: 24),
 
                 // Help & Support (repeated in the original UI)
                 _buildSectionHeader('Help & Support'),
@@ -523,13 +522,13 @@ Container(
                 const SizedBox(height: 24),
 
                 // Danger Zone
-                _buildSectionHeader('Danger Zone'),
-                _buildDangerItem(
-                  icon: Icons.delete_outline,
-                  title: 'Delete Account',
-                  onTap: _showDeleteAccountDialog,
-                ),
-                const SizedBox(height: 24),
+                // _buildSectionHeader('Danger Zone'),
+                // _buildDangerItem(
+                //   icon: Icons.delete_outline,
+                //   title: 'Delete Account',
+                //   onTap: _showDeleteAccountDialog,
+                // ),
+                // const SizedBox(height: 24),
               ],
             ),
           ),

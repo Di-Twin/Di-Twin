@@ -118,12 +118,12 @@ class _AppHeaderState extends State<AppHeader> {
                     size: 26,
                   ),
                   onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const NotificationScreen(),
-                      ),
-                    );
+                    // Navigator.push(
+                    //   context,
+                    //   MaterialPageRoute(
+                    //     builder: (context) => const NotificationScreen(),
+                    //   ),
+                    // );
                   },
                 ),
               ),

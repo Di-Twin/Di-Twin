@@ -7,10 +7,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // API Service for fetching activity data
 class ActivityService {
-  static const String baseUrl = 'http://192.168.11.196:6000/';
+  static const String baseUrl = 'https://test-prod-f427.onrender.com';
 
   static Future<List<Map<String, dynamic>>> fetchTopActivities(DateTime date) async {
     try {
@@ -113,8 +114,14 @@ class ActivityService {
     return text[0].toUpperCase() + text.substring(1);
   }
   
+  // In the ActivityService class, update the _getAccessToken() method to retrieve from SharedPreferences
   static Future<String> _getAccessToken() async {
-    return 'YOUR_ACCESS_TOKEN'; // TODO: Replace with actual token retrieval
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    if (token == null) {
+      throw Exception('Access token not found. Please login again.');
+    }
+    return token;
   }
 }
 
@@ -277,11 +284,12 @@ class _ActivityTodayState extends State<ActivityToday> {
     }
   }
 
+  // In the build method, remove the floatingActionButton property from the Scaffold
   @override
   Widget build(BuildContext context) {
   return LayoutBuilder(
     builder: (context, constraints) {
-      final headerHeight = constraints.maxHeight;
+      final headerHeight = 250.h; // Adjust this value to match food management
       
       return Scaffold(
         backgroundColor: Colors.grey[100],
@@ -289,7 +297,7 @@ class _ActivityTodayState extends State<ActivityToday> {
         body: Column(
           children: [
             SizedBox(
-              height: headerHeight.h,
+              height: headerHeight,
               child: Stack(
                 clipBehavior: Clip.none,
                 children: [
@@ -297,7 +305,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                     title: 'Activities',
                     badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
                     score: isWatchConnected ? _activityScore.toString() : '0',
-                    subtitle: 'Activities Today.',
+                    subtitle: 'Activities Today',
                     buttonImage: 'images/SignInAddIcon.png',
                     onButtonTap: _navigateToMyActivities,
                     backgroundColor: const Color(0xFFD0E4FF),
@@ -312,7 +320,7 @@ class _ActivityTodayState extends State<ActivityToday> {
                         ? const Color(0xFF0F67FE) 
                         : const Color(0xFFFF5252).withOpacity(0.1),
                     badgeTextColor: isWatchConnected 
-                        ? const Color(0xFF0F67FE) 
+                        ? Colors.white 
                         : const Color(0xFFFF5252),
                     backButtonBorderWidth: 1.0,
                     bottomLeftRadius: 30,
@@ -335,11 +343,6 @@ class _ActivityTodayState extends State<ActivityToday> {
                     ),
             ),
           ],
-        ),
-        floatingActionButton: FloatingActionButton(
-          onPressed: _fetchActivities,
-          tooltip: 'Refresh activities',
-          child: const Icon(Icons.refresh),
         ),
       );
     }
