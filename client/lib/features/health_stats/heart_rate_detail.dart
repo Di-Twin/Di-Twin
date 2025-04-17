@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class HeartRatePage extends StatefulWidget {
-  const HeartRatePage({Key? key}) : super(key: key);
+  const HeartRatePage({super.key});
 
   @override
   State<HeartRatePage> createState() => _HeartRatePageState();
@@ -426,11 +426,11 @@ class AnimatedHeartRateGraphq extends StatelessWidget {
   final double maxPercentage;
 
   const AnimatedHeartRateGraphq({
-    Key? key,
+    super.key,
     required this.avgPercentage,
     required this.minPercentage,
     required this.maxPercentage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

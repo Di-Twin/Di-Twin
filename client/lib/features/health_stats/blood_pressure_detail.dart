@@ -6,7 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 class SPO2Page extends StatefulWidget {
-  const SPO2Page({Key? key}) : super(key: key);
+  const SPO2Page({super.key});
 
   @override
   State<SPO2Page> createState() => _SPO2PageState();
@@ -421,11 +421,11 @@ class AnimatedSPO2Graph extends StatelessWidget {
   final double maxPercentage;
 
   const AnimatedSPO2Graph({
-    Key? key,
+    super.key,
     required this.avgPercentage,
     required this.minPercentage,
     required this.maxPercentage,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
