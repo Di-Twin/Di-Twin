@@ -59,6 +59,7 @@ dependencies:
   shared_preferences: ^2.5.2
   health: ^12.1.0
   syncfusion_flutter_charts: ^29.1.37+1
+  # flutter_local_notifications: ^19.1.0
 
 dev_dependencies:
   flutter_test:

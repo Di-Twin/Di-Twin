@@ -1,5 +1,5 @@
 import 'package:client/features/dashboard/settings_page.dart';
-import 'package:client/features/food_management/food_management_score.dart';
+import 'package:client/features/food_management/food_intelligence_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 
