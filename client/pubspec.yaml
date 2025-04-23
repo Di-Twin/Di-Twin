@@ -69,6 +69,7 @@ dependencies:
   dartz: ^0.10.1
   get: ^4.7.2
   internet_connection_checker: ^3.0.1
+  data_connection_checker_tv: ^0.3.5-nullsafety
 
 dev_dependencies:
   flutter_test:
