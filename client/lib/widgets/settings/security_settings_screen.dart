@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -19,6 +20,7 @@ class _SecurityScreenState extends State<SecurityScreen>
   String? email;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  String? _accessToken; // Add this line to store the token
 
   // Animation controller for rotating indicator
   late AnimationController _animationController;
@@ -30,6 +32,16 @@ class _SecurityScreenState extends State<SecurityScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
+    _loadAccessToken(); // Add this line to load the token when screen initializes
+  }
+
+  // Add this method to load the access token from SharedPreferences
+  Future<void> _loadAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _accessToken = prefs.getString("access_token");
+    });
+    print("Access token loaded: ${_accessToken?.substring(0, 10)}..."); // Print first 10 chars for debugging
   }
 
   @override
@@ -42,15 +54,33 @@ class _SecurityScreenState extends State<SecurityScreen>
 
   Future<void> _requestOtp(String email) async {
     try {
+      if (_accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You need to be logged in to verify your email',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('https://test-prod-f427.onrender.com/api/users/request-otp'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4ZjgyMTA1ZS1iNWJhLTQwNmUtOTFkNi1hMTlkMmU5ODk0YzgiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0ODIyMTk4LCJleHAiOjE3NDQ4MjU3OTh9.zxViuk5fjzx3Gn_ql3kNpjmj9SOcug2XG6rzC5d-8og', // Replace with actual token
+          'Authorization': 'Bearer $_accessToken', // Use the loaded token
         },
         body: jsonEncode({'email': email}),
       );
 
+      // Rest of the method remains the same
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -101,11 +131,28 @@ class _SecurityScreenState extends State<SecurityScreen>
 
   Future<void> _verifyOtp(String email, String otp) async {
     try {
+      if (_accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You need to be logged in to verify your email',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
       final response = await http.post(
         Uri.parse('https://test-prod-f427.onrender.com/api/users/verify-otp'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI4ZjgyMTA1ZS1iNWJhLTQwNmUtOTFkNi1hMTlkMmU5ODk0YzgiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0ODIyMTk4LCJleHAiOjE3NDQ4MjU3OTh9.zxViuk5fjzx3Gn_ql3kNpjmj9SOcug2XG6rzC5d-8og',
+          'Authorization': 'Bearer $_accessToken', // Use the loaded token
         },
         body: jsonEncode({
           'email': email,
@@ -113,6 +160,7 @@ class _SecurityScreenState extends State<SecurityScreen>
         }),
       );
 
+      // Rest of the method remains the same
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         if (data['success'] == true) {
@@ -330,7 +378,8 @@ class _SecurityScreenState extends State<SecurityScreen>
                       height: 50,
                       child: ElevatedButton(
                         onPressed: () {
-                          if (_otpController.text.length == 4) { // Changed from 6 to 4
+                          if (_otpController.text.length == 4) {
+                            // Changed from 6 to 4
                             _verifyOtp(email!, _otpController.text);
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -476,10 +525,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                                 ? Icons.verified_user
                                 : Icons.shield,
                             size: 120,
-                            color:
-                                isEmailVerified
-                                    ? Colors.green
-                                    : const Color(0xFF1E293B),
+                            color: isEmailVerified
+                                ? Colors.green
+                                : const Color(0xFF1E293B),
                           ),
                         ),
 
@@ -566,18 +614,16 @@ class _SecurityScreenState extends State<SecurityScreen>
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green.shade50
-                                        : Colors.blue.shade50,
+                                color: isEmailVerified
+                                    ? Colors.green.shade50
+                                    : Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.email_outlined,
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green
-                                        : Colors.blue,
+                                color: isEmailVerified
+                                    ? Colors.green
+                                    : Colors.blue,
                                 size: 24,
                               ),
                             ),
@@ -601,10 +647,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                                         : 'Email not verified',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
-                                      color:
-                                          isEmailVerified
-                                              ? Colors.green
-                                              : Colors.grey.shade600,
+                                      color: isEmailVerified
+                                          ? Colors.green
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -614,10 +659,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green
-                                        : Colors.grey.shade300,
+                                color: isEmailVerified
+                                    ? Colors.green
+                                    : Colors.grey.shade300,
                                 shape: BoxShape.rectangle,
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -678,10 +722,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed:
-                      isEmailVerified || isVerificationInProgress
-                          ? null
-                          : _startVerification,
+                  onPressed: isEmailVerified || isVerificationInProgress
+                      ? null
+                      : _startVerification,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E293B),
                     foregroundColor: Colors.white,
@@ -695,8 +738,8 @@ class _SecurityScreenState extends State<SecurityScreen>
                     isEmailVerified
                         ? 'Email Verified'
                         : isVerificationInProgress
-                        ? 'Sending Code...'
-                        : 'Verify Email',
+                            ? 'Sending Code...'
+                            : 'Verify Email',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -726,11 +769,10 @@ class DottedCirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint =
-        Paint()
-          ..color = color
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
+    final Paint paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
 
     final double radius = size.width / 2;
     final Path path = Path();

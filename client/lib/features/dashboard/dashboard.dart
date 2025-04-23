@@ -12,6 +12,11 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart'; // Import for Clipboard
+// Import for WebViewConfiguration
+
+// Import the FitbitCallbackNotification from main.dart
+import 'package:client/main.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -48,7 +53,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   };
 
   // Base URL for API
-  final String _baseUrl = 'https://test-prod-f427.onrender.com/api';
+  final String _baseUrl = 'https://test-prod-f427.onrender.com';
+
+  // Loading overlay key
+  final GlobalKey<_LoadingOverlayState> _loadingOverlayKey = GlobalKey<_LoadingOverlayState>();
 
   @override
   void initState() {
@@ -79,6 +87,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       } else {
         // Watch is connected, fetch health data
         fetchHealthData();
+      }
+    });
+    
+    // Check if there's a pending Fitbit callback URI
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pendingFitbitUri != null) {
+        handleFitbitOAuthCallback(pendingFitbitUri!);
+        pendingFitbitUri = null; // Clear the pending URI
       }
     });
   }
@@ -195,7 +211,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           onWillPop: () async => false, // Prevent back button from closing
           child: StatefulBuilder(
             builder: (context, setState) {
-              return _buildWatchConnectionDrawer();
+              return _buildWatchConnectionDrawer(context);
             },
           ),
         );
@@ -379,7 +395,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             // Close drawer
                             Navigator.pop(context);
                             
-                            // Show success message
+                            // Show success message using the global ScaffoldMessenger
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text('Manual data saved to cache'),
@@ -628,162 +644,376 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   /// **Initiate Fitbit OAuth**
-  // Updated _initiateFitbitOAuth function in _HomeScreenState class
-  Future<void> _initiateFitbitOAuth() async {
+  Future<void> _initiateFitbitOAuth(BuildContext bottomSheetContext) async {
+    // First close the bottom sheet to avoid context issues
+    Navigator.pop(bottomSheetContext);
+    
+    // Now show loading overlay
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (BuildContext context) {
+          return LoadingOverlay(
+            key: _loadingOverlayKey,
+            message: 'Connecting to Fitbit...',
+          );
+        },
+      );
+    });
+
     try {
       setState(() {
         _isConnectingFitbit = true;
       });
 
-      // Show loading indicator
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Row(
-            children: [
-              SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 12),
-              Text('Connecting to Fitbit...'),
-            ],
-          ),
-          backgroundColor: Colors.blue,
-          duration: Duration(seconds: 10),
-          behavior: SnackBarBehavior.floating,
-        ),
+      // Get the access token - replace this with your actual token retrieval logic
+      final String accessToken = await _getAccessToken();
+    
+      // Make API request to get the authorization URL
+      final response = await http.get(
+        Uri.parse('$_baseUrl/api/connect/fitbit/authorize'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
       );
 
-      // Properly encode URL parameters to prevent encoding issues
-      final Map<String, String> queryParams = {
-        'response_type': 'code',
-        'client_id': '23QCF6',
-        'redirect_uri': 'dtwin://fitbit-auth',
-        'scope': 'activity sleep heartrate profile oxygen_saturation',
-        'expires_in': '604800',
-      };
+      if (response.statusCode != 200) {
+        throw Exception('Failed to get Fitbit authorization URL: ${response.statusCode}');
+      }
 
-      // Create the auth URL with properly encoded parameters
-      final Uri fitbitAuthUri = Uri(
-        scheme: 'https',
-        host: 'www.fitbit.com',
-        path: '/oauth2/authorize',
-        queryParameters: queryParams,
-      );
+      // Parse the response
+      final data = json.decode(response.body);
+    
+      if (!data['success']) {
+        throw Exception('API returned error: ${data['message']}');
+      }
+    
+      // Get the authorization URL from the response
+      final String authUrl = data['authUrl'];
+    
+      // Store the access token in SharedPreferences for later use
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('fitbit_access_token', accessToken);
+    
+      print('Launching Fitbit auth URL from API: $authUrl');
 
-      print('Launching Fitbit auth URL: $fitbitAuthUri');
+      // Close loading overlay before launching URL
+      Navigator.of(context, rootNavigator: true).pop();
 
-      // Check if we can launch the URL
-      if (await canLaunchUrl(fitbitAuthUri)) {
-        // Use external application mode
-        final bool launched = await launchUrl(
+      // Launch the authorization URL
+      final Uri fitbitAuthUri = Uri.parse(authUrl);
+    
+      // Try multiple approaches to launch the URL
+      bool launched = false;
+    
+      // First try: Launch in external application
+      try {
+        launched = await launchUrl(
           fitbitAuthUri,
           mode: LaunchMode.externalApplication,
         );
-
-        if (!launched) {
-          throw Exception('Could not launch Fitbit auth URL');
-        }
-
-        // The user will now be redirected to the authorization page
-        // We'll need to handle the redirect back to our app via AppLinks
-        // which is set up in the main.dart file
-      } else {
-        // If we can't launch the URL, try a different approach
-        print('Cannot launch URL directly, trying alternative...');
-
-        // Try to launch using a universal link approach if available on the platform
-        final Uri universalLinkUri = Uri.parse(
-          'https://www.fitbit.com/oauth2/authorize?response_type=code&client_id=23QCF6&redirect_uri=${Uri.encodeComponent('dtwin://fitbit-auth')}&scope=${Uri.encodeComponent('activity sleep heartrate profile oxygen_saturation')}&expires_in=604800',
-        );
-
-        final bool universalLaunched = await launchUrl(
-          universalLinkUri,
-          mode: LaunchMode.externalNonBrowserApplication,
-        );
-
-        if (!universalLaunched) {
-          // As a last resort, try to open in browser
-          final bool browserLaunched = await launchUrl(
-            universalLinkUri,
-            mode: LaunchMode.externalApplication,
+      } catch (e) {
+        print('Failed to launch URL in external app: $e');
+      }
+    
+      // Second try: Launch in external non-browser app
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            fitbitAuthUri,
+            mode: LaunchMode.externalNonBrowserApplication,
           );
-
-          if (!browserLaunched) {
-            throw Exception('Failed to launch authorization URL');
-          }
+        } catch (e) {
+          print('Failed to launch URL in external non-browser app: $e');
+        }
+      }
+    
+      // Third try: Launch in platform default browser
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            fitbitAuthUri,
+            mode: LaunchMode.platformDefault,
+          );
+        } catch (e) {
+          print('Failed to launch URL in platform default: $e');
+        }
+      }
+    
+      // Fourth try: Launch in in-app webview
+      if (!launched) {
+        try {
+          launched = await launchUrl(
+            fitbitAuthUri,
+            mode: LaunchMode.inAppWebView,
+            webViewConfiguration: const WebViewConfiguration(
+              enableJavaScript: true,
+              enableDomStorage: true,
+            ),
+          );
+        } catch (e) {
+          print('Failed to launch URL in in-app webview: $e');
         }
       }
 
-      // Note: We don't immediately set _isConnectingFitbit to false here
-      // because we're waiting for the redirect via AppLinks
+      if (!launched) {
+        // Show a dialog with the URL for the user to copy manually
+        showDialog(
+          context: context,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Cannot Open URL Automatically'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Please copy and open this URL in your browser:'),
+                  SizedBox(height: 12),
+                  Container(
+                    padding: EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: SelectableText(
+                      authUrl,
+                      style: TextStyle(fontSize: 12),
+                    ),
+                  ),
+                ],
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Clipboard.setData(ClipboardData(text: authUrl));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('URL copied to clipboard')),
+                    );
+                  },
+                  child: Text('Copy URL'),
+                ),
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: Text('Close'),
+                ),
+              ],
+            );
+          },
+        );
+        throw Exception('Could not launch Fitbit auth URL');
+      }
+
+      // The user will now be redirected to the authorization page
+      // We'll need to handle the redirect back to our app via AppLinks
+      // which is set up in the main.dart file
     } catch (e) {
       // Reset loading state
       setState(() {
         _isConnectingFitbit = false;
       });
 
-      print('Error connecting to Fitbit: $e');
-      if (mounted) {
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to connect to Fitbit: ${e.toString()}'),
-            backgroundColor: Colors.red,
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+      // Close loading overlay if it's still showing
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
       }
+
+      print('Error connecting to Fitbit: $e');
+    
+      // Show error message using a dialog instead of SnackBar
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Connection Error'),
+            content: Text('Failed to connect to Fitbit: ${e.toString()}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
     }
   }
 
-  void updateHealthScore(int score) {
-    setState(() {
-      healthScore = score;
-    });
+  /// **Get Access Token**
+  Future<String> _getAccessToken() async {
+    // Implement your token retrieval logic here
+    // This could be from secure storage, a provider, or another service
+    
+    // For example, from SharedPreferences:
+    final prefs = await SharedPreferences.getInstance();
+    final token = prefs.getString('access_token');
+    
+    if (token == null || token.isEmpty) {
+      // For testing purposes, return a dummy token
+      // In production, you should throw an exception or handle this case properly
+      return 'dummy_token';
+    }
+    
+    return token;
   }
 
+  // Handle Fitbit OAuth callback
+  void handleFitbitOAuthCallback(Uri uri) {
+    print('HomeScreen handling Fitbit OAuth callback: $uri');
+    
+    // Extract the authorization code
+    final code = uri.queryParameters['code'];
+    if (code == null) {
+      print('❌ No authorization code found in callback URI');
+      return;
+    }
+    
+    // Call the callback endpoint to complete the OAuth flow
+    _completeFitbitOAuth(code);
+  }
+
+  // Complete the Fitbit OAuth flow
+  Future<void> _completeFitbitOAuth(String code) async {
+    // Show loading overlay
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return LoadingOverlay(
+          key: _loadingOverlayKey,
+          message: 'Completing Fitbit connection...',
+        );
+      },
+    );
+  
+    try {
+      setState(() {
+        _isConnectingFitbit = true;
+      });
+    
+      // Get the access token from SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('fitbit_access_token') ?? await _getAccessToken();
+    
+      // Make the API request to complete the OAuth flow
+      final response = await http.post(
+        Uri.parse('$_baseUrl/api/connect/fitbit/callback'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+        body: json.encode({
+          'code': code,
+          // No userId needed, we're passing the access token instead
+        }),
+      );
+    
+      // Close loading overlay
+      if (Navigator.of(context, rootNavigator: true).canPop()) {
+        Navigator.of(context, rootNavigator: true).pop();
+      }
+    
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+      
+        if (data['success'] == true) {
+          // Set watch as connected
+          await _setWatchConnected('Fitbit');
+        
+          // Show success message using a dialog
+          showDialog(
+            context: context,
+            builder: (BuildContext context) {
+              return AlertDialog(
+                title: Text('Success'),
+                content: Text(data['message'] ?? 'Successfully connected Fitbit'),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.of(context).pop(),
+                    child: Text('OK'),
+                  ),
+                ],
+              );
+            },
+          );
+        
+          // Fetch health data
+          fetchHealthData();
+        } else {
+          throw Exception(data['message'] ?? 'Failed to complete Fitbit connection');
+        }
+      } else {
+        throw Exception('Failed to complete Fitbit connection: ${response.statusCode}');
+      }
+    } catch (e) {
+      print('❌ Error completing Fitbit OAuth: $e');
+    
+      // Show error message using a dialog
+      showDialog(
+        context: context,
+        builder: (BuildContext context) {
+          return AlertDialog(
+            title: Text('Connection Error'),
+            content: Text('Failed to complete Fitbit connection: ${e.toString()}'),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(context).pop(),
+                child: Text('OK'),
+              ),
+            ],
+          );
+        },
+      );
+    } finally {
+      setState(() {
+        _isConnectingFitbit = false;
+      });
+    }
+  }
+
+  // Listen for Fitbit callback notifications
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [SliverToBoxAdapter(child: SafeArea(child: AppHeader()))];
-        },
-        body:
-            _isLoadingData
-                ? _buildLoadingState()
-                : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  children: [
-                    const SizedBox(height: 20),
-                    HealthScoreCard(onScoreUpdated: updateHealthScore),
-                    const SizedBox(height: 20),
-                    const HealthMetricsSection(),
-                    const SizedBox(height: 20),
-                    const FitnessTrackerSection(),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-      ),
-      bottomNavigationBar: const BottomNavigation(),
-      floatingActionButton: FloatingActionButton(
-        onPressed:
-            _connectedWatchType == 'Manual'
-                ? _showManualEntryDrawer
-                : fetchDataFromApi, // Only fetch API data for non-manual entry
-        backgroundColor: const Color(0xFF2563EB),
-        child: Icon(
-          _connectedWatchType == 'Manual' ? Icons.edit : Icons.refresh,
-          color: Colors.white,
+    return NotificationListener<FitbitCallbackNotification>(
+      onNotification: (notification) {
+        // Process the Fitbit callback
+        handleFitbitOAuthCallback(notification.uri);
+        return true; // Stop notification propagation
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF0F2F5),
+        body: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [SliverToBoxAdapter(child: SafeArea(child: AppHeader()))];
+          },
+          body:
+              _isLoadingData
+                  ? _buildLoadingState()
+                  : ListView(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    children: [
+                      const SizedBox(height: 20),
+                      HealthScoreCard(),
+                      const SizedBox(height: 20),
+                      const HealthMetricsSection(),
+                      const SizedBox(height: 20),
+                      const FitnessTrackerSection(),
+                      const SizedBox(height: 20),
+                    ],
+                  ),
         ),
+        bottomNavigationBar: const BottomNavigation(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {},
+          backgroundColor: const Color(0xFF2563EB),
+          child: Icon(
+            _connectedWatchType == 'Manual' ? Icons.camera : Icons.refresh,
+            color: Colors.white,
+          ),
+        ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -811,7 +1041,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   }
 
   /// **Build Watch Connection Drawer**
-  Widget _buildWatchConnectionDrawer() {
+  Widget _buildWatchConnectionDrawer(BuildContext bottomSheetContext) {
     return AnimatedBuilder(
       animation: _drawerAnimation,
       builder: (context, child) {
@@ -935,8 +1165,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           icon: Icons.watch,
                           color: Color(0xFF00B0B9),
                           isLoading: _isConnectingFitbit,
-                          onTap:
-                              _isConnectingFitbit ? null : _initiateFitbitOAuth,
+                          onTap: _isConnectingFitbit 
+                              ? null 
+                              : () => _initiateFitbitOAuth(bottomSheetContext),
                         ),
 
                         SizedBox(height: 12.h),
@@ -949,9 +1180,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                           color: Color(0xFFFF6700),
                           isLoading: false,
                           onTap: () {
-                            // Close drawer and show manual entry
-                            Navigator.pop(context);
-                            _showManualEntryDrawer();
+                            // Set default values for manual entry
+                            setState(() {
+                              _manualEntryData = {
+                                'steps': 0,
+                                'heartRate': 0,
+                                'calories': 0,
+                                'sleepHours': 0,
+                              };
+                            });
+                            
+                            // Save to shared preferences (cache)
+                            _saveManualEntryData();
+                            
+                            // Set as connected with manual entry
+                            _setWatchConnected('Manual');
+                            
+                            // Close drawer
+                            Navigator.pop(bottomSheetContext);
+                            
+                            // Show success message
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Manual tracking enabled with default values'),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
                           },
                         ),
                       ],
@@ -1079,6 +1334,58 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+}
+
+// Loading overlay widget
+class LoadingOverlay extends StatefulWidget {
+  final String message;
+
+  const LoadingOverlay({
+    super.key,
+    required this.message,
+  });
+
+  @override
+  _LoadingOverlayState createState() => _LoadingOverlayState();
+}
+
+class _LoadingOverlayState extends State<LoadingOverlay> {
+  String _message;
+
+  _LoadingOverlayState() : _message = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _message = widget.message;
+  }
+
+  void updateMessage(String message) {
+    setState(() {
+      _message = message;
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(height: 16),
+            Text(
+              _message,
+              style: TextStyle(fontSize: 16),
+            ),
+          ],
         ),
       ),
     );

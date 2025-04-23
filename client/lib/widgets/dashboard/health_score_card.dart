@@ -2,17 +2,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/dashboard_provider.dart';
+// Add import for SharedPreferences at the top of the file
+import 'package:shared_preferences/shared_preferences.dart';
 
+// Modify the HealthScoreCard class to be stateful and load the score from cache
 class HealthScoreCard extends StatefulWidget {
   final Function(int)? onScoreUpdated; // Add this callback
-  
   const HealthScoreCard({
     super.key,
     this.onScoreUpdated,
   });
 
   @override
-  _HealthScoreCardState createState() => _HealthScoreCardState();
+  State<HealthScoreCard> createState() => _HealthScoreCardState();
 }
 
 class _HealthScoreCardState extends State<HealthScoreCard> {
@@ -22,12 +24,15 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
   String? _error;
   late DashboardProvider _dashboardProvider;
   List<Map<String, dynamic>> scores = [];
+  int healthScore = 0;
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
     _dashboardProvider = DashboardProvider();
     _fetchHealthScores();
+    _loadHealthScore();
 
     // Auto-scroll effect
     Timer.periodic(const Duration(seconds: 3), (Timer timer) {
@@ -45,6 +50,25 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
         );
       }
     });
+  }
+
+  Future<void> _loadHealthScore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final score = prefs.getInt('health_score') ?? 0;
+      
+      setState(() {
+        healthScore = score;
+        isLoading = false;
+      });
+      
+      print('✅ Health score loaded from cache: $score');
+    } catch (e) {
+      print('❌ Error loading health score from cache: $e');
+      setState(() {
+        isLoading = false;
+      });
+    }
   }
 
   Future<void> _fetchHealthScores() async {
@@ -123,6 +147,9 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
 
   @override
   Widget build(BuildContext context) {
+    // Use the loaded healthScore in your UI
+    // Rest of your build method remains the same, but use healthScore instead of hardcoded values
+    // ...
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -244,3 +271,4 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
     );
   }
 }
+  
