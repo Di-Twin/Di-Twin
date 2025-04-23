@@ -1,6 +1,6 @@
-import 'package:client/features/activity_management/activity_today.dart';
 import 'package:client/features/dashboard/settings_page.dart';
 import 'package:client/features/food_management/presentation/pages/food_intelligence_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_today_page.dart';
 import 'package:flutter/material.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 
@@ -56,7 +56,7 @@ class BottomNavigation extends StatelessWidget {
           );
         } else if (route == "activity") {
           // Navigate to Dashboard
-          Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityToday()));
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityTodayPage()));
         }
       },
       child: Container(

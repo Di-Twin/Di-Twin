@@ -1,4 +1,7 @@
-import 'package:client/features/activity_management/activity_my_stats.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_calories_tracker_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_steps_page.dart';
+import 'package:client/features/activity_management/presentation/pages/my_activities_page.dart';
+import 'package:client/features/food_management/presentation/pages/nutrition_tracking_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/health_metrics_provider.dart';
@@ -109,7 +112,7 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => MyActivitiesScreen(
+                    builder: (context) => MyActivitiesPage(
                       userJoinDate: DateTime(2023, 1, 15), // Replace with actual user join date
                     ),
                   ),
@@ -137,12 +140,12 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
               progress: _getCaloriesProgress(),
               progressColor: const Color(0xFFEF4444),
               onTap: () {
-                // Navigator.push(
-                //   context,
-                //   MaterialPageRoute(
-                //     builder: (context) => ActivityCaloriesTracker(),
-                //   ),
-                // );
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ActivityCaloriesTrackerPage(),
+                  ),
+                );
               },
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
@@ -152,15 +155,31 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
               subtitle: 'You\'ve taken ${_healthMetrics?.totalSteps?.toString() ?? '0'} steps.',
               progress: _getStepsProgress(),
               progressColor: const Color(0xFF3B82F6),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ActivityStepsPage(),
+                  ),
+                );
+              },
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            // FitnessTrackerItem(
-            //   icon: Icons.apple,
-            //   title: 'Nutrition',
-            //   subtitle: _getNutritionSummary(),
-            //   showChips: true,
-            // ),
-            // const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            FitnessTrackerItem(
+              icon: Icons.apple,
+              title: 'Nutrition',
+              subtitle: _getNutritionSummary(),
+              showChips: true,
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const NutritionTrackingPage(),
+                  ),
+                );
+              },
+            ),
+            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
             // FitnessTrackerItem(
             //   icon: Icons.monitor_weight_outlined,
             //   title: 'Weight Loss',
