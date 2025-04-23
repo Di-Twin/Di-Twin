@@ -12,46 +12,46 @@ class EmptyTimePeriodState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.r),
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
       child: Column(
         children: [
-          // Illustration
+          // Empty state illustration
           Container(
-            width: 100.w,
-            height: 100.w,
+            width: 80.w,
+            height: 80.h,
             decoration: BoxDecoration(
-              color: (timePeriod['color'] as Color).withOpacity(0.1),
+              color: timePeriod['color'].withOpacity(0.1),
               shape: BoxShape.circle,
             ),
             child: Icon(
-              timePeriod['icon'] as IconData,
-              size: 50.sp,
-              color: (timePeriod['color'] as Color).withOpacity(0.7),
+              Icons.restaurant,
+              size: 40.sp,
+              color: timePeriod['color'] as Color,
             ),
           ),
-
+          
           SizedBox(height: 16.h),
-
+          
+          // Empty state text
           Text(
-            'No foods added yet',
+            'No ${timePeriod['name']} foods yet',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16.sp,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w600,
               color: Color(0xFF1E293B),
             ),
-            textAlign: TextAlign.center,
           ),
-
+          
           SizedBox(height: 8.h),
-
+          
           Text(
-            'Track your ${timePeriod['name'].toLowerCase()} meals to maintain a healthy diet',
+            'Add your ${timePeriod['name'].toString().toLowerCase()} foods to track your nutrition',
+            textAlign: TextAlign.center,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.sp,
               color: Color(0xFF64748B),
             ),
-            textAlign: TextAlign.center,
           ),
         ],
       ),

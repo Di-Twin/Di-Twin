@@ -136,6 +136,57 @@ class AvatarData {
     }
   }
 
+  // Add a method to get avatar for profile display
+  static Widget getProfileAvatarWidget({
+    double? width,
+    double? height,
+    double? borderRadius,
+  }) {
+    width = width ?? 100;
+    height = height ?? 100;
+    borderRadius = borderRadius ?? 20;
+
+    if (isCustomImage && uploadedImage != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Image.file(
+          uploadedImage!,
+          width: width,
+          height: height,
+          fit: BoxFit.cover,
+        ),
+      );
+    } else if (selectedAvatarUrl != null) {
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: SvgPicture.network(
+          selectedAvatarUrl!,
+          width: width,
+          height: height,
+          placeholderBuilder: (context) => Center(
+            child: SizedBox(
+              width: width! * 0.3,
+              height: height! * 0.3,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+          ),
+          fit: BoxFit.cover,
+        ),
+      );
+    } else {
+      // Default avatar if nothing is selected
+      return ClipRRect(
+        borderRadius: BorderRadius.circular(borderRadius),
+        child: Container(
+          width: width,
+          height: height,
+          color: Colors.grey[300],
+          child: Icon(Icons.person, size: width * 0.6, color: Colors.grey[600]),
+        ),
+      );
+    }
+  }
+
   // Get current avatar info for debug purposes
   static String getAvatarInfo() {
     if (isCustomImage && uploadedImage != null) {

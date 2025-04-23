@@ -8,15 +8,19 @@ import 'package:client/widgets/settings/contact_information_screen.dart';
 import 'package:client/widgets/settings/feedback_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/data/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+// Add import for AvatarData at the top of the file
+import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool isDarkMode = false;
   final TextEditingController _nameController = TextEditingController();
   UserData? userData;
@@ -312,7 +316,11 @@ Container(
                 width: 2,
               ),
             ),
-            child: Image.asset('images/DiTwinLogo.png'),
+            child: AvatarData.getCurrentAvatarWidget(
+              width: 80,
+              height: 80,
+              borderRadius: 16,
+            ),
           ),
           const SizedBox(width: 20),
 
@@ -512,14 +520,91 @@ Container(
                 ),
                 const SizedBox(height: 24),
 
-                // Sign Out
-                _buildSectionHeader('Sign Out'),
-                _buildSettingItem(
-                  icon: Icons.logout,
-                  title: 'Sign Out',
-                  onTap: () {},
-                ),
-                const SizedBox(height: 24),
+              // Sign Out
+               _buildSectionHeader('Sign Out'),
+               GestureDetector(
+                 onTap: () async {
+                   try {
+                     final authService = ref.read(authProvider);
+                     await authService.signOut();
+                     
+                     // Ensure context is still valid after async operation
+                     if (!mounted) return;
+                     
+                     // Navigate to signin page after successful logout
+                     Navigator.pushReplacementNamed(context, '/signin');
+                     
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(
+                         content: Text(
+                           'Signed out successfully',
+                           style: GoogleFonts.plusJakartaSans(),
+                         ),
+                         backgroundColor: Colors.green,
+                         behavior: SnackBarBehavior.floating,
+                         shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(10),
+                         ),
+                       ),
+                     );
+                   } catch (e) {
+                     ScaffoldMessenger.of(context).showSnackBar(
+                       SnackBar(
+                         content: Text(
+                           'Failed to sign out: ${e.toString()}',
+                           style: GoogleFonts.plusJakartaSans(),
+                         ),
+                         backgroundColor: Colors.red,
+                         behavior: SnackBarBehavior.floating,
+                         shape: RoundedRectangleBorder(
+                           borderRadius: BorderRadius.circular(10),
+                         ),
+                       ),
+                     );
+                   }
+                 },
+                 child: Container(
+                   margin: const EdgeInsets.only(bottom: 12),
+                   decoration: BoxDecoration(
+                     color: const Color(0xFFFFEDED),
+                     borderRadius: BorderRadius.circular(12),
+                     boxShadow: [
+                       BoxShadow(
+                         color: Colors.red.withOpacity(0.05),
+                         blurRadius: 10,
+                         offset: const Offset(0, 2),
+                       ),
+                     ],
+                   ),
+                   child: ListTile(
+                     leading: Container(
+                       padding: const EdgeInsets.all(8),
+                       decoration: BoxDecoration(
+                         color: const Color(0xFFFF5757),
+                         borderRadius: BorderRadius.circular(8),
+                       ),
+                       child: const Icon(Icons.logout, color: Colors.white),
+                     ),
+                     title: Text(
+                       'Sign Out',
+                       style: GoogleFonts.plusJakartaSans(
+                         fontSize: 16,
+                         fontWeight: FontWeight.w500,
+                         color: const Color(0xFFFF5757),
+                       ),
+                     ),
+                     trailing: const Icon(
+                       Icons.chevron_right,
+                       color: Color(0xFFFF5757),
+                     ),
+                     contentPadding:
+                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                     shape: RoundedRectangleBorder(
+                         borderRadius: BorderRadius.circular(12)),
+                   ),
+                 ),
+               ),
+               const SizedBox(height: 24),
 
                 // Danger Zone
                 // _buildSectionHeader('Danger Zone'),
@@ -557,48 +642,48 @@ Container(
     );
   }
 
-  Widget _buildSettingItem({
-    required IconData icon,
-    required String title,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: ListTile(
-        leading: Container(
-          padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: Icon(icon, color: const Color(0xFF1E293B)),
-        ),
-        title: Text(
-          title,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF1E293B),
-          ),
-        ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.black45),
-        onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      ),
-    );
-  }
+ Widget _buildSettingItem({
+   required IconData icon,
+   required String title,
+   required VoidCallback? onTap,
+ }) {
+   return Container(
+     margin: const EdgeInsets.only(bottom: 12),
+     decoration: BoxDecoration(
+       color: Colors.white,
+       borderRadius: BorderRadius.circular(12),
+       boxShadow: [
+         BoxShadow(
+           color: Colors.black.withOpacity(0.03),
+           blurRadius: 10,
+           offset: const Offset(0, 2),
+         ),
+       ],
+     ),
+     child: ListTile(
+       leading: Container(
+         padding: const EdgeInsets.all(8),
+         decoration: BoxDecoration(
+           color: const Color(0xFFF1F5F9),
+           borderRadius: BorderRadius.circular(8),
+         ),
+         child: Icon(icon, color: const Color(0xFF1E293B)),
+       ),
+       title: Text(
+         title,
+         style: GoogleFonts.plusJakartaSans(
+           fontSize: 16,
+           fontWeight: FontWeight.w500,
+           color: const Color(0xFF1E293B),
+         ),
+       ),
+       trailing: const Icon(Icons.chevron_right, color: Colors.black45),
+       onTap: onTap,
+       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+     ),
+   );
+ }
 
   Widget _buildToggleItem({
     required IconData icon,

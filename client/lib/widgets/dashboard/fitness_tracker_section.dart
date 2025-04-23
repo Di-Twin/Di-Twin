@@ -1,4 +1,3 @@
-import 'package:client/features/activity_management/activity_calories_tracker.dart';
 import 'package:client/features/activity_management/activity_my_stats.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -155,13 +154,13 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
               progressColor: const Color(0xFF3B82F6),
             ),
             const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
-            FitnessTrackerItem(
-              icon: Icons.apple,
-              title: 'Nutrition',
-              subtitle: _getNutritionSummary(),
-              showChips: true,
-            ),
-            const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+            // FitnessTrackerItem(
+            //   icon: Icons.apple,
+            //   title: 'Nutrition',
+            //   subtitle: _getNutritionSummary(),
+            //   showChips: true,
+            // ),
+            // const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
             // FitnessTrackerItem(
             //   icon: Icons.monitor_weight_outlined,
             //   title: 'Weight Loss',

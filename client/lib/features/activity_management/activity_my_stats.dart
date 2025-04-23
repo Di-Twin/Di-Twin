@@ -1,9 +1,9 @@
-import 'package:client/features/activity_management/activity_calories.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
+import 'package:client/data/providers/activity_provider.dart';
 
 class MyActivitiesScreen extends StatefulWidget {
   final DateTime userJoinDate;
@@ -40,38 +40,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   late Animation<double> _scoreRotationAnimation;
 
   // Sample data for activities
-  final Map<int, bool> _activityRegularity = {
-    1: true,
-    2: true,
-    3: true,
-    4: true,
-    5: true,
-    6: true,
-    7: true,
-    8: false,
-    9: false,
-    10: false,
-    11: false,
-    13: false,
-    14: false,
-    15: false,
-    16: false,
-    17: false,
-    18: false,
-    23: false,
-    24: false,
-    25: false,
-    26: false,
-    28: false,
-    12: false,
-    19: false,
-    20: false,
-    21: false,
-    22: false,
-    27: false,
-    29: false,
-    30: false,
-  };
+  final Map<int, bool> _activityRegularity = {};
 
   final List<Map<String, dynamic>> _activityHistory = [
     {
@@ -183,6 +152,8 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
       ),
     );
 
+    _fetchMonthlyActivityData();
+
     _pageTransitionController.forward();
 
     // Start score animation after a short delay
@@ -214,24 +185,10 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   List<Map<String, dynamic>> _getFilteredActivities() {
     if (_selectedDate == null) {
       // Show last 5 days activities by default
-      return _activityHistory.where((activity) {
-        if (activity['date'] == null) return false;
-
-        final activityDate = activity['date'] as DateTime;
-        return _last5Days.any(
-          (date) =>
-              DateFormat('yyyy-MM-dd').format(date) ==
-              DateFormat('yyyy-MM-dd').format(activityDate),
-        );
-      }).toList();
+      return [];
     }
 
-    return _activityHistory.where((activity) {
-      if (activity['date'] == null) return false;
-
-      return DateFormat('yyyy-MM-dd').format(activity['date'] as DateTime) ==
-          DateFormat('yyyy-MM-dd').format(_selectedDate!);
-    }).toList();
+    return [];
   }
 
   void _generateAvailableYears() {
@@ -762,6 +719,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                                 Future.delayed(Duration(milliseconds: 300), () {
                                   _scoreAnimationController.forward();
                                 });
+                                _fetchMonthlyActivityData();
                               },
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
@@ -838,6 +796,8 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
 
     // Start animation
     _pageTransitionController.forward();
+
+    _fetchMonthlyActivityData();
 
     // Restart score animation
     _scoreAnimationController.reset();
@@ -1045,7 +1005,6 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
   }
 
   Widget _buildMonthlyScoreCard() {
-    // Reduced height monthly score card
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 20),
@@ -1076,7 +1035,7 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '25',
+                      _activityRegularity.length.toString(),
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
@@ -1558,119 +1517,106 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
           ),
         ],
       ),
-      child: Material(
-        color: Colors.transparent,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () {
-            // Navigate to ActivityCalories instead of showing modal
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => ActivityCalories()),
-            );
-          },
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                // Activity icon
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        activity['color'],
-                        Color.lerp(activity['color'], Colors.white, 0.3)!,
-                      ],
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Activity icon
+            Container(
+              width: 50,
+              height: 50,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    activity['color'],
+                    Color.lerp(activity['color'], Colors.white, 0.3)!,
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(activity['icon'], color: Colors.white, size: 24),
+            ),
+            const SizedBox(width: 12),
+
+            // Activity details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    activity['name'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
                     ),
-                    borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Icon(activity['icon'], color: Colors.white, size: 24),
-                ),
-                const SizedBox(width: 12),
-
-                // Activity details
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        activity['name'],
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.calendar_today,
-                            color: Colors.grey.shade500,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            DateFormat('MMM d, yyyy').format(activity['date']),
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Icon(
-                            Icons.timer_outlined,
-                            color: Colors.grey.shade500,
-                            size: 12,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            activity['duration'],
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              color: Colors.grey.shade600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-
-                // Calories
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Row(
+                  const SizedBox(height: 4),
+                  Row(
                     children: [
                       Icon(
-                        Icons.local_fire_department,
-                        color: Color(0xFFFF5A5A),
-                        size: 14,
+                        Icons.calendar_today,
+                        color: Colors.grey.shade500,
+                        size: 12,
                       ),
-                      SizedBox(width: 4),
+                      const SizedBox(width: 4),
                       Text(
-                        '${activity['calories']}',
+                        DateFormat('MMM d, yyyy').format(activity['date']),
                         style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Icon(
+                        Icons.timer_outlined,
+                        color: Colors.grey.shade500,
+                        size: 12,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        activity['duration'],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
                         ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+
+            // Calories
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.local_fire_department,
+                    color: Color(0xFFFF5A5A),
+                    size: 14,
+                  ),
+                  SizedBox(width: 4),
+                  Text(
+                    '${activity['calories']}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -1876,5 +1822,21 @@ class _MyActivitiesScreenState extends State<MyActivitiesScreen>
         ),
       ],
     );
+  }
+
+  Future<void> _fetchMonthlyActivityData() async {
+    final activityProvider = ActivityProvider();
+    try {
+      final monthlyData = await activityProvider.getMonthlyActivityData(_selectedYear, _selectedMonth.month);
+      setState(() {
+        _activityRegularity.clear();
+        for (var dayData in monthlyData) {
+          _activityRegularity[dayData['dayNumber']] = dayData['activityScore'] > 0;
+        }
+      });
+    } catch (e) {
+      print('Error fetching monthly activity data: $e');
+      // Handle error appropriately
+    }
   }
 }

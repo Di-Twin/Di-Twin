@@ -10,11 +10,11 @@ class SimplifiedBloodSugarResponse extends StatelessWidget {
   final Color impactColor;
 
   const SimplifiedBloodSugarResponse({
-    Key? key,
+    super.key,
     required this.food,
     required this.impactLevel,
     required this.impactColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -3,6 +3,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // Sleep session model
 class MonthlySleepSession {
@@ -287,8 +288,11 @@ class SleepApiResponse {
 
 class SleepService {
   final String baseUrl = 'https://test-prod-f427.onrender.com/api';
-  final String token =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkYjJhMGI0YS1kYTNjLTRiNjQtOTYxNS0yYmIwOTBmYzg1OTEiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ0Mzk4NzE0LCJleHAiOjE3NDQ0MDIzMTR9.QzEYp3l_awC6x2NcATWzBcWCMbU8p_bTWnH_kvOp01o';
+  
+  Future<String?> _getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
 
   Future<SleepApiResponse> getDailySleepData(String date) async {
   final url = '$baseUrl/sleep/daily/$date';
@@ -296,6 +300,11 @@ class SleepService {
   debugPrint('[SleepService] GET $url');
 
   try {
+    final token = await _getAccessToken();
+    if (token == null) {
+      throw Exception('No access token found. Please log in.');
+    }
+    
     final response = await http.get(
       Uri.parse(url),
       headers: {
@@ -323,30 +332,35 @@ class SleepService {
 
 
   Future<MonthlySleepResponse> getMonthlySleepData(int year, int month) async {
-    try {
-      final urls = Uri.parse('$baseUrl/sleep/monthly/$year/$month');
-      final response = await http.get(
-        urls,
-        headers: {
-          'Authorization': 'Bearer $token',
-          'Content-Type': 'application/json',
-        },
-      );
-      final jsonData = jsonDecode(response.body);
-      debugPrint('Parsed ${jsonData['data']['days'].length} sessions');
-      debugPrint('Summary last updated: ${jsonData['data']['lastUpdated']}');
-
-      debugPrint('Response status: ${response.statusCode}');
-      debugPrint('Response body: ${response.body}');
-      debugPrint("URL: $urls");
-
-      if (response.statusCode == 200) {
-        return MonthlySleepResponse.fromJson(jsonDecode(response.body));
-      } else {
-        throw Exception('Failed to load sleep data: ${response.statusCode}');
-      }
-    } catch (e) {
-      throw Exception('Error fetching sleep data: $e');
+  try {
+    final token = await _getAccessToken();
+    if (token == null) {
+      throw Exception('No access token found. Please log in.');
     }
+    
+    final urls = Uri.parse('$baseUrl/sleep/monthly/$year/$month');
+    final response = await http.get(
+      urls,
+      headers: {
+        'Authorization': 'Bearer $token',
+        'Content-Type': 'application/json',
+      },
+    );
+    final jsonData = jsonDecode(response.body);
+    debugPrint('Parsed ${jsonData['data']['days'].length} sessions');
+    debugPrint('Summary last updated: ${jsonData['data']['lastUpdated']}');
+
+    debugPrint('Response status: ${response.statusCode}');
+    debugPrint('Response body: ${response.body}');
+    debugPrint("URL: $urls");
+
+    if (response.statusCode == 200) {
+      return MonthlySleepResponse.fromJson(jsonDecode(response.body));
+    } else {
+      throw Exception('Failed to load sleep data: ${response.statusCode}');
+    }
+  } catch (e) {
+    throw Exception('Error fetching sleep data: $e');
   }
+}
 }

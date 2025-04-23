@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/food_management_provider.dart';
-import 'package:client/widgets/food_item.dart';
-import 'package:client/widgets/empty_time_period_state.dart';
+import 'package:client/features/food_management/presentation/widgets/food_item.dart';
+import 'package:client/features/food_management/presentation/widgets/empty_time_period_state.dart';
 
 class TimePeriodSection extends StatelessWidget {
   final Map<String, dynamic> timePeriod;
@@ -13,13 +13,13 @@ class TimePeriodSection extends StatelessWidget {
   final FoodManagementProvider foodProvider;
 
   const TimePeriodSection({
-    Key? key,
+    super.key,
     required this.timePeriod,
     required this.mealData,
     required this.currentTimePeriod,
     required this.showAddFoodBottomSheet,
     required this.foodProvider,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -170,16 +170,40 @@ class TimePeriodSection extends StatelessWidget {
               shrinkWrap: true,
               physics: NeverScrollableScrollPhysics(),
               itemCount: periodFoods.length,
-              separatorBuilder:
-                  (context, index) => Divider(
-                    color: Color(0xFFE2E8F0),
-                    height: 1,
-                    indent: 20.r,
-                    endIndent: 20.r,
-                  ),
+              separatorBuilder: (context, index) => Divider(
+                color: Color(0xFFE2E8F0),
+                height: 1,
+                indent: 20.r,
+                endIndent: 20.r,
+              ),
               itemBuilder: (context, index) {
                 final food = periodFoods[index];
-                return FoodItem(food: food);
+                return StatefulBuilder(
+                  builder: (context, setState) {
+                    // Local state for expanded status
+                    bool isExpanded = false;
+                    
+                    return FoodItem(
+                      food: food,
+                      index: index,
+                      isSmallScreen: MediaQuery.of(context).size.width < 360,
+                      isExpanded: isExpanded,
+                      onToggleExpand: (idx) {
+                        setState(() {
+                          isExpanded = !isExpanded;
+                        });
+                      },
+                      onEdit: (food) {
+                        // Call the provider's edit method
+                        // foodProvider.editFood(food);
+                      },
+                      onDelete: (food) {
+                        // Call the provider's delete method
+                        // foodProvider.deleteFood(food);
+                      },
+                    );
+                  }
+                );
               },
             ),
 

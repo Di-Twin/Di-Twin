@@ -18,6 +18,7 @@ class ActivityService {
       final formattedDate = DateFormat('yyyy-M-d').format(date);
       final accessToken = await _getAccessToken();
       
+      // Using POST method as specified in the API documentation
       final response = await http.post(
         Uri.parse('$baseUrl/api/activity/top-activities/$formattedDate'),
         headers: {
@@ -30,14 +31,18 @@ class ActivityService {
         final Map<String, dynamic> responseData = json.decode(response.body);
         
         if (responseData['success'] == true && responseData['data'] != null) {
+          // The API returns an array of activity objects
           return _transformActivities(responseData['data']);
         } else {
+          print('Failed to load activities: ${responseData['message']}');
           throw Exception('Failed to load activities: ${responseData['message']}');
         }
       } else {
+        print('Failed to load activities. Status: ${response.statusCode}, Body: ${response.body}');
         throw Exception('Failed to load activities: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error fetching activities: $e');
       throw Exception('Error fetching activities: $e');
     }
   }
@@ -47,10 +52,12 @@ class ActivityService {
       final formattedDate = DateFormat('yyyy-M-d').format(date);
       final accessToken = await _getAccessToken();
       
+      // Using GET method as specified in the API documentation
       final response = await http.get(
         Uri.parse('$baseUrl/api/activity/daily-score/$formattedDate'),
         headers: {
           'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
         },
       );
       
@@ -58,14 +65,18 @@ class ActivityService {
         final Map<String, dynamic> responseData = json.decode(response.body);
         
         if (responseData['success'] == true && responseData['data'] != null) {
+          // The API returns an object with activity_score property
           return responseData['data']['activity_score'] as int;
         } else {
+          print('Failed to load activity score: ${responseData['message']}');
           throw Exception('Failed to load activity score: ${responseData['message']}');
         }
       } else {
+        print('Failed to load activity score. Status: ${response.statusCode}, Body: ${response.body}');
         throw Exception('Failed to load activity score: ${response.statusCode}');
       }
     } catch (e) {
+      print('Error fetching activity score: $e');
       throw Exception('Error fetching activity score: $e');
     }
   }
@@ -80,6 +91,7 @@ class ActivityService {
       'swimming': FontAwesomeIcons.personSwimming,
       'yoga': Icons.spa,
       'weightlifting': FontAwesomeIcons.dumbbell,
+      // Add more activity types as needed
     };
     
     final Map<String, Color> activityColors = {
@@ -89,9 +101,11 @@ class ActivityService {
       'swimming': Colors.blueAccent,
       'yoga': Colors.purpleAccent,
       'weightlifting': Colors.orangeAccent,
+      // Add more activity types as needed
     };
     
     for (var activity in apiActivities) {
+      // Convert duration from seconds to minutes
       final int durationMinutes = (activity['duration_seconds'] / 60).round();
       
       transformedActivities.add({
@@ -103,6 +117,9 @@ class ActivityService {
         'calories': activity['calories_burned'],
         'distance': activity['distance_meters'],
         'heart_rate_avg': activity['heart_rate_avg'],
+        'start_time': activity['start_time'],
+        'end_time': activity['end_time'],
+        'source_device': activity['source_device'],
       });
     }
     
@@ -114,7 +131,6 @@ class ActivityService {
     return text[0].toUpperCase() + text.substring(1);
   }
   
-  // In the ActivityService class, update the _getAccessToken() method to retrieve from SharedPreferences
   static Future<String> _getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
@@ -143,24 +159,25 @@ class _ActivityTodayState extends State<ActivityToday> {
   String _errorMessage = '';
   int _totalActivities = 0;
   int _activityScore = 0;
+  bool _isAddingActivity = false;
 
   final List<Map<String, dynamic>> activityTypes = [
-    {'label': 'Jogging', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF1E293B)},
-    {'label': 'Running', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF0066FF)},
-    {'label': 'Walking', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF4CAF50)},
-    {'label': 'Outdoor Sport', 'icon': FontAwesomeIcons.baseball, 'color': const Color(0xFFFF9800)},
-    {'label': 'Elliptical', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF9C27B0)},
-    {'label': 'Strength Training', 'icon': FontAwesomeIcons.dumbbell, 'color': const Color(0xFF795548)},
-    {'label': 'Treadmill', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF607D8B)},
-    {'label': 'Cycling', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFFE91E63)},
-    {'label': 'Bike', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFF3F51B5)},
-    {'label': 'Swimming', 'icon': FontAwesomeIcons.personSwimming, 'color': const Color(0xFF00BCD4)},
-    {'label': 'Boxing', 'icon': FontAwesomeIcons.handFist, 'color': const Color(0xFFFF5722)},
-    {'label': 'Skipping', 'icon': FontAwesomeIcons.arrowDown, 'color': const Color(0xFF8BC34A)},
-    {'label': 'Table Tennis', 'icon': FontAwesomeIcons.tableTennisPaddleBall, 'color': const Color(0xFF673AB7)},
-    {'label': 'Badminton', 'icon': FontAwesomeIcons.locationArrow, 'color': const Color(0xFFCDDC39)},
-    {'label': 'Yoga', 'icon': Icons.spa, 'color': const Color(0xFF009688)},
-    {'label': 'Skating', 'icon': FontAwesomeIcons.personSkating, 'color': const Color(0xFF2196F3)},
+    {'label': 'Jogging', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF1E293B), 'type': 'running'},
+    {'label': 'Running', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF0066FF), 'type': 'running'},
+    {'label': 'Walking', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF4CAF50), 'type': 'walking'},
+    {'label': 'Outdoor Sport', 'icon': FontAwesomeIcons.baseball, 'color': const Color(0xFFFF9800), 'type': 'other'},
+    {'label': 'Elliptical', 'icon': FontAwesomeIcons.personWalking, 'color': const Color(0xFF9C27B0), 'type': 'other'},
+    {'label': 'Strength Training', 'icon': FontAwesomeIcons.dumbbell, 'color': const Color(0xFF795548), 'type': 'weightlifting'},
+    {'label': 'Treadmill', 'icon': FontAwesomeIcons.personRunning, 'color': const Color(0xFF607D8B), 'type': 'running'},
+    {'label': 'Cycling', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFFE91E63), 'type': 'cycling'},
+    {'label': 'Bike', 'icon': FontAwesomeIcons.bicycle, 'color': const Color(0xFF3F51B5), 'type': 'cycling'},
+    {'label': 'Swimming', 'icon': FontAwesomeIcons.personSwimming, 'color': const Color(0xFF00BCD4), 'type': 'swimming'},
+    {'label': 'Boxing', 'icon': FontAwesomeIcons.handFist, 'color': const Color(0xFFFF5722), 'type': 'other'},
+    {'label': 'Skipping', 'icon': FontAwesomeIcons.arrowDown, 'color': const Color(0xFF8BC34A), 'type': 'other'},
+    {'label': 'Table Tennis', 'icon': FontAwesomeIcons.tableTennisPaddleBall, 'color': const Color(0xFF673AB7), 'type': 'other'},
+    {'label': 'Badminton', 'icon': FontAwesomeIcons.locationArrow, 'color': const Color(0xFFCDDC39), 'type': 'other'},
+    {'label': 'Yoga', 'icon': Icons.spa, 'color': const Color(0xFF009688), 'type': 'yoga'},
+    {'label': 'Skating', 'icon': FontAwesomeIcons.personSkating, 'color': const Color(0xFF2196F3), 'type': 'other'},
   ];
 
   @override
@@ -184,9 +201,11 @@ class _ActivityTodayState extends State<ActivityToday> {
         _isLoading = false;
       });
     } catch (e) {
+      print('Error in _fetchActivities: $e');
       setState(() {
         _errorMessage = 'Failed to load activities: $e';
         _isLoading = false;
+        // Fallback data in case of error
         _topActivities = [
           {
             'minutes': '60',
@@ -213,6 +232,7 @@ class _ActivityTodayState extends State<ActivityToday> {
         _activityScore = score;
       });
     } catch (e) {
+      print('Error in _fetchActivityScore: $e');
       setState(() {
         _activityScore = 0;
       });
@@ -225,7 +245,11 @@ class _ActivityTodayState extends State<ActivityToday> {
       MaterialPageRoute(
         builder: (context) => MyActivitiesScreen(userJoinDate: DateTime(2025, 4, 1)),
       ),
-    );
+    ).then((_) {
+      // Refresh data when returning from MyActivitiesScreen
+      _fetchActivities();
+      _fetchActivityScore();
+    });
   }
 
   void _openManualEntryDrawer() {
@@ -233,6 +257,7 @@ class _ActivityTodayState extends State<ActivityToday> {
       isManualEntryOpen = true;
       currentStep = 0;
       selectedActivityType = null;
+      activityDuration = 30; // Reset to default
     });
 
     showModalBottomSheet(
@@ -254,100 +279,185 @@ class _ActivityTodayState extends State<ActivityToday> {
     });
   }
 
-  void _addActivity(StateSetter setModalState) {
+  Future<void> _addActivity(StateSetter setModalState) async {
     if (selectedActivityType != null && activityDuration > 0) {
       final activityData = activityTypes.firstWhere(
         (element) => element['label'] == selectedActivityType,
         orElse: () => activityTypes[0],
       );
 
-      final newActivity = {
-        'minutes': activityDuration.toString(),
-        'label': selectedActivityType!,
-        'color': activityData['color'] as Color,
-        'icon': activityData['icon'] as IconData,
-      };
-
-      setState(() {
-        _topActivities.add(newActivity);
+      // Set loading state
+      setModalState(() {
+        _isAddingActivity = true;
       });
 
-      Navigator.pop(context);
+      try {
+        // Get the activity type from the mapping
+        final activityType = activityData['type'] as String;
+        
+        // Calculate start and end times
+        final now = DateTime.now();
+        final endTime = now;
+        final startTime = now.subtract(Duration(minutes: activityDuration));
+        
+        // Format times for API
+        final formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+        
+        // Create activity payload
+        final payload = {
+          'activity_type': activityType,
+          'start_time': formatter.format(startTime),
+          'end_time': formatter.format(endTime),
+          'duration_seconds': activityDuration * 60,
+          'source_device': 'Manual Entry',
+          // Estimate calories based on duration and activity type
+          'calories_burned': activityDuration * (activityType == 'running' ? 10 : 
+                                               activityType == 'cycling' ? 8 : 
+                                               activityType == 'walking' ? 5 : 7),
+          // Add other fields as needed
+          'distance_meters': activityType == 'running' ? activityDuration * 160 : 
+                            activityType == 'cycling' ? activityDuration * 400 : 
+                            activityType == 'walking' ? activityDuration * 80 : 0,
+          'heart_rate_avg': 120,
+          'heart_rate_max': 140,
+        };
+        
+        // Get access token
+        final accessToken = await ActivityService._getAccessToken();
+        
+        // Send request to API
+        final response = await http.post(
+          Uri.parse('${ActivityService.baseUrl}/api/activity/add'),
+          headers: {
+            'Authorization': 'Bearer $accessToken',
+            'Content-Type': 'application/json',
+          },
+          body: json.encode(payload),
+        );
+        
+        // Handle response
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          // Success - add to local state and close drawer
+          final newActivity = {
+            'minutes': activityDuration.toString(),
+            'label': selectedActivityType!,
+            'color': activityData['color'] as Color,
+            'icon': activityData['icon'] as IconData,
+            'calories': payload['calories_burned'],
+            'distance': payload['distance_meters'],
+            'heart_rate_avg': payload['heart_rate_avg'],
+          };
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('$selectedActivityType added for $activityDuration minutes'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+          Navigator.pop(context);
+          
+          setState(() {
+            _topActivities.add(newActivity);
+            _totalActivities = _topActivities.length;
+          });
+          
+          // Refresh data from server
+          _fetchActivities();
+          _fetchActivityScore();
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('$selectedActivityType added for $activityDuration minutes'),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        } else {
+          // Error
+          print('Failed to add activity: ${response.body}');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Failed to add activity. Please try again.'),
+              backgroundColor: Colors.red,
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
+        }
+      } catch (e) {
+        print('Error adding activity: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error adding activity: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } finally {
+        // Reset loading state
+        setModalState(() {
+          _isAddingActivity = false;
+        });
+      }
     }
   }
 
-  // In the build method, remove the floatingActionButton property from the Scaffold
   @override
   Widget build(BuildContext context) {
-  return LayoutBuilder(
-    builder: (context, constraints) {
-      final headerHeight = 250.h; // Adjust this value to match food management
-      
-      return Scaffold(
-        backgroundColor: Colors.grey[100],
-        resizeToAvoidBottomInset: false,
-        body: Column(
-          children: [
-            SizedBox(
-              height: headerHeight,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  CustomActivityHeader(
-                    title: 'Activities',
-                    badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
-                    score: isWatchConnected ? _activityScore.toString() : '0',
-                    subtitle: 'Activities Today',
-                    buttonImage: 'images/SignInAddIcon.png',
-                    onButtonTap: _navigateToMyActivities,
-                    backgroundColor: const Color(0xFFD0E4FF),
-                    backgroundImagePath: 'images/activity_header_background.png',
-                    buttonColor: const Color(0xFF242E49),
-                    buttonShadowColor: const Color(0xFF242E49),
-                    titleTextColor: const Color(0xFF242E49),
-                    scoreTextColor: const Color(0xFF242E49),
-                    subtitleTextColor: const Color(0xFF242E49),
-                    backButtonBorderColor: const Color(0xFF242E49),
-                    badgeBackgroundColor: isWatchConnected 
-                        ? const Color(0xFF0F67FE) 
-                        : const Color(0xFFFF5252).withOpacity(0.1),
-                    badgeTextColor: isWatchConnected 
-                        ? Colors.white 
-                        : const Color(0xFFFF5252),
-                    backButtonBorderWidth: 1.0,
-                    bottomLeftRadius: 30,
-                    bottomRightRadius: 30,
-                    buttonShadowSpread: 4,
-                    headerHeight: headerHeight,
-                    showBadge: true,
-                    showMenu: false,
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(height: 40.h),
-            Expanded(
-              child: isWatchConnected
-                  ? _buildActivityContent()
-                  : SingleChildScrollView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      child: _buildEmptyState(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final headerHeight = 370.h; // Adjust this value as needed
+        
+        return Scaffold(
+          backgroundColor: Colors.grey[100],
+          resizeToAvoidBottomInset: false,
+          body: Column(
+            children: [
+              SizedBox(
+                height: headerHeight,
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CustomActivityHeader(
+                      title: 'Activities',
+                      badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
+                      score: isWatchConnected ? _activityScore.toString() : '0',
+                      subtitle: 'Activities Today',
+                      buttonImage: 'images/SignInAddIcon.png',
+                      onButtonTap: _navigateToMyActivities,
+                      backgroundColor: const Color(0xFFD0E4FF),
+                      backgroundImagePath: 'images/activity_header_background.png',
+                      buttonColor: const Color(0xFF242E49),
+                      buttonShadowColor: const Color(0xFF242E49),
+                      titleTextColor: const Color(0xFF242E49),
+                      scoreTextColor: const Color(0xFF242E49),
+                      subtitleTextColor: const Color(0xFF242E49),
+                      backButtonBorderColor: const Color(0xFF242E49),
+                      badgeBackgroundColor: isWatchConnected 
+                          ? const Color(0xFF0F67FE) 
+                          : const Color(0xFFFF5252).withOpacity(0.1),
+                      badgeTextColor: isWatchConnected 
+                          ? Colors.white 
+                          : const Color(0xFFFF5252),
+                      backButtonBorderWidth: 1.0,
+                      bottomLeftRadius: 30,
+                      bottomRightRadius: 30,
+                      buttonShadowSpread: 4,
+                      headerHeight: headerHeight,
+                      showBadge: true,
+                      showMenu: false,
                     ),
-            ),
-          ],
-        ),
-      );
-    }
-  );
-}
+                  ],
+                ),
+              ),
+              SizedBox(height: 40.h),
+              Expanded(
+                child: isWatchConnected
+                    ? _buildActivityContent()
+                    : SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: _buildEmptyState(),
+                      ),
+              ),
+            ],
+          ),
+        );
+      }
+    );
+  }
 
   Widget _buildActivityContent() {
     if (_isLoading) {
@@ -1097,7 +1207,7 @@ class _ActivityTodayState extends State<ActivityToday> {
               SizedBox(width: 16.w),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: () => _addActivity(setModalState),
+                  onPressed: _isAddingActivity ? null : () => _addActivity(setModalState),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF0F67FE),
                     foregroundColor: Colors.white,
@@ -1106,14 +1216,23 @@ class _ActivityTodayState extends State<ActivityToday> {
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                   ),
-                  child: Text(
-                    'Add Activity',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
+                  child: _isAddingActivity 
+                      ? SizedBox(
+                          width: 20.w,
+                          height: 20.h,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2.w,
+                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          ),
+                        )
+                      : Text(
+                          'Add Activity',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ],
