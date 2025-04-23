@@ -1,3 +1,4 @@
+import 'package:client/data/providers/medication_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -26,6 +27,7 @@ class _AddMedicationPageState extends State<AddMedicationPage>
   String _frequency = '3x Per Week';
   List<String> _selectedTimes = ["9:00 AM"];
   final TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
+  final MedicationService _medicationService = MedicationService();
 
   // Current step in the form
   int _currentStep = 0;
@@ -2419,26 +2421,42 @@ class _AddMedicationPageState extends State<AddMedicationPage>
     }
   }
 
-  void _saveMedication() {
+  Future<void> _saveMedication() async {
     if (_selectedMedication.isEmpty) {
       _showErrorSnackBar('Please select a medication');
       return;
     }
 
-    final medicationData = {
-      'name': _selectedMedication,
-      'dosage': _dosage,
-      'frequency': _frequency,
-      'reminderTime': _selectedTimes.join(", "),
-      'startDate': _startDate.toIso8601String(),
-      'endDate': _endDate.toIso8601String(),
-      'mealOption': _beforeMeal ? 'Before' : 'After',
-      'autoReminder': _autoReminder,
-    };
+    try {
+    // Show loading indicator
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Center(
+          child: CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(_primaryColor),
+          ),
+        );
+      },
+    );
 
-    print('Saving medication: $medicationData');
-    HapticFeedback.mediumImpact();
+    // Prepare the data for API call
+    final result = await _medicationService.saveMedication(
+      medicationName: _selectedMedication,
+      afterFood: !_beforeMeal, // Convert beforeMeal to afterFood for API
+      frequency: _frequency,
+      timings: _selectedTimes,
+      reminder: _autoReminder,
+      dose: "${_dosage.toInt()} unit${_dosage.toInt() > 1 ? 's' : ''}",
+      startDate: _startDate.toIso8601String(),
+      endDate: _endDate.toIso8601String(),
+    );
 
+    // Close loading dialog
+    Navigator.pop(context);
+
+    // Show success message
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
@@ -2453,9 +2471,20 @@ class _AddMedicationPageState extends State<AddMedicationPage>
       ),
     );
 
+    // Return to previous screen with data
     Future.delayed(const Duration(seconds: 1), () {
-      Navigator.pop(context, medicationData);
+      Navigator.pop(context, result);
     });
+  } catch (e) {
+    // Close loading dialog if open
+    if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    }
+
+    // Show error message
+    _showErrorSnackBar('Failed to save medication: ${e.toString()}');
+    print('Error saving medication: $e');
+  }
   }
 
   void _showErrorSnackBar(String message) {

@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:client/features/medication_management/medication_management_list.dart';
 import 'package:client/features/medication_management/medication_management_edit.dart';
+// import 'package:client/api/providers/medication_management_provider.dart';
 
 class MedicationsScreen extends StatefulWidget {
   const MedicationsScreen({super.key});
