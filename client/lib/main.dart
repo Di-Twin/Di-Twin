@@ -9,8 +9,10 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
+import 'package:client/features/medication_management/medication_management_screen.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
+import 'package:client/widgets/dashboard/medication_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'features/auth/signin.dart';
@@ -219,7 +221,7 @@ class _MyAppState extends State<MyApp> {
               ),
               initialRoute: '/',
               routes: {
-                '/': (context) => const Startpage(),
+                '/afdf': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),
