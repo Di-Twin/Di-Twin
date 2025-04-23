@@ -1,10 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:client/widgets/dashboard/notification_screen.dart';
 import 'package:client/data/providers/user_profile_provider.dart';
 import 'package:client/data/API/user_profile_data.dart';
+import 'package:client/data/API/health_score_data.dart';
 import 'package:intl/intl.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class AppHeader extends StatefulWidget {
   final int? healthScore;
@@ -19,25 +19,58 @@ class AppHeader extends StatefulWidget {
 
 class _AppHeaderState extends State<AppHeader> {
   final UserProvider _userProvider = UserProvider();
+  final HealthScoreService _healthScoreService = HealthScoreService();
   UserData? _userData;
+  String? _cachedAvatarUrl;
+  int? _cachedHealthScore;
   bool _isLoading = true;
   String _errorMessage = '';
 
   @override
   void initState() {
     super.initState();
+    _loadCachedData();
     _fetchUserData();
+    _fetchHealthScore();
+  }
+
+  Future<void> _loadCachedData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      
+      // Load cached avatar URL
+      final cachedAvatarUrl = prefs.getString('user_avatar_url');
+      
+      // Load cached health score
+      final cachedHealthScore = prefs.getInt('health_score');
+      
+      if (mounted) {
+        setState(() {
+          _cachedAvatarUrl = cachedAvatarUrl;
+          _cachedHealthScore = cachedHealthScore;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading cached data: $e');
+    }
   }
 
   Future<void> _fetchUserData() async {
     try {
       final response = await _userProvider.getUser();
+      final prefs = await SharedPreferences.getInstance();
+      
       if (mounted) {
         setState(() {
           _userData = response.data;
           _isLoading = false;
           _errorMessage = ''; // Clear any previous errors
         });
+        
+        // Cache the user's first name for avatar placeholder
+        if (_userData?.firstName != null) {
+          await prefs.setString('user_first_name', _userData!.firstName);
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -54,6 +87,36 @@ class _AppHeaderState extends State<AppHeader> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _fetchHealthScore() async {
+    if (widget.healthScore != null) {
+      // If health score is provided as a prop, use it and cache it
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('health_score', widget.healthScore!);
+      
+      if (mounted) {
+        setState(() {
+          _cachedHealthScore = widget.healthScore;
+        });
+      }
+      return;
+    }
+    
+    try {
+      final healthScore = await _healthScoreService.getHealthScore();
+      final prefs = await SharedPreferences.getInstance();
+      
+      await prefs.setInt('health_score', healthScore);
+      
+      if (mounted) {
+        setState(() {
+          _cachedHealthScore = healthScore;
+        });
+      }
+        } catch (e) {
+      debugPrint('Error fetching health score: $e');
     }
   }
 
@@ -144,7 +207,12 @@ class _AppHeaderState extends State<AppHeader> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(16),
-                  child: Image.network('', fit: BoxFit.cover),
+                  child: _cachedAvatarUrl != null && _cachedAvatarUrl!.isNotEmpty
+                      ? Image.network(_cachedAvatarUrl!, fit: BoxFit.cover, 
+                          errorBuilder: (context, error, stackTrace) {
+                            return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
+                          })
+                      : const Icon(Icons.person, size: 40, color: Color(0xFF1E293B)),
                 ),
               ),
               const SizedBox(width: 16),
@@ -155,7 +223,6 @@ class _AppHeaderState extends State<AppHeader> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Enlarged "Hi, Username!" text with bold weight
-                    // In the build method, update the greeting text widget:
                     Row(
                       children: [
                         Text(
@@ -180,9 +247,11 @@ class _AppHeaderState extends State<AppHeader> {
                         const Icon(Icons.favorite, color: Colors.red, size: 18),
                         const SizedBox(width: 6),
                         Text(
-                          widget.healthScore != null
-                              ? '${widget.healthScore}%'
-                              : '88%',
+                          _cachedHealthScore != null
+                              ? '$_cachedHealthScore%'
+                              : widget.healthScore != null
+                                  ? '${widget.healthScore}%'
+                                  : '88%',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,

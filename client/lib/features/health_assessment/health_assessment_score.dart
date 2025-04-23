@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/onboarding_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HealthAssessmentScore extends ConsumerStatefulWidget {
   const HealthAssessmentScore({super.key});
@@ -24,28 +25,43 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
     _fetchHealthScore();
   }
 
-  Future<void> _fetchHealthScore() async {
-  try {
-    final onboarding = ref.read(onboardingProvider);
-
-    final score = calculateScore(
-      age: onboarding.age,
-      weight: onboarding.weight_kg,
-      height: onboarding.height_cm,
-      gender: onboarding.gender,
-    );
-
-    setState(() {
-      _score = score;
-      _isLoading = false;
-    });
-  } catch (e) {
-    setState(() {
-      _errorMessage = e.toString();
-      _isLoading = false;
-    });
+  // After the _fetchHealthScore() method, add a new method to save the health score to cache
+  Future<void> _saveHealthScoreToCache(int score) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('health_score', score);
+      print('✅ Health score saved to cache: $score');
+    } catch (e) {
+      print('❌ Error saving health score to cache: $e');
+    }
   }
-}
+
+  // Modify the _fetchHealthScore method to save the score to cache
+  Future<void> _fetchHealthScore() async {
+    try {
+      final onboarding = ref.read(onboardingProvider);
+
+      final score = calculateScore(
+        age: onboarding.age,
+        weight: onboarding.weight_kg,
+        height: onboarding.height_cm,
+        gender: onboarding.gender,
+      );
+
+      // Save the score to cache
+      await _saveHealthScoreToCache(score);
+
+      setState(() {
+        _score = score;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   int calculateScore({
     required int age,

@@ -25,11 +25,14 @@ import 'package:client/screens/notification_test_screen.dart';
 // Import app_links
 import 'package:app_links/app_links.dart';
 import 'dart:async';
-import 'package:url_launcher/url_launcher.dart';
 // Import feedback form
 import 'package:client/widgets/settings/feedback_form_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
+// Store pending Fitbit URI for processing when dashboard is available
+Uri? pendingFitbitUri;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -56,6 +59,10 @@ void main() async {
   } catch (e) {
     print('❌ Error requesting notification permissions: $e');
   }
+  
+  // Reset feedback session flag on app start
+  final prefs = await SharedPreferences.getInstance();
+  await prefs.setBool('feedback_shown_this_session', false);
 
   runApp(const ProviderScope(child: MyApp()));
 }
@@ -71,31 +78,35 @@ class _MyAppState extends State<MyApp> {
   // Create an instance of AppLinks
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
+  bool _isFeedbackChecked = false;
 
   @override
   void initState() {
     super.initState();
     initAppLinks();
-
+    
     // Register URL launcher for Fitbit domain
     // _registerCustomScheme();
-
-    // Check if we should show feedback form
-    _checkFeedbackReminder();
   }
-
+  
   // Check if feedback form should be shown (every 3 days)
   Future<void> _checkFeedbackReminder() async {
-    // Wait for app to fully initialize
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      final shouldShow = await FeedbackFormScreen.shouldShowFeedback();
-      if (shouldShow && mounted) {
-        // Show the feedback form
-        Navigator.of(navigatorKey.currentContext!).push(
-          MaterialPageRoute(builder: (context) => const FeedbackFormScreen()),
-        );
-      }
-    });
+    // Prevent multiple checks
+    if (_isFeedbackChecked) return;
+    _isFeedbackChecked = true;
+    
+    // Wait for app to fully initialize and be stable
+    await Future.delayed(const Duration(seconds: 2));
+    
+    if (!mounted) return;
+    
+    final shouldShow = await FeedbackFormScreen.shouldShowFeedback();
+    if (shouldShow && mounted && navigatorKey.currentContext != null) {
+      // Show the feedback form
+      Navigator.of(navigatorKey.currentContext!).push(
+        MaterialPageRoute(builder: (context) => const FeedbackFormScreen())
+      );
+    }
   }
 
   @override
@@ -103,35 +114,17 @@ class _MyAppState extends State<MyApp> {
     _linkSubscription?.cancel();
     super.dispose();
   }
-
-  // Register custom URL scheme handler
-  // Future<void> _registerCustomScheme() async {
-  //   // This is a workaround to ensure URL launcher works properly
-  //   try {
-  //     // Try to launch a test URL to initialize the URL launcher
-  //     final Uri testUri = Uri.parse('https://www.google.com');
-  //     if (await canLaunchUrl(testUri)) {
-  //       await launchUrl(testUri, mode: LaunchMode.externalApplication);
-  //       print('✅ URL launcher initialized');
-  //     }
-  //   } catch (e) {
-  //     print('❌ Error initializing URL launcher: $e');
-  //   }
-  // }
-
+  
   // Initialize app links and handle both initial and incoming links
   Future<void> initAppLinks() async {
     _appLinks = AppLinks();
 
     // Handle app links when the app is already running
-    _linkSubscription = _appLinks.uriLinkStream.listen(
-      (Uri uri) {
-        _handleIncomingLink(uri);
-      },
-      onError: (Object error) {
-        print('Error in app link stream: $error');
-      },
-    );
+    _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
+      _handleIncomingLink(uri);
+    }, onError: (Object error) {
+      print('Error in app link stream: $error');
+    });
 
     // Get the initial link if the app was launched from a link
     try {
@@ -148,13 +141,13 @@ class _MyAppState extends State<MyApp> {
   // Handle incoming links
   void _handleIncomingLink(Uri uri) {
     print('Received app link: $uri');
-
+    
     if (uri.scheme == 'dtwin' && uri.host == 'fitbit-auth') {
       // Extract the authorization code
       final code = uri.queryParameters['code'];
       if (code != null) {
         print('Received Fitbit authorization code: $code');
-
+        
         // Show a success message
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (navigatorKey.currentContext != null) {
@@ -166,15 +159,47 @@ class _MyAppState extends State<MyApp> {
             );
           }
         });
-
-        // Here you would send this code to your backend to exchange for an access token
-        // For now, we'll just log it
+        
+        // Store the URI for processing when the dashboard is available
+        pendingFitbitUri = uri;
+        
+        // Try to find the current route
+        final currentContext = navigatorKey.currentContext;
+        if (currentContext != null) {
+          // Check if we're on the dashboard screen
+          final currentRoute = ModalRoute.of(currentContext)?.settings.name;
+          if (currentRoute == '/dashboard') {
+            // We're on the dashboard, try to process the callback
+            processFitbitCallback(uri);
+          } else {
+            // We're not on the dashboard, navigate there
+            Navigator.of(currentContext).pushReplacementNamed('/dashboard');
+          }
+        }
       }
     }
+  }
+  
+  // Process Fitbit callback by finding the HomeScreen and calling its method
+  void processFitbitCallback(Uri uri) {
+    // This will be called when we're on the dashboard screen
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final currentContext = navigatorKey.currentContext;
+      if (currentContext != null) {
+        // Use a notification to let any listening HomeScreen know about the callback
+        // This avoids the need to directly access the private state class
+        FitbitCallbackNotification(uri).dispatch(currentContext);
+      }
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    // Check feedback after the first build is complete
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _checkFeedbackReminder();
+    });
+    
     return LayoutBuilder(
       builder: (context, constraints) {
         bool isTablet = constraints.maxWidth > 600;
@@ -202,23 +227,18 @@ class _MyAppState extends State<MyApp> {
                 '/questions/weight': (context) => const WeightInputPage(),
                 '/questions/height': (context) => const HeightInputPage(),
                 '/questions/age': (context) => const HealthAssessmentAge(),
-                '/loading':
-                    (context) => const HealthAssessmentLoading(
+                '/loading': (context) => const HealthAssessmentLoading(
                       loadingDuration: Duration(seconds: 5),
                       nextScreen: HealthAssessmentScore(),
                     ),
                 '/avatar': (context) => const HealthAssessmentAvatar(),
-                '/questions/gender':
-                    (context) => const HealthAssessmentGender(),
-                '/questions/allergy':
-                    (context) => const SymptomsSelectionPage(),
-                '/questions/medication':
-                    (context) => const HealthAssessmentMedication(),
+                '/questions/gender': (context) => const HealthAssessmentGender(),
+                '/questions/allergy': (context) => const SymptomsSelectionPage(),
+                '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
                 '/feedback': (context) => const FeedbackFormScreen(),
                 // Add notification test screen route
-                '/notification-test':
-                    (context) => const NotificationTestScreen(),
+                '/notification-test': (context) => const NotificationTestScreen(),
                 // '/': (context) => const MedicationsScreen(),
               },
             );
@@ -227,4 +247,11 @@ class _MyAppState extends State<MyApp> {
       },
     );
   }
+}
+
+// Create a notification class to communicate with the HomeScreen
+class FitbitCallbackNotification extends Notification {
+  final Uri uri;
+  
+  FitbitCallbackNotification(this.uri);
 }

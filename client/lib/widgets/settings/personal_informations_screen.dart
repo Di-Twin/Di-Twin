@@ -5,6 +5,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:client/data/API/user_profile_data.dart';
+// Add import for AvatarData at the top of the file
+import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 
 class PersonalInformationScreen extends StatefulWidget {
   const PersonalInformationScreen({super.key});
@@ -56,10 +58,43 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
            locationController.text != (userData!.location ?? '');
   }
 
+  // Add a method to update the AvatarData when profile image changes
+  void _updateAvatarData() {
+    if (_profileImage != null) {
+      AvatarData.uploadedImage = _profileImage;
+      AvatarData.isCustomImage = true;
+      AvatarData.saveAvatarData();
+      print('✅ Updated avatar data with custom image');
+    }
+  }
+
+  // Modify the _pickImage method to update AvatarData
+  Future<void> _pickImage(ImageSource source) async {
+    final pickedFile = await ImagePicker().pickImage(source: source);
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+      
+      // Update AvatarData with the new image
+      _updateAvatarData();
+    }
+  }
+
+  // In initState, add code to load the avatar from AvatarData
   @override
   void initState() {
     super.initState();
     _fetchUserData();
+    
+    // Load avatar from AvatarData
+    if (AvatarData.isCustomImage && AvatarData.uploadedImage != null) {
+      setState(() {
+        _profileImage = AvatarData.uploadedImage;
+      });
+      print('✅ Loaded avatar from AvatarData');
+    }
   }
 
   // Fetch user data from API
@@ -97,17 +132,6 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
         errorMessage = 'Failed to load user data: $e';
       });
       debugPrint('Error loading user data: $e');
-    }
-  }
-
-  // Method to pick image from gallery or camera
-  Future<void> _pickImage(ImageSource source) async {
-    final pickedFile = await ImagePicker().pickImage(source: source);
-
-    if (pickedFile != null) {
-      setState(() {
-        _profileImage = File(pickedFile.path);
-      });
     }
   }
 
@@ -532,6 +556,8 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                       clipBehavior: Clip.none,
                       alignment: Alignment.center,
                       children: [
+                        // In the build method, replace the profile image container with AvatarData if no _profileImage
+                        // Find the Container with the profile image and modify it:
                         Container(
                           width: 120,
                           height: 120,
@@ -545,24 +571,20 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                                 offset: const Offset(0, 5),
                               ),
                             ],
-                            image:
-                                _profileImage != null
-                                    ? DecorationImage(
-                                      image: FileImage(_profileImage!),
-                                      fit: BoxFit.cover,
-                                    )
-                                    : null,
-                          ),
-                          child:
-                              _profileImage == null
-                                  ? const Center(
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: Colors.grey,
-                                    ),
+                            image: _profileImage != null
+                                ? DecorationImage(
+                                    image: FileImage(_profileImage!),
+                                    fit: BoxFit.cover,
                                   )
-                                  : null,
+                                : null,
+                          ),
+                          child: _profileImage == null
+                              ? AvatarData.getCurrentAvatarWidget(
+                                  width: 120,
+                                  height: 120,
+                                  borderRadius: 24,
+                                )
+                              : null,
                         ),
                         Positioned(
                           bottom: -5,

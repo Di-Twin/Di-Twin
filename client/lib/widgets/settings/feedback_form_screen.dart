@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:confetti/confetti.dart';
-import 'dart:math';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:lottie/lottie.dart';
 
@@ -12,13 +11,20 @@ class FeedbackFormScreen extends StatefulWidget {
   // Static method to check if feedback should be shown
   static Future<bool> shouldShowFeedback() async {
     final prefs = await SharedPreferences.getInstance();
+    
+    // Check if we've already shown feedback in this session
+    final hasShownThisSession = prefs.getBool('feedback_shown_this_session') ?? false;
+    if (hasShownThisSession) {
+      return false;
+    }
+    
     final lastShown = prefs.getInt('last_feedback_shown') ?? 0;
     final now = DateTime.now().millisecondsSinceEpoch;
     
     // Check if 3 days (259,200,000 milliseconds) have passed
     if (now - lastShown > 259200000) {
-      // Update the last shown timestamp
-      await prefs.setInt('last_feedback_shown', now);
+      // Mark that we've shown feedback in this session
+      await prefs.setBool('feedback_shown_this_session', true);
       return true;
     }
     return false;
@@ -41,6 +47,7 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
   double _appRating = 4.0;
   String _selectedMood = 'happy';
   bool _isSubmitting = false;
+  bool _isLottieLoaded = false;
   
   // Track selected categories
   final Map<String, bool> _categorySelections = {
@@ -91,6 +98,16 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
     
     _animationController.forward();
     _slideController.forward();
+    
+    // Update the timestamp when the form is actually shown
+    _updateFeedbackTimestamp();
+  }
+  
+  // Update the timestamp when the form is actually shown
+  Future<void> _updateFeedbackTimestamp() async {
+    final prefs = await SharedPreferences.getInstance();
+    final now = DateTime.now().millisecondsSinceEpoch;
+    await prefs.setInt('last_feedback_shown', now);
   }
 
   @override
@@ -177,10 +194,44 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Lottie.network(
-            'https://assets9.lottiefiles.com/packages/lf20_rc5d0f8i.json',
+          // Use a local asset instead of network Lottie
+          Lottie.asset(
+            'assets/animations/rating_animation.json',
             height: 180,
             repeat: true,
+            onLoaded: (composition) {
+              setState(() {
+                _isLottieLoaded = true;
+              });
+            },
+            errorBuilder: (context, error, stackTrace) {
+              return Container(
+                height: 180,
+                width: 180,
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade100,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      Icons.star_rounded,
+                      size: 64,
+                      color: Colors.amber,
+                    ),
+                    SizedBox(height: 16),
+                    Text(
+                      'Rate Your Experience',
+                      style: TextStyle(
+                        color: Colors.grey.shade700,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
           ),
           const SizedBox(height: 20),
           Text(
@@ -579,10 +630,11 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
             Colors.purple,
           ],
         ),
-        Lottie.network(
-          'https://assets1.lottiefiles.com/packages/lf20_touohxv0.json',
-          height: 200,
-          repeat: false,
+        // Use a local asset or fallback to an icon
+        Icon(
+          Icons.check_circle,
+          size: 100,
+          color: Colors.green,
         ),
         const SizedBox(height: 20),
         Text(
@@ -632,173 +684,180 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.center,
-            colors: [
-              const Color(0xFF0066FF),
-              const Color(0xFF0055DD),
-            ],
+    return WillPopScope(
+      // Prevent accidental back button dismissal
+      onWillPop: () async {
+        // Allow back navigation only if not submitting
+        return !_isSubmitting;
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.center,
+              colors: [
+                const Color(0xFF0066FF),
+                const Color(0xFF0055DD),
+              ],
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // Back button
-              Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      border: Border.all(color: Colors.white30),
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.chevron_left, size: 28),
-                      onPressed: () => Navigator.pop(context),
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-
-              const Spacer(),
-
-              // White container with form
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 300),
-                width: double.infinity,
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(30),
-                    topRight: Radius.circular(30),
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    // Handle indicator
-                    Container(
-                      margin: const EdgeInsets.only(top: 12),
-                      width: 40,
-                      height: 4,
+          child: SafeArea(
+            child: Column(
+              children: [
+                // Back button
+                Align(
+                  alignment: Alignment.topLeft,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Container(
+                      width: 48,
+                      height: 48,
                       decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
-                        borderRadius: BorderRadius.circular(2),
+                        border: Border.all(color: Colors.white30),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(Icons.chevron_left, size: 28),
+                        onPressed: () => Navigator.pop(context),
+                        color: Colors.white,
                       ),
                     ),
-
-                    const SizedBox(height: 24),
-                    
-                    // Progress indicator
-                    if (!_isSubmitting) _buildProgressIndicator(),
-                    
-                    const SizedBox(height: 30),
-                    
-                    // Content based on current step
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: _isSubmitting
-                        ? _buildSuccessView()
-                        : [
-                            _buildRatingStep(),
-                            _buildMoodStep(),
-                            _buildCategoryStep(),
-                            _buildCommentStep(),
-                          ][_currentStep],
+                  ),
+                ),
+  
+                const Spacer(),
+  
+                // White container with form
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  width: double.infinity,
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(30),
+                      topRight: Radius.circular(30),
                     ),
-
-                    const SizedBox(height: 40),
-
-                    // Navigation buttons
-                    if (!_isSubmitting)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 24.0,
-                          vertical: 16.0,
+                  ),
+                  child: Column(
+                    children: [
+                      // Handle indicator
+                      Container(
+                        margin: const EdgeInsets.only(top: 12),
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade300,
+                          borderRadius: BorderRadius.circular(2),
                         ),
-                        child: Row(
-                          children: [
-                            // Back button (except on first step)
-                            if (_currentStep > 0)
+                      ),
+  
+                      const SizedBox(height: 24),
+                      
+                      // Progress indicator
+                      if (!_isSubmitting) _buildProgressIndicator(),
+                      
+                      const SizedBox(height: 30),
+                      
+                      // Content based on current step
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                        child: _isSubmitting
+                          ? _buildSuccessView()
+                          : [
+                              _buildRatingStep(),
+                              _buildMoodStep(),
+                              _buildCategoryStep(),
+                              _buildCommentStep(),
+                            ][_currentStep],
+                      ),
+  
+                      const SizedBox(height: 40),
+  
+                      // Navigation buttons
+                      if (!_isSubmitting)
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
+                          child: Row(
+                            children: [
+                              // Back button (except on first step)
+                              if (_currentStep > 0)
+                                Expanded(
+                                  child: SizedBox(
+                                    height: 56,
+                                    child: OutlinedButton(
+                                      onPressed: _previousStep,
+                                      style: OutlinedButton.styleFrom(
+                                        foregroundColor: const Color(0xFF1E293B),
+                                        side: BorderSide(color: Colors.grey.shade300),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(50),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'Back',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              
+                              if (_currentStep > 0)
+                                const SizedBox(width: 16),
+                              
+                              // Next/Submit button
                               Expanded(
+                                flex: _currentStep == 0 ? 1 : 2,
                                 child: SizedBox(
                                   height: 56,
-                                  child: OutlinedButton(
-                                    onPressed: _previousStep,
-                                    style: OutlinedButton.styleFrom(
-                                      foregroundColor: const Color(0xFF1E293B),
-                                      side: BorderSide(color: Colors.grey.shade300),
+                                  child: ElevatedButton(
+                                    onPressed: _nextStep,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0066FF),
+                                      foregroundColor: Colors.white,
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(50),
                                       ),
+                                      elevation: 0,
                                     ),
-                                    child: Text(
-                                      'Back',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            
-                            if (_currentStep > 0)
-                              const SizedBox(width: 16),
-                            
-                            // Next/Submit button
-                            Expanded(
-                              flex: _currentStep == 0 ? 1 : 2,
-                              child: SizedBox(
-                                height: 56,
-                                child: ElevatedButton(
-                                  onPressed: _nextStep,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: const Color(0xFF0066FF),
-                                    foregroundColor: Colors.white,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(50),
-                                    ),
-                                    elevation: 0,
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Text(
-                                        _currentStep < 3 ? 'Next' : 'Submit Feedback',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          _currentStep < 3 ? 'Next' : 'Submit Feedback',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Icon(
-                                        _currentStep < 3 
-                                          ? Icons.arrow_forward
-                                          : Icons.check_circle,
-                                        size: 20,
-                                      ),
-                                    ],
+                                        const SizedBox(width: 8),
+                                        Icon(
+                                          _currentStep < 3 
+                                            ? Icons.arrow_forward
+                                            : Icons.check_circle,
+                                          size: 20,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    
-                    const SizedBox(height: 20),
-                  ],
+                      
+                      const SizedBox(height: 20),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -812,3 +871,4 @@ extension StringExtension on String {
     return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
+  

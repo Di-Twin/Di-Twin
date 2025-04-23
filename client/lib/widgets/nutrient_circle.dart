@@ -1,62 +1,60 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:google_fonts/google_fonts.dart';
+import '../data/providers/food_management_provider.dart';
 
 class NutrientCircle extends StatelessWidget {
-  final String label;
-  final dynamic value; // Can be int or double
-  final Color color;
-  final String unit;
+  final Map<String, dynamic> nutrient;
+  final double size;
 
   const NutrientCircle({
-    Key? key,
-    required this.label,
-    required this.value,
-    required this.color,
-    required this.unit,
-  }) : super(key: key);
+    super.key,
+    required this.nutrient,
+    this.size = 80,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Format value depending on type (int or double)
-    String displayValue;
-    if (value is int) {
-      displayValue = value.toString();
-    } else if (value is double) {
-      displayValue = value.toStringAsFixed(1);
-    } else {
-      displayValue = '0';
-    }
+    // Get the icon and color using the helper methods
+    final IconData icon = nutrient['iconName'] != null 
+        ? FoodManagementProvider().getIconFromName(nutrient['iconName'])
+        : Icons.help_outline;
+        
+    final Color color = nutrient['colorValue'] != null 
+        ? FoodManagementProvider().getColorFromValue(nutrient['colorValue'])
+        : Colors.grey;
 
-    return Column(
-      children: [
-        Container(
-          width: 64.r,
-          height: 64.r,
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        shape: BoxShape.circle,
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            icon,
+            color: color,
+            size: size * 0.3,
           ),
-          child: Center(
-            child: Text(
-              displayValue,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
+          SizedBox(height: size * 0.05),
+          Text(
+            '${nutrient['value']} ${nutrient['unit']}',
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.bold,
+              fontSize: size * 0.18,
             ),
           ),
-        ),
-        SizedBox(height: 8.h),
-        Text(
-          '$label ($unit)',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            color: const Color(0xFF64748B),
+          Text(
+            nutrient['name'],
+            style: TextStyle(
+              color: Colors.grey[600],
+              fontSize: size * 0.14,
+            ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
