@@ -370,7 +370,6 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
     setState(() {
       _selectedMonth = newMonth;
       _selectedYear = newMonth.year;
-      _expandedFoodIndex = null; // Reset expanded food when month changes
     });
 
     // Start animation
@@ -547,7 +546,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
                                   ),
                                   SizedBox(width: 4),
                                   Text(
-                                    DateFormat('MMM').format(_selectedMonth),
+                                    DateFormat('MMM d, yyyy').format(_selectedDate!),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: isSmallScreen ? 12 : 16,
                                       fontWeight: FontWeight.w600,
@@ -659,76 +658,72 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Breakfast section
-        if (categorizedFoods['breakfast']!.isNotEmpty)
-          MealTypeSection(
-            title: 'Breakfast',
-            foods: categorizedFoods['breakfast']!,
-            color: Color(0xFF4CAF50),
-            icon: Icons.breakfast_dining,
-            isSmallScreen: isSmallScreen,
-            expandedFoodIndex: _expandedFoodIndex,
-            onToggleExpand: (index) {
-              setState(() {
-                _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
-              });
-            },
-            onEdit: _showFoodEditDrawer,
-            onDelete: _showDeleteConfirmation,
-          ),
+        MealTypeSection(
+          title: 'Breakfast',
+          foods: categorizedFoods['breakfast']!,
+          color: Color(0xFF4CAF50),
+          icon: Icons.breakfast_dining,
+          isSmallScreen: isSmallScreen,
+          expandedFoodIndex: _expandedFoodIndex,
+          onToggleExpand: (index) {
+            setState(() {
+              _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
+            });
+          },
+          onEdit: _showFoodEditDrawer,
+          onDelete: _showDeleteConfirmation,
+        ),
 
         // Lunch section
-        if (categorizedFoods['lunch']!.isNotEmpty)
-          MealTypeSection(
-            title: 'Lunch',
-            foods: categorizedFoods['lunch']!,
-            color: Color(0xFFFFA726),
-            icon: Icons.lunch_dining,
-            isSmallScreen: isSmallScreen,
-            expandedFoodIndex: _expandedFoodIndex,
-            onToggleExpand: (index) {
-              setState(() {
-                _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
-              });
-            },
-            onEdit: _showFoodEditDrawer,
-            onDelete: _showDeleteConfirmation,
-          ),
+        MealTypeSection(
+          title: 'Lunch',
+          foods: categorizedFoods['lunch']!,
+          color: Color(0xFFFFA726),
+          icon: Icons.lunch_dining,
+          isSmallScreen: isSmallScreen,
+          expandedFoodIndex: _expandedFoodIndex,
+          onToggleExpand: (index) {
+            setState(() {
+              _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
+            });
+          },
+          onEdit: _showFoodEditDrawer,
+          onDelete: _showDeleteConfirmation,
+        ),
 
         // Dinner section
-        if (categorizedFoods['dinner']!.isNotEmpty)
-          MealTypeSection(
-            title: 'Dinner',
-            foods: categorizedFoods['dinner']!,
-            color: Color(0xFFEC407A),
-            icon: Icons.dinner_dining,
-            isSmallScreen: isSmallScreen,
-            expandedFoodIndex: _expandedFoodIndex,
-            onToggleExpand: (index) {
-              setState(() {
-                _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
-              });
-            },
-            onEdit: _showFoodEditDrawer,
-            onDelete: _showDeleteConfirmation,
-          ),
+        MealTypeSection(
+          title: 'Dinner',
+          foods: categorizedFoods['dinner']!,
+          color: Color(0xFFEC407A),
+          icon: Icons.dinner_dining,
+          isSmallScreen: isSmallScreen,
+          expandedFoodIndex: _expandedFoodIndex,
+          onToggleExpand: (index) {
+            setState(() {
+              _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
+            });
+          },
+          onEdit: _showFoodEditDrawer,
+          onDelete: _showDeleteConfirmation,
+        ),
 
         // Snack section
-        if (categorizedFoods['snack']!.isNotEmpty)
-          MealTypeSection(
-            title: 'Snack',
-            foods: categorizedFoods['snack']!,
-            color: Color(0xFF7E57C2),
-            icon: Icons.restaurant,
-            isSmallScreen: isSmallScreen,
-            expandedFoodIndex: _expandedFoodIndex,
-            onToggleExpand: (index) {
-              setState(() {
-                _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
-              });
-            },
-            onEdit: _showFoodEditDrawer,
-            onDelete: _showDeleteConfirmation,
-          ),
+        MealTypeSection(
+          title: 'Snack',
+          foods: categorizedFoods['snack']!,
+          color: Color(0xFF7E57C2),
+          icon: Icons.restaurant,
+          isSmallScreen: isSmallScreen,
+          expandedFoodIndex: _expandedFoodIndex,
+          onToggleExpand: (index) {
+            setState(() {
+              _expandedFoodIndex = _expandedFoodIndex == index ? null : index;
+            });
+          },
+          onEdit: _showFoodEditDrawer,
+          onDelete: _showDeleteConfirmation,
+        ),
       ],
     );
   }

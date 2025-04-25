@@ -10,13 +10,13 @@ class ActivityBar extends StatelessWidget {
   final double maxMinutes;
 
   const ActivityBar({
-    Key? key,
+    super.key,
     required this.minutes,
     required this.label,
     required this.color,
     required this.icon,
     required this.maxMinutes,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

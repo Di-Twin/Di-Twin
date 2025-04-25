@@ -6,9 +6,9 @@ class EmptyActivityState extends StatelessWidget {
   final VoidCallback onAddActivity;
 
   const EmptyActivityState({
-    Key? key,
+    super.key,
     required this.onAddActivity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

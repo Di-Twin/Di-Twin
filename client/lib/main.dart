@@ -9,12 +9,11 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
-import 'package:client/features/medication_management/medication_management_screen.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
-import 'package:client/widgets/dashboard/medication_section.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:provider/provider.dart' as provider;
 import 'features/auth/signin.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -30,6 +29,14 @@ import 'dart:async';
 // Import feedback form
 import 'package:client/widgets/settings/feedback_form_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:http/http.dart' as http;
+import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:client/core/network/api_client.dart';
+import 'package:client/core/network/network_info.dart';
+import 'package:client/features/food_management/data/datasources/daily_food_remote_datasource.dart';
+import 'package:client/features/food_management/data/repositories/daily_food_repository_impl.dart';
+import 'package:client/features/food_management/domain/usecases/get_daily_food_usecase.dart';
+import 'package:client/features/food_management/presentation/providers/daily_food_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -66,7 +73,42 @@ void main() async {
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('feedback_shown_this_session', false);
 
-  runApp(const ProviderScope(child: MyApp()));
+  // Create API client
+  final apiClient = ApiClient(
+    baseUrl: 'https://test-prod-f427.onrender.com',
+    httpClient: http.Client(),
+  );
+
+  // Create network info
+  final networkInfo = NetworkInfoImpl(InternetConnectionChecker.createInstance());
+
+  // Create daily food remote data source
+  final dailyFoodRemoteDataSource = DailyFoodRemoteDataSourceImpl(apiClient: apiClient);
+
+  // Create daily food repository
+  final dailyFoodRepository = DailyFoodRepositoryImpl(
+    remoteDataSource: dailyFoodRemoteDataSource,
+    networkInfo: networkInfo,
+  );
+
+  // Create daily food use case
+  final getDailyFoodUseCase = GetDailyFoodUseCase(dailyFoodRepository);
+
+  // Create daily food provider
+  final dailyFoodProvider = DailyFoodProvider(getDailyFoodUseCase: getDailyFoodUseCase);
+
+  runApp(
+    provider.MultiProvider(
+      providers: [
+        provider.ChangeNotifierProvider<DailyFoodProvider>(
+          create: (context) => dailyFoodProvider,
+        ),
+      ],
+      child: ProviderScope(
+        child: const MyApp(),
+      ),
+    ),
+  );
 }
 
 class MyApp extends StatefulWidget {
@@ -84,6 +126,10 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void initState() {
+    super.initState();
+    initAppLinks();
+    
+    // Register URL launcher for Fitbit domain  {
     super.initState();
     initAppLinks();
     
@@ -221,7 +267,7 @@ class _MyAppState extends State<MyApp> {
               ),
               initialRoute: '/',
               routes: {
-                '/afdf': (context) => const Startpage(),
+                '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),

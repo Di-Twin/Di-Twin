@@ -6,8 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/food_management_provider.dart';
 import 'package:client/features/food_management/presentation/pages/food_management_my_stats.dart';
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
-// Import the new widget at the top of the file
 import 'package:client/features/food_management/presentation/widgets/edit_meal_time_sheet.dart';
+import 'package:client/features/food_management/presentation/providers/daily_food_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 
 class FoodIntelligencePage extends StatefulWidget {
   const FoodIntelligencePage({super.key});
@@ -84,6 +86,7 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     super.initState();
 
     _loadPopularFoods();
+    _loadDailyFoodData();
 
     // Determine current time period based on current hour
     final currentHour = DateTime.now().hour;
@@ -101,13 +104,18 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     });
   }
 
+  Future<void> _loadDailyFoodData() async {
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context, listen: false);
+    final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+    await dailyFoodProvider.getDailyFood(today);
+  }
+
   Future<void> _loadPopularFoods() async {
     try {
       final foods = await _foodProvider.getPopularFoods();
       if (mounted) {
         setState(() {
           _popularFoods = foods;
-          // _isLoadingPopularFoods = false;
         });
       }
     } catch (e) {
@@ -115,7 +123,6 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
       if (mounted) {
         setState(() {
           _popularFoods = [];
-          // _isLoadingPopularFoods = false;
         });
       }
     }
@@ -148,13 +155,11 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
   // Calculate total calories for the day
   int _calculateTotalCalories() {
-    int total = 0;
-    _mealData.forEach((mealType, foods) {
-      for (var food in foods) {
-        total += food['calories'] as int;
-      }
-    });
-    return total;
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context, listen: false);
+    if (dailyFoodProvider.dailyFood != null) {
+      return dailyFoodProvider.dailyFood!.totalCalories.toInt();
+    }
+    return 0;
   }
 
   // Show add food bottom sheet
@@ -167,50 +172,30 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
         return AddFoodBottomSheet(
           mealType: mealType,
           popularFoods: _popularFoods,
-          // isLoading: _isLoadingPopularFoods,
         );
       },
     );
   }
 
-//   void _showAddFoodBottomSheet(String mealType) async {
-//   final addedFood = await showModalBottomSheet(
-//     context: context,
-//     isScrollControlled: true,
-//     backgroundColor: Colors.transparent,
-//     builder: (context) => AddFoodBottomSheet(
-//       mealType: mealType,
-//       popularFoods: _popularFoods,
-//     ),
-//   );
-
-//   if (addedFood != null && mounted) {
-//     setState(() {
-//       _mealData[mealType]?.add(addedFood);
-//     });
-//   }
-// }
-
   // Show edit meal time sheet
-// Replace the _showEditMealTimeSheet method with this new implementation
-void _showEditMealTimeSheet(String mealType) {
-  showModalBottomSheet(
-    context: context,
-    isScrollControlled: true,
-    backgroundColor: Colors.transparent,
-    builder: (context) {
-      return EditMealTimeSheet(
-        mealType: mealType,
-        currentTimeRange: _mealTimes[mealType] ?? '',
-        onSave: (mealType, newTimeRange) {
-          setState(() {
-            _mealTimes[mealType] = newTimeRange;
-          });
-        },
-      );
-    },
-  );
-}
+  void _showEditMealTimeSheet(String mealType) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return EditMealTimeSheet(
+          mealType: mealType,
+          currentTimeRange: _mealTimes[mealType] ?? '',
+          onSave: (mealType, newTimeRange) {
+            setState(() {
+              _mealTimes[mealType] = newTimeRange;
+            });
+          },
+        );
+      },
+    );
+  }
 
   // Navigate to stats screen
   void onButtonTap(BuildContext context) {
@@ -228,6 +213,7 @@ void _showEditMealTimeSheet(String mealType) {
   Widget build(BuildContext context) {
     // Fixed header height
     final double headerHeight = 370.0;
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF5F7FA),
@@ -324,24 +310,32 @@ void _showEditMealTimeSheet(String mealType) {
 
           // Timeline content
           Expanded(
-            child: SingleChildScrollView(
-              controller: _scrollController,
-              padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
-              child: Column(
-                children:
-                    _timePeriods
-                        .map(
-                          (timePeriod) => TimePeriodSection(
-                            timePeriod: timePeriod,
-                            mealData: _mealData,
-                            currentTimePeriod: _currentTimePeriod,
-                            showAddFoodBottomSheet: _showAddFoodBottomSheet,
-                            foodProvider: _foodProvider,
-                          ),
-                        )
-                        .toList(),
-              ),
-            ),
+            child: dailyFoodProvider.isLoading
+                ? Center(child: CircularProgressIndicator())
+                : dailyFoodProvider.error.isNotEmpty
+                    ? Center(
+                        child: Text(
+                          'Error: ${dailyFoodProvider.error}',
+                          style: TextStyle(color: Colors.red),
+                        ),
+                      )
+                    : SingleChildScrollView(
+                        controller: _scrollController,
+                        padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
+                        child: Column(
+                          children: _timePeriods
+                              .map(
+                                (timePeriod) => TimePeriodSection(
+                                  timePeriod: timePeriod,
+                                  mealData: _mealData,
+                                  currentTimePeriod: _currentTimePeriod,
+                                  showAddFoodBottomSheet: _showAddFoodBottomSheet,
+                                  foodProvider: _foodProvider,
+                                ),
+                              )
+                              .toList(),
+                        ),
+                      ),
           ),
         ],
       ),

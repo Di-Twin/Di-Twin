@@ -7,9 +7,9 @@ class ActivityLegend extends StatelessWidget {
   final List<ActivityStatModel> activities;
   
   const ActivityLegend({
-    Key? key,
+    super.key,
     required this.activities,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

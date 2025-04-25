@@ -8,10 +8,10 @@ class ActivityTypeSelection extends StatelessWidget {
   final Function(String) onActivitySelected;
 
   const ActivityTypeSelection({
-    Key? key,
+    super.key,
     required this.selectedActivityType,
     required this.onActivitySelected,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

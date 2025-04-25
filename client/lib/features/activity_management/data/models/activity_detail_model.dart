@@ -8,31 +8,20 @@ class ActivityDetailModel extends ActivityDetail {
   final Color iconColor;
 
   ActivityDetailModel({
-    required String id,
-    required String activityType,
-    required double caloriesBurned,
-    required int durationMinutes,
-    required DateTime startTime,
-    required DateTime endTime,
-    double distance = 0.0,
-    int steps = 0,
-    double averageHeartRate = 0.0,
-    double maxHeartRate = 0.0,
+    required super.id,
+    required super.activityType,
+    required super.caloriesBurned,
+    required super.durationMinutes,
+    required super.startTime,
+    required super.endTime,
+    super.distance,
+    super.steps,
+    super.averageHeartRate,
+    super.maxHeartRate,
     required this.icon,
     required this.backgroundColor,
     required this.iconColor,
-  }) : super(
-          id: id,
-          activityType: activityType,
-          caloriesBurned: caloriesBurned,
-          durationMinutes: durationMinutes,
-          startTime: startTime,
-          endTime: endTime,
-          distance: distance,
-          steps: steps,
-          averageHeartRate: averageHeartRate,
-          maxHeartRate: maxHeartRate,
-        );
+  });
 
   factory ActivityDetailModel.fromMap(Map<String, dynamic> map) {
     final activityType = map['activity_type'] ?? '';

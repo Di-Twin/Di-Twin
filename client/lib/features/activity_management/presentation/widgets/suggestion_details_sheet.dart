@@ -6,9 +6,9 @@ class SuggestionDetailsSheet extends StatelessWidget {
   final VoidCallback onClose;
   
   const SuggestionDetailsSheet({
-    Key? key,
+    super.key,
     required this.onClose,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

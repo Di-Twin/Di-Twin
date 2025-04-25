@@ -12,14 +12,14 @@ class DurationSelection extends StatelessWidget {
   final bool isAddingActivity;
 
   const DurationSelection({
-    Key? key,
+    super.key,
     required this.selectedActivityType,
     required this.activityDuration,
     required this.onBack,
     required this.onDurationChanged,
     required this.onAddActivity,
     required this.isAddingActivity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

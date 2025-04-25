@@ -14,7 +14,7 @@ import 'package:client/features/activity_management/presentation/widgets/suggest
 class MyActivitiesPage extends StatefulWidget {
   final DateTime userJoinDate;
 
-  const MyActivitiesPage({Key? key, required this.userJoinDate}) : super(key: key);
+  const MyActivitiesPage({super.key, required this.userJoinDate});
 
   @override
   State<MyActivitiesPage> createState() => _MyActivitiesPageState();

@@ -8,9 +8,9 @@ class ActivityDetailHeader extends StatelessWidget {
   final ActivityDetailModel activity;
 
   const ActivityDetailHeader({
-    Key? key,
+    super.key,
     required this.activity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

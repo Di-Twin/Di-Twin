@@ -9,12 +9,12 @@ class NutrientBadge extends StatelessWidget {
   final String unit;
 
   const NutrientBadge({
-    Key? key,
+    super.key,
     required this.label,
     required this.value,
     required this.color,
     required this.unit,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
