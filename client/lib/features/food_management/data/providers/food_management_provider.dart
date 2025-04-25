@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:http/http.dart' as http;
@@ -33,7 +35,7 @@ class FoodManagementProvider {
 
     // Initialize dependencies
     final sharedPreferences = await SharedPreferences.getInstance();
-    final networkInfo = NetworkInfoImpl(InternetConnectionChecker());
+    final networkInfo = NetworkInfoImpl(InternetConnectionChecker.createInstance());
     final apiClient = ApiClient(
       baseUrl: 'https://test-prod-f427.onrender.com', // Replace with your actual API URL
       httpClient: http.Client(),
@@ -181,7 +183,7 @@ class FoodManagementProvider {
 static final FoodManagementProvider _instance =
     FoodManagementProvider._internal();
 
-factory FoodManagementProvider() {
+factory FoodManagementProvider.instance() {
   return _instance;
 }
 

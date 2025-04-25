@@ -1,4 +1,6 @@
 // lib/features/food_management/domain/entities/food_item.dart
+import 'dart:ui';
+
 class FoodItem {
   final String id;
   final String name;

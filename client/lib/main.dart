@@ -221,7 +221,7 @@ class _MyAppState extends State<MyApp> {
               ),
               initialRoute: '/',
               routes: {
-                '/afdf': (context) => const Startpage(),
+                '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInScreen(),
                 '/signup': (context) => const SignUpScreen(),

@@ -1,4 +1,6 @@
 // lib/features/food_management/data/models/food_item_model.dart
+import 'dart:ui';
+
 import '../../domain/entities/food_item.dart';
 
 class FoodItemModel extends FoodItem {
