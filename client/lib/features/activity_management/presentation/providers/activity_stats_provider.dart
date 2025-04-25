@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../../../../core/errors/failures.dart';
-import '../../domain/entities/activity_stat.dart';
 import '../../domain/usecases/get_activity_stats_usecase.dart';
 import '../../../activity_management/data/models/activity_stat_model.dart';
 

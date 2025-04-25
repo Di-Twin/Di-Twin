@@ -5,9 +5,9 @@ class MonthlyScoreCard extends StatelessWidget {
   final int activitiesCount;
   
   const MonthlyScoreCard({
-    Key? key,
+    super.key,
     required this.activitiesCount,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

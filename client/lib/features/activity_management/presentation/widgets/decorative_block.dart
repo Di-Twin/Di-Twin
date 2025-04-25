@@ -11,7 +11,7 @@ class DecorativeBlock extends StatelessWidget {
   final double maxHeight;
   
   const DecorativeBlock({
-    Key? key,
+    super.key,
     required this.controller,
     required this.xPos,
     required this.yPos,
@@ -19,7 +19,7 @@ class DecorativeBlock extends StatelessWidget {
     required this.rotation,
     required this.maxWidth,
     required this.maxHeight,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

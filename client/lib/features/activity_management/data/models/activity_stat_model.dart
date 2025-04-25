@@ -5,10 +5,10 @@ class ActivityStatModel extends ActivityStat {
   final Color color;
   
   ActivityStatModel({
-    required String name,
-    required int value,
+    required super.name,
+    required super.value,
     required this.color,
-  }) : super(name: name, value: value);
+  });
   
   factory ActivityStatModel.fromJson(Map<String, dynamic> json) {
     return ActivityStatModel(

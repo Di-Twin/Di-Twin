@@ -19,9 +19,9 @@ class ActivityDetailedPage extends StatelessWidget {
   final String activityId;
 
   const ActivityDetailedPage({
-    Key? key,
+    super.key,
     required this.activityId,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -3,8 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:intl/intl.dart';
+import '../../core/network/api_client.dart';
 
-class FoodManagementProvider {
+class FoodManagementProvider extends ChangeNotifier {
 static final FoodManagementProvider _instance =
     FoodManagementProvider._internal();
 
@@ -13,6 +14,11 @@ factory FoodManagementProvider() {
 }
 
 FoodManagementProvider._internal();
+
+final ApiClient _apiClient = ApiClient(
+    baseUrl: 'https://test-prod-f427.onrender.com',
+    httpClient: http.Client(),
+  );
 
 final String _baseUrl =
     'https://test-prod-f427.onrender.com'; // Replace with your actual base URL
@@ -48,13 +54,21 @@ Future<String> getDailyFoodScore(String date) async {
   }
 }
 
-/// Gets today's food score
-Future<String> getTodayFoodScore() async {
-  final today = DateTime.now();
-  final formattedDate =
-      "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-  return getDailyFoodScore(formattedDate);
-}
+  // Get today's food score
+  Future<String> getTodayFoodScore() async {
+    try {
+      final response = await _apiClient.get('/food/score/today');
+      if (response['success'] == true) {
+        final score = response['data']['score'].toString();
+        return score;
+      } else {
+        return '0';
+      }
+    } catch (e) {
+      print('Error getting food score: $e');
+      return '0';
+    }
+  }
 
 /// Fetches daily food data for a specific date
 Future<Map<String, List<Map<String, dynamic>>>> getDailyFoodData(
@@ -340,91 +354,21 @@ String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
   return timePeriods.isNotEmpty ? timePeriods.first['name'] as String : '';
 }
 
-Future<List<Map<String, dynamic>>> getPopularFoods() async {
-  try {
-    final token = await _getAccessToken();
-
-    final response = await http.get(
-      Uri.parse('https://food-service-prod.onrender.com/api/food/items'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
-
-    if (response.statusCode == 200) {
-      final List<dynamic> responseData = json.decode(response.body);
-
-      return responseData.map((item) {
-        // Extract macronutrients and ensure they're properly formatted
-        final macros = item['macronutrients'] ?? {};
-
-        // Calculate total calories (using energy_kcal from macronutrients)
-        final int calories =
-            macros['energy_kcal'] != null
-                ? (macros['energy_kcal'] is int)
-                    ? macros['energy_kcal']
-                    : (macros['energy_kcal'] as double).toInt()
-                : 0;
-
-        // Extract protein, carbs and fat values
-        final double protein =
-            macros['protein_g'] != null
-                ? (macros['protein_g'] is int)
-                    ? (macros['protein_g'] as int).toDouble()
-                    : macros['protein_g'] as double
-                : 0.0;
-
-        final double carbs =
-            macros['carbohydrates_g'] != null
-                ? (macros['carbohydrates_g'] is int)
-                    ? (macros['carbohydrates_g'] as int).toDouble()
-                    : macros['carbohydrates_g'] as double
-                : 0.0;
-
-        final double fat =
-            macros['fat_g'] != null
-                ? (macros['fat_g'] is int)
-                    ? (macros['fat_g'] as int).toDouble()
-                    : macros['fat_g'] as double
-                : 0.0;
-
-        final double fiber =
-            macros['fiber_g'] != null
-                ? (macros['fiber_g'] is int)
-                    ? (macros['fiber_g'] as int).toDouble()
-                    : macros['fiber_g'] as double
-                : 0.0;
-
-        // Get the first ingredient as a fallback for image
-        final String firstIngredient =
-            (item['ingredients'] != null && item['ingredients'].isNotEmpty)
-                ? item['ingredients'][0]
-                : 'food';
-
-        return {
-          'name': item['food_name'],
-          'weight': '100g', // Default weight as it's not provided in API
-          'calories': calories,
-          'protein': protein,
-          'carbs': carbs,
-          'fat': fat,
-          'fiber': fiber,
-          'iconName': _getIconNameForFoodItem(item['food_name']),
-          'image': 'images/${firstIngredient.toLowerCase()}.png',
-        };
-      }).toList();
-    } else {
-      throw Exception(
-        'Failed to fetch popular foods. Status: ${response.statusCode}',
-      );
+  // Get popular foods
+  Future<List<Map<String, dynamic>>> getPopularFoods() async {
+    try {
+      final response = await _apiClient.get('/food/popular');
+      if (response['success'] == true) {
+        final List<dynamic> foods = response['data'];
+        return foods.map((food) => food as Map<String, dynamic>).toList();
+      } else {
+        return [];
+      }
+    } catch (e) {
+      print('Error getting popular foods: $e');
+      return [];
     }
-  } catch (error) {
-    print('Error fetching popular foods: $error');
-    // Return an empty list as a fallback
-    return [];
   }
-}
 
 /// Adds a custom food item to the database
 Future<bool> addCustomFood(Map<String, dynamic> foodData) async {
@@ -453,8 +397,25 @@ Future<bool> addCustomFood(Map<String, dynamic> foodData) async {
   }
 }
 
+  // Add food item
+  Future<bool> addFoodItem(String mealType, Map<String, dynamic> foodData) async {
+    try {
+      final response = await _apiClient.post(
+        '/food/add',
+        body: {
+          'mealType': mealType,
+          'foodData': foodData,
+        },
+      );
+      return response['success'] == true;
+    } catch (e) {
+      print('Error adding food item: $e');
+      return false;
+    }
+  }
+
 // Update the addFoodItem method to use the correct endpoint and data structure
-Future<Map<String, dynamic>> addFoodItem(
+/*Future<Map<String, dynamic>> addFoodItem(
   Map<String, dynamic> foodData,
 ) async {
   try {
@@ -501,10 +462,21 @@ Future<Map<String, dynamic>> addFoodItem(
     // Return success anyway since we saved to cache
     return {'success': true, 'message': 'Food saved to cache'};
   }
-}
+}*/
+
+  // Delete food item
+  Future<bool> deleteFoodItem(String foodId) async {
+    try {
+      final response = await _apiClient.delete('/food/$foodId');
+      return response['success'] == true;
+    } catch (e) {
+      print('Error deleting food item: $e');
+      return false;
+    }
+  }
 
 /// Deletes a food item from the database
-Future<bool> deleteFoodItem(Map<String, dynamic> foodData) async {
+/*Future<bool> deleteFoodItem(Map<String, dynamic> foodData) async {
   try {
     // First delete from cache
     await _deleteFoodItemFromCache(foodData);
@@ -540,7 +512,7 @@ Future<bool> deleteFoodItem(Map<String, dynamic> foodData) async {
     // Return success anyway since we deleted from cache
     return true;
   }
-}
+}*/
 
 /// Helper method to get access token
 Future<String?> _getAccessToken() async {

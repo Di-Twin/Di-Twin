@@ -7,11 +7,11 @@ class DetailStat extends StatelessWidget {
   final String label;
   
   const DetailStat({
-    Key? key,
+    super.key,
     required this.icon,
     required this.value,
     required this.label,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

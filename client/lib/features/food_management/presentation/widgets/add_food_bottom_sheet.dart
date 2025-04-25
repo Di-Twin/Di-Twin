@@ -109,17 +109,16 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
       foodData['mealType'] = widget.mealType;
       foodData['time'] = TimeOfDay.now().format(context);
 
-      // Add food item
-      final result = await foodProvider.addFoodItem(foodData);
-
-      if (result['success'] == true) {
-        // Close the sheet and return success
+      // Add food item - simplify by assuming it returns a boolean
+      try {
+        await foodProvider.addFoodItem(widget.mealType, foodData);
+        // If we get here without an exception, consider it a success
         Navigator.pop(context, true);
-      } else {
+      } catch (e) {
         // Show error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to add food: ${result['message']}'),
+            content: Text('Failed to add food: $e'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -230,15 +229,6 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
                 onPressed: (_selectedFood != null && !_isAddingFood && !_isLoadingImpact) 
                     ? _addFoodToMeal 
                     : null,
-                child: _isAddingFood
-                    ? CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        'Add to ${widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16.sp,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF0F67FE),
                   foregroundColor: Colors.white,
@@ -248,6 +238,15 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
                     borderRadius: BorderRadius.circular(16.r),
                   ),
                 ),
+                child: _isAddingFood
+                    ? CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        'Add to ${widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16.sp,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
               ),
             ),
           ),

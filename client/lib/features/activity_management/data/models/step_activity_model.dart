@@ -2,22 +2,14 @@ import 'package:client/features/activity_management/domain/entities/step_activit
 
 class StepActivityModel extends StepActivity {
   StepActivityModel({
-    required int currentSteps,
-    required int goalSteps,
-    required String calories,
-    required String distance,
-    required String duration,
-    required List<double> weeklyProgress,
-    required DateTime date,
-  }) : super(
-          currentSteps: currentSteps,
-          goalSteps: goalSteps,
-          calories: calories,
-          distance: distance,
-          duration: duration,
-          weeklyProgress: weeklyProgress,
-          date: date,
-        );
+    required super.currentSteps,
+    required super.goalSteps,
+    required super.calories,
+    required super.distance,
+    required super.duration,
+    required super.weeklyProgress,
+    required super.date,
+  });
 
   factory StepActivityModel.fromJson(Map<String, dynamic> json) {
     return StepActivityModel(

@@ -7,10 +7,10 @@ class StepProgressCard extends StatelessWidget {
   final int goalSteps;
 
   const StepProgressCard({
-    Key? key,
+    super.key,
     required this.currentSteps,
     required this.goalSteps,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

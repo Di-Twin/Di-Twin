@@ -1,38 +1,79 @@
+import 'package:client/features/medication_management/domain/entities/medication.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class MedicationTakeNowAlert extends StatefulWidget {
+/// A dialog that shows when it's time to take medication
+/// Features a swipeable card and buttons for taking, skipping, or rescheduling
+class MedicationManagementAlert extends StatefulWidget {
+  /// The name of the medication
   final String medicationName;
+  
+  /// The dosage information (e.g., "1 pill")
   final String dosage;
+  
+  /// Instructions for taking the medication (e.g., "Take with food")
   final String instructions;
-  final VoidCallback onTake;
+  
+  /// Path to the background image
   final String backgroundImagePath;
+  
+  /// Callback when the medication is taken
+  final VoidCallback? onTake;
+  
+  /// Callback when the medication is skipped
+  final VoidCallback? onSkip;
+  
+  /// Callback when the medication is rescheduled
+  final VoidCallback? onReschedule;
 
-  const MedicationTakeNowAlert({
+  const MedicationManagementAlert({
     super.key,
     required this.medicationName,
-    required this.dosage,
+    this.dosage = "Default dosage",
     required this.instructions,
-    required this.onTake,
-    this.backgroundImagePath = './images/medication_management_alert.png',
+    this.backgroundImagePath = 'assets/images/medication_management_alert.png',
+    this.onTake,
+    this.onSkip,
+    this.onReschedule,
   });
+  
+  /// Create an alert from a Medication entity
+  factory MedicationManagementAlert.fromMedication({
+    required Medication medication,
+    required VoidCallback onTake,
+    VoidCallback? onSkip,
+    VoidCallback? onReschedule,
+    String backgroundImagePath = 'assets/images/medication_management_alert.png',
+  }) {
+    return MedicationManagementAlert(
+      medicationName: medication.name,
+      dosage: medication.dosage ?? "Default dosage",
+      instructions: medication.instruction ?? "",
+      backgroundImagePath: backgroundImagePath,
+      onTake: onTake,
+      onSkip: onSkip,
+      onReschedule: onReschedule,
+    );
+  }
 
   @override
-  State<MedicationTakeNowAlert> createState() => _MedicationTakeNowAlertState();
+  State<MedicationManagementAlert> createState() =>
+      _MedicationManagementAlertState();
 }
 
-class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
+class _MedicationManagementAlertState extends State<MedicationManagementAlert>
     with SingleTickerProviderStateMixin {
   late AnimationController _swipeHintController;
   double _dragExtent = 0.0;
+  bool _imageLoadError = false;
 
   @override
   void initState() {
     super.initState();
     _swipeHintController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 1500),
+      duration: const Duration(milliseconds: 1500),
     )..repeat(reverse: true);
   }
 
@@ -58,26 +99,26 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
           GestureDetector(
             onHorizontalDragUpdate: (details) {
               setState(() {
-                // Simple direct movement without resistance
                 _dragExtent += details.primaryDelta!;
-                // Limit the drag extent to prevent exiting screen
+                // Limit the drag extent for visual feedback
                 _dragExtent = _dragExtent.clamp(-100.0, 100.0);
               });
             },
             onHorizontalDragEnd: (details) {
               if (_dragExtent > 80) {
                 // Swiped right - Take medication
-                widget.onTake();
-                Navigator.of(context).pop();
+                if (widget.onTake != null) widget.onTake!();
+                Navigator.of(context).pop('take');
               } else if (_dragExtent < -80) {
-                // Swiped left - Cancel
-                Navigator.of(context).pop();
-              } else {
-                // Not enough to trigger, animate back to center
-                setState(() {
-                  _dragExtent = 0;
-                });
+                // Swiped left - Skip medication
+                if (widget.onSkip != null) widget.onSkip!();
+                Navigator.of(context).pop('skip');
               }
+
+              // Reset drag extent if not enough to trigger action
+              setState(() {
+                _dragExtent = 0;
+              });
             },
             child: Transform.translate(
               offset: Offset(_dragExtent, 0),
@@ -93,7 +134,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                           color: Colors.black.withOpacity(0.1),
                           blurRadius: 10,
                           spreadRadius: 0,
-                          offset: Offset(0, 10),
+                          offset: const Offset(0, 10),
                         ),
                       ],
                     ),
@@ -108,10 +149,37 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                           ),
                           child: AspectRatio(
                             aspectRatio: 16 / 9,
-                            child: Image.asset(
-                              widget.backgroundImagePath,
-                              fit: BoxFit.cover,
-                            ),
+                            child: _imageLoadError
+                                ? Container(
+                                    color: blueColor.withOpacity(0.1),
+                                    child: Center(
+                                      child: Icon(
+                                        Icons.medication_rounded,
+                                        color: blueColor,
+                                        size: 48.sp,
+                                      ),
+                                    ),
+                                  )
+                                : Image.asset(
+                                    widget.backgroundImagePath,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) {
+                                      // If image fails to load, show a fallback
+                                      setState(() {
+                                        _imageLoadError = true;
+                                      });
+                                      return Container(
+                                        color: blueColor.withOpacity(0.1),
+                                        child: Center(
+                                          child: Icon(
+                                            Icons.medication_rounded,
+                                            color: blueColor,
+                                            size: 48.sp,
+                                          ),
+                                        ),
+                                      );
+                                    },
+                                  ),
                           ),
                         ),
 
@@ -134,8 +202,10 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                               SizedBox(height: 16.h),
 
                               // Medication details
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                              Wrap(
+                                alignment: WrapAlignment.center,
+                                spacing: 12.w,
+                                runSpacing: 8.h,
                                 children: [
                                   // Dosage info
                                   Container(
@@ -148,6 +218,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                                       borderRadius: BorderRadius.circular(8.r),
                                     ),
                                     child: Row(
+                                      mainAxisSize: MainAxisSize.min,
                                       children: [
                                         Icon(
                                           Icons.medication,
@@ -167,44 +238,44 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                                     ),
                                   ),
 
-                                  SizedBox(width: 12.w),
-
-                                  // Instructions info
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 12.w,
-                                      vertical: 6.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey.shade100,
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Icon(
-                                          Icons.restaurant,
-                                          color: blueColor,
-                                          size: 16.sp,
-                                        ),
-                                        SizedBox(width: 6.w),
-                                        Text(
-                                          widget.instructions,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14.sp,
-                                            fontWeight: FontWeight.w500,
-                                            color: Colors.grey[700],
+                                  // Instructions info (only if not empty)
+                                  if (widget.instructions.isNotEmpty)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(
+                                        horizontal: 12.w,
+                                        vertical: 6.h,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(8.r),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(
+                                            Icons.restaurant,
+                                            color: blueColor,
+                                            size: 16.sp,
                                           ),
-                                        ),
-                                      ],
+                                          SizedBox(width: 6.w),
+                                          Text(
+                                            widget.instructions,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 14.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: Colors.grey[700],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
                                     ),
-                                  ),
                                 ],
                               ),
 
                               // Added more gap between medication details and swipe instructions
                               SizedBox(height: 40.h),
 
-                              // Swipe instruction text - now static with container
+                              // Swipe instruction text - now static
                               Container(
                                 padding: EdgeInsets.symmetric(
                                   horizontal: 16.w,
@@ -225,7 +296,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                                     ),
                                     SizedBox(width: 12.w), // Increased gap
                                     Text(
-                                      "Swipe right to take now",
+                                      "Swipe to take or skip",
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14.sp,
                                         fontWeight: FontWeight.w500,
@@ -247,19 +318,34 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                                   _buildActionButton(
                                     context: context,
                                     icon: Icons.close,
-                                    label: "Cancel",
+                                    label: "Skip",
                                     color: redColor,
                                     onTap: () {
-                                      Navigator.of(context).pop();
+                                      if (widget.onSkip != null) widget.onSkip!();
+                                      Navigator.of(context).pop('skip');
                                     },
                                   ),
 
                                   _buildActionButton(
                                     context: context,
-                                    icon: Icons.check,
-                                    label: "Take Now",
+                                    icon: Icons.calendar_today,
+                                    label: "Reschedule",
+                                    color: const Color(0xFFAEC5EB),
+                                    onTap: () {
+                                      if (widget.onReschedule != null) widget.onReschedule!();
+                                      Navigator.of(context).pop('reschedule');
+                                    },
+                                  ),
+
+                                  _buildActionButton(
+                                    context: context,
+                                    icon: Icons.add,
+                                    label: "Take",
                                     color: blueColor,
-                                    onTap: widget.onTake,
+                                    onTap: () {
+                                      if (widget.onTake != null) widget.onTake!();
+                                      Navigator.of(context).pop('take');
+                                    },
                                   ),
                                 ],
                               ),
@@ -317,7 +403,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                       color: Colors.black.withOpacity(0.1),
                       blurRadius: 8,
                       spreadRadius: 0,
-                      offset: Offset(0, 2),
+                      offset: const Offset(0, 2),
                     ),
                   ],
                 ),
@@ -356,7 +442,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                 BoxShadow(
                   color: color.withOpacity(0.3),
                   blurRadius: 8,
-                  offset: Offset(0, 4),
+                  offset: const Offset(0, 4),
                 ),
               ],
             ),
@@ -377,36 +463,64 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
   }
 }
 
-// Queue for managing medication take now alerts
-class MedicationTakeNowAlertQueue {
-  static final MedicationTakeNowAlertQueue _instance =
-      MedicationTakeNowAlertQueue._internal();
-  factory MedicationTakeNowAlertQueue() => _instance;
-  MedicationTakeNowAlertQueue._internal();
+/// Service for managing medication alerts
+class MedicationAlertService {
+  static final MedicationAlertService _instance = MedicationAlertService._internal();
+  
+  /// Get the singleton instance
+  factory MedicationAlertService() => _instance;
+  MedicationAlertService._internal();
 
   final List<Map<String, dynamic>> _queue = [];
   bool _isShowingAlert = false;
 
-  // Add a medication to the queue
-  void addToQueue(
-    BuildContext context,
-    String medicationName,
-    String dosage,
-    String instructions,
-    VoidCallback onTake,
-  ) {
+  /// Add a medication to the queue
+  void addToQueue({
+    required BuildContext context,
+    required String medicationName,
+    required String dosage,
+    required String instructions,
+    String backgroundImagePath = 'assets/images/medication_management_alert.png',
+    VoidCallback? onTake,
+    VoidCallback? onSkip,
+    VoidCallback? onReschedule,
+  }) {
     _queue.add({
       'context': context,
       'medicationName': medicationName,
       'dosage': dosage,
       'instructions': instructions,
+      'backgroundImagePath': backgroundImagePath,
       'onTake': onTake,
+      'onSkip': onSkip,
+      'onReschedule': onReschedule,
     });
 
     // Start showing alerts if not already showing
     if (!_isShowingAlert) {
       _showNextAlert();
     }
+  }
+
+  /// Add a medication entity to the queue
+  void addMedicationToQueue({
+    required BuildContext context,
+    required Medication medication,
+    String backgroundImagePath = 'assets/images/medication_management_alert.png',
+    VoidCallback? onTake,
+    VoidCallback? onSkip,
+    VoidCallback? onReschedule,
+  }) {
+    addToQueue(
+      context: context,
+      medicationName: medication.name,
+      dosage: medication.dosage ?? "Default dosage",
+      instructions: medication.instruction ?? "",
+      backgroundImagePath: backgroundImagePath,
+      onTake: onTake,
+      onSkip: onSkip,
+      onReschedule: onReschedule,
+    );
   }
 
   // Show the next alert in the queue
@@ -424,11 +538,14 @@ class MedicationTakeNowAlertQueue {
       barrierDismissible: true,
       barrierColor: Colors.black.withOpacity(0.5),
       builder: (BuildContext context) {
-        return MedicationTakeNowAlert(
+        return MedicationManagementAlert(
           medicationName: medication['medicationName'],
           dosage: medication['dosage'],
           instructions: medication['instructions'],
+          backgroundImagePath: medication['backgroundImagePath'],
           onTake: medication['onTake'],
+          onSkip: medication['onSkip'],
+          onReschedule: medication['onReschedule'],
         );
       },
     ).then((value) {
@@ -438,20 +555,47 @@ class MedicationTakeNowAlertQueue {
   }
 }
 
-// Updated function to show medication take now alerts one by one
-// void showMedicationTakeNowAlert(
-//   BuildContext context,
-//   String medicationName,
-//   String dosage,
-//   String instructions,
-//   VoidCallback onTake,
-// ) {
-//   // Add to queue instead of showing directly
-//   MedicationTakeNowAlertQueue().addToQueue(
-//     context,
-//     medicationName,
-//     dosage,
-//     instructions,
-//     onTake,
-//   );
-// }
+/// Extension methods for Medication entity
+extension MedicationAlertExtension on Medication {
+  /// Show an alert for this medication
+  Future<String?> showAlert(
+    BuildContext context, {
+    String backgroundImagePath = 'assets/images/medication_management_alert.png',
+    VoidCallback? onTake,
+    VoidCallback? onSkip,
+    VoidCallback? onReschedule,
+  }) {
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withOpacity(0.5),
+      builder: (BuildContext context) {
+        return MedicationManagementAlert.fromMedication(
+          medication: this,
+          backgroundImagePath: backgroundImagePath,
+          onTake: onTake ?? () {},
+          onSkip: onSkip,
+          onReschedule: onReschedule,
+        );
+      },
+    );
+  }
+  
+  /// Add this medication to the alert queue
+  void addToAlertQueue(
+    BuildContext context, {
+    String backgroundImagePath = 'assets/images/medication_management_alert.png',
+    VoidCallback? onTake,
+    VoidCallback? onSkip,
+    VoidCallback? onReschedule,
+  }) {
+    MedicationAlertService().addMedicationToQueue(
+      context: context,
+      medication: this,
+      backgroundImagePath: backgroundImagePath,
+      onTake: onTake,
+      onSkip: onSkip,
+      onReschedule: onReschedule,
+    );
+  }
+}

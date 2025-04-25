@@ -8,9 +8,9 @@ class ActivityMetricsCard extends StatelessWidget {
   final ActivityDetail activity;
 
   const ActivityMetricsCard({
-    Key? key,
+    super.key,
     required this.activity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -7,10 +7,10 @@ class FoodGridItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const FoodGridItem({
-    Key? key,
+    super.key,
     required this.food,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

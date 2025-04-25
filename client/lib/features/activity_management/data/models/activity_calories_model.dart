@@ -4,18 +4,12 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class ActivityCaloriesModel extends ActivityCalories {
   ActivityCaloriesModel({
-    required String activityType,
-    required double caloriesBurned,
-    IconData? icon,
-    Color? backgroundColor,
-    Color? iconColor,
-  }) : super(
-          activityType: activityType,
-          caloriesBurned: caloriesBurned,
-          icon: icon,
-          backgroundColor: backgroundColor,
-          iconColor: iconColor,
-        );
+    required super.activityType,
+    required super.caloriesBurned,
+    super.icon,
+    super.backgroundColor,
+    super.iconColor,
+  });
 
   factory ActivityCaloriesModel.fromMap(Map<String, dynamic> map) {
     final activityType = map['activity_type'] ?? '';
