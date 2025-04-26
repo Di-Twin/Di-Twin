@@ -1,4 +1,5 @@
 // lib/features/food_management/data/repositories/food_repository_impl.dart
+import 'package:client/features/food_management/data/models/food_item_model.dart';
 import 'package:dartz/dartz.dart';
 import '../../domain/entities/food_item.dart';
 import '../../domain/entities/nutrition_data.dart';

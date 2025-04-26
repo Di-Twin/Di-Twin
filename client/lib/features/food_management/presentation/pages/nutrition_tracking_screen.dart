@@ -1,11 +1,11 @@
+import 'package:client/features/food_management/presentation/widgets/custom_date_navigator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_progress_bars.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_legend.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_metrics_card.dart';
-import 'package:client/features/food_management/presentation/widgets/date_navigation.dart';
-import 'package:client/features/food_management/presentation/widgets/date_picker_drawer.dart';
+import 'package:client/features/food_management/presentation/widgets/date_picker.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_header.dart';
 import 'package:client/features/food_management/presentation/widgets/add_food_button.dart';
 
@@ -20,6 +20,14 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     with SingleTickerProviderStateMixin {
   // Date tracking
   DateTime _selectedDate = DateTime.now();
+  final DateTime _today = DateTime.now();
+
+  // Function to check if date is the current date
+  bool get _isCurrentDate {
+    return _selectedDate.year == _today.year &&
+        _selectedDate.month == _today.month &&
+        _selectedDate.day == _today.day;
+  }
 
   // Sample data for different days
   final Map<String, Map<String, dynamic>> _nutritionData = {
@@ -75,6 +83,12 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   late PageController _pageController;
   int _currentPage = 0;
 
+  // Calendar animation
+  bool _isCalendarVisible = false;
+  final double _calendarHeight = 350.0; // Adjust based on your calendar size
+  double _calendarOffset = 0.0;
+  bool _isDragging = false;
+
   @override
   void initState() {
     super.initState();
@@ -108,13 +122,27 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     super.dispose();
   }
 
-  // Change to previous day
+  // Change to a specific date with fixed implementation
+  void _goToDate(DateTime date) {
+    // Don't allow navigating to future dates
+    if (date.isAfter(_today)) {
+      date = _today;
+    }
+
+    setState(() {
+      _selectedDate = date;
+      _updateDataForSelectedDate();
+    });
+
+    // Reset page controller to middle position
+    _pageController.jumpToPage(1);
+    _currentPage = 1;
+  }
+
+  // Change to previous day - fixed implementation to handle many days back
   void _goToPreviousDay() {
-    // Get the previous day data
     setState(() {
       _selectedDate = _selectedDate.subtract(const Duration(days: 1));
-
-      // Update current data based on selected date
       _updateDataForSelectedDate();
     });
 
@@ -134,15 +162,13 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
 
   // Change to next day
   void _goToNextDay() {
-    if (_selectedDate.isAtSameMomentAs(DateTime.now())) {
-      // Already at today, don't go forward
+    // Don't allow navigating to future dates
+    if (_isCurrentDate) {
       return;
     }
 
     setState(() {
       _selectedDate = _selectedDate.add(const Duration(days: 1));
-
-      // Update current data based on selected date
       _updateDataForSelectedDate();
     });
 
@@ -163,8 +189,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   // Update data based on selected date
   void _updateDataForSelectedDate() {
     // Calculate difference in days from today
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
+    final today = DateTime(_today.year, _today.month, _today.day);
     final difference = _selectedDate.difference(today).inDays;
 
     // Update current data based on difference
@@ -175,11 +200,46 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     } else if (difference == -2) {
       _currentData = _nutritionData['2days_ago']!;
     } else {
-      // For any other day, use either yesterday or 2days_ago data as fallback
-      _currentData =
-          difference > 0
-              ? _nutritionData['today']!
-              : _nutritionData['yesterday']!;
+      // For any other day, generate a random data set based on the other days
+      final baseData = _nutritionData['yesterday']!;
+
+      // Copy of the data with some random variation
+      _currentData = {
+        'totalNutrition': (double.parse(
+                  baseData['totalNutrition'].toString().replaceAll(',', '.'),
+                ) *
+                (0.8 +
+                    0.4 *
+                        (DateTime.now().millisecondsSinceEpoch % 1000) /
+                        1000))
+            .toStringAsFixed(2)
+            .replaceAll('.', ','),
+        'proteins':
+            '${(int.parse(baseData['proteins'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        'macro':
+            '${(int.parse(baseData['macro'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        'fiber':
+            '${(int.parse(baseData['fiber'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        'blueProgress':
+            (baseData['blueProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'lightBlueProgress':
+            (baseData['lightBlueProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'redProgress':
+            (baseData['redProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'pinkProgress':
+            (baseData['pinkProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'navyProgress':
+            (baseData['navyProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'grayProgress':
+            (baseData['grayProgress'] as double) *
+            (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
+        'date': _selectedDate,
+      };
     }
 
     // Reset and restart animation
@@ -187,23 +247,101 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     _animationController.forward();
   }
 
-  // Show date picker drawer
-  void _showDatePickerDrawer() {
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (BuildContext context) {
-        return DatePickerDrawer(
-          selectedDate: _selectedDate,
-          onDateSelected: (date) {
-            setState(() {
-              _selectedDate = date;
-              _updateDataForSelectedDate();
-            });
-          },
-        );
-      },
+  // Handle calendar swipe gesture
+  void _handleSwipe(DragUpdateDetails details) {
+    if (_isDragging) {
+      setState(() {
+        // Calculate new offset
+        _calendarOffset -= details.delta.dy;
+
+        // Constrain the offset
+        _calendarOffset = _calendarOffset.clamp(0.0, _calendarHeight);
+
+        // Update visibility status
+        _isCalendarVisible = _calendarOffset > 50.0;
+      });
+    }
+  }
+
+  void _onSwipeEnd(DragEndDetails details) {
+    if (_isDragging) {
+      setState(() {
+        _isDragging = false;
+
+        // Snap to open or closed based on position
+        if (_calendarOffset > _calendarHeight / 2) {
+          _calendarOffset = _calendarHeight;
+          _isCalendarVisible = true;
+        } else {
+          _calendarOffset = 0.0;
+          _isCalendarVisible = false;
+        }
+      });
+    }
+  }
+
+  void _onSwipeStart(DragStartDetails details) {
+    // Only respond to upward swipes starting near the date navigator
+    if (details.globalPosition.dy > MediaQuery.of(context).size.height - 150) {
+      setState(() {
+        _isDragging = true;
+      });
+    }
+  }
+
+  // Build calendar widget
+  Widget _buildCalendar() {
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+      height: _calendarOffset,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, -2),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: const BorderRadius.only(
+          topLeft: Radius.circular(20),
+          topRight: Radius.circular(20),
+        ),
+        child: SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: SizedBox(
+            height: _calendarHeight,
+            child: Stack(
+              children: [
+                DatePicker(
+                  selectedDate: _selectedDate,
+                  onDateSelected: _goToDate,
+                ),
+                // Handle on top for dragging
+                Align(
+                  alignment: Alignment.topCenter,
+                  child: Container(
+                    margin: const EdgeInsets.only(top: 12),
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: Colors.grey.shade300,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 
@@ -211,117 +349,135 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   Widget _buildNutritionPage(double screenWidth) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const SizedBox(height: 16),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 16),
 
-          // Your Nutrition section with animation
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 800),
-            curve: Curves.easeOutQuad,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: Text(
-                    'Your Nutrition',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1E293B),
+                    // Your Nutrition section with animation
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 800),
+                      curve: Curves.easeOutQuad,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: Text(
+                              'Your Nutrition',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 20,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
                     ),
-                  ),
+
+                    const SizedBox(height: 8),
+
+                    // Large nutrition value with animation
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 1000),
+                      curve: Curves.easeOutQuad,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, 30 * (1 - value)),
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                crossAxisAlignment: CrossAxisAlignment.baseline,
+                                textBaseline: TextBaseline.alphabetic,
+                                children: [
+                                  Text(
+                                    _currentData['totalNutrition'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 60,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1E293B),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'mg',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.grey,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Progress bars with animation
+                    NutritionProgressBars(
+                      currentData: _currentData,
+                      progressAnimation: _progressAnimation,
+                    ),
+
+                    const SizedBox(height: 24),
+
+                    // Legend with animation
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 1200),
+                      curve: Curves.easeOutQuad,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: const NutritionLegend(),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 30),
+
+                    // Nutrition metrics with animation
+                    TweenAnimationBuilder<double>(
+                      tween: Tween<double>(begin: 0.0, end: 1.0),
+                      duration: const Duration(milliseconds: 1400),
+                      curve: Curves.easeOutQuad,
+                      builder: (context, value, child) {
+                        return Opacity(
+                          opacity: value,
+                          child: Transform.translate(
+                            offset: Offset(0, 20 * (1 - value)),
+                            child: NutritionMetricsCard(
+                              currentData: _currentData,
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+
+                    const SizedBox(height: 20),
+                  ],
                 ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 8),
-
-          // Large nutrition value with animation
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1000),
-            curve: Curves.easeOutQuad,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 30 * (1 - value)),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.baseline,
-                    textBaseline: TextBaseline.alphabetic,
-                    children: [
-                      Text(
-                        _currentData['totalNutrition'],
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 60,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'mg',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 24,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-
-          const SizedBox(height: 24),
-
-          // Progress bars with animation
-          NutritionProgressBars(
-            currentData: _currentData,
-            progressAnimation: _progressAnimation,
-          ),
-
-          const SizedBox(height: 24),
-
-          // Legend with animation
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1200),
-            curve: Curves.easeOutQuad,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: const NutritionLegend(),
-              );
-            },
-          ),
-
-          const Spacer(),
-
-          // Nutrition metrics with animation
-          TweenAnimationBuilder<double>(
-            tween: Tween<double>(begin: 0.0, end: 1.0),
-            duration: const Duration(milliseconds: 1400),
-            curve: Curves.easeOutQuad,
-            builder: (context, value, child) {
-              return Opacity(
-                opacity: value,
-                child: Transform.translate(
-                  offset: Offset(0, 20 * (1 - value)),
-                  child: NutritionMetricsCard(currentData: _currentData),
-                ),
-              );
-            },
-          ),
-
-          const Spacer(),
-        ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -337,76 +493,90 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     );
 
     // Get screen dimensions
-    final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth = MediaQuery.of(context).size.width;
-
-    // Calculate responsive sizes
-    final headerHeight = screenHeight * 0.08;
-    final mainContentHeight = screenHeight * 0.7;
-    final bottomNavHeight = screenHeight * 0.08;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header
-            NutritionHeader(
-              onBack: () => Navigator.pop(context),
-            ),
-
-            // Main content with PageView for transitions
-            SizedBox(
-              height: mainContentHeight,
-              width: screenWidth, // Ensure full width
-              child: PageView(
-                controller: _pageController,
-                physics:
-                    const BouncingScrollPhysics(), // Allow bouncing but not free scrolling
-                onPageChanged: (index) {
-                  setState(() {
-                    // When page changes, we need to update _currentPage
-                    if (_currentPage < index) {
-                      // Moving forward in time (right to left)
-                      _goToNextDay();
-                    } else if (_currentPage > index) {
-                      // Moving backward in time (left to right)
-                      _goToPreviousDay();
-                    }
-                    _currentPage = index;
-                  });
-                },
+      body: GestureDetector(
+        onVerticalDragStart: _onSwipeStart,
+        onVerticalDragUpdate: _handleSwipe,
+        onVerticalDragEnd: _onSwipeEnd,
+        child: SafeArea(
+          child: Stack(
+            children: [
+              Column(
                 children: [
-                  // Previous day page
-                  _buildNutritionPage(screenWidth),
+                  // Header
+                  NutritionHeader(onBack: () => Navigator.pop(context)),
 
-                  // Current day page
-                  _buildNutritionPage(screenWidth),
+                  // Main content with PageView for transitions
+                  Expanded(
+                    child: PageView(
+                      controller: _pageController,
+                      physics: const NeverScrollableScrollPhysics(),
+                      onPageChanged: (index) {
+                        setState(() {
+                          if (_currentPage < index) {
+                            // Moving forward in time (right to left)
+                            _goToNextDay();
+                          } else if (_currentPage > index) {
+                            // Moving backward in time (left to right)
+                            _goToPreviousDay();
+                          }
+                          _currentPage = index;
+                        });
+                      },
+                      children: [
+                        // Previous day page
+                        _buildNutritionPage(screenWidth),
 
-                  // Next day page (if applicable)
-                  _buildNutritionPage(screenWidth),
+                        // Current day page
+                        _buildNutritionPage(screenWidth),
+
+                        // Next day page (if applicable)
+                        _buildNutritionPage(screenWidth),
+                      ],
+                    ),
+                  ),
+
+                  // Date navigation with visual indicator for calendar
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: CustomDateNavigation(
+                      selectedDate: _selectedDate,
+                      isCurrentDate: _isCurrentDate,
+                      onDateSelected: _goToDate,
+                      onPrevious: _goToPreviousDay,
+                      onNext: _goToNextDay,
+                    ),
+                  ),
+
+                  // Add Food button
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    color: Colors.white,
+                    child: AddFoodButton(
+                      onPressed: () {
+                        // Add food functionality
+                      },
+                    ),
+                  ),
                 ],
               ),
-            ),
 
-            // Date navigation
-            DateNavigation(
-              selectedDate: _selectedDate,
-              onPrevious: _goToPreviousDay,
-              onNext: _goToNextDay,
-              onSelectDate: _showDatePickerDrawer,
-            ),
-
-            // Add Food button
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: AddFoodButton(
-                onPressed: () {
-                  // Add food functionality
-                },
-              ),
-            ),
-          ],
+              // Calendar overlay that slides in from bottom
+              Positioned(left: 0, right: 0, bottom: 0, child: _buildCalendar()),
+            ],
+          ),
         ),
       ),
     );

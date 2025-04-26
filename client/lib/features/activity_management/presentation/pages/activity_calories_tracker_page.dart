@@ -89,29 +89,57 @@ class _ActivityCaloriesTrackerContentState
               return _buildLoader();
             }
 
-            return SingleChildScrollView(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 16.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SizedBox(height: 16.h),
-                    ActivityHeader(
-                      name: 'Calories',
-                      onTrack: 'On Track',
-                      onBackPressed: () {
-                        Navigator.of(context).pop();
-                      },
-                    ),
-                    SizedBox(height: 24.h),
-                    _buildCaloriesSummary(provider.totalCaloriesBurned),
-                    SizedBox(height: 24.h),
-                    const CaloriesChartWidget(),
-                    SizedBox(height: 24.h),
-                    _buildActivitiesSection(provider.activities),
-                  ],
+            return Column(
+              children: [
+                // Fixed header section
+                Container(
+                  color: const Color(0xFFF0F3F8),
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 16.h,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ActivityHeader(
+                        name: 'Calories',
+                        onTrack:
+                            'On Track', // dart(TODO: change this according to the user's goal which is set)
+                        onBackPressed: () {
+                          Navigator.of(context).pop();
+                        },
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+                // Scrollable content
+                Expanded(
+                  child: SingleChildScrollView(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 16.w),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              SizedBox(height: 8.h),
+                              _buildCaloriesSummary(
+                                provider.totalCaloriesBurned,
+                              ),
+                              SizedBox(height: 24.h),
+                              const CaloriesChartWidget(),
+                              SizedBox(height: 24.h),
+                            ],
+                          ),
+                        ),
+                        _buildActivitiesSection(provider.activities),
+                        SizedBox(height: 16.h),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
             );
           },
         ),
@@ -202,63 +230,61 @@ class _ActivityCaloriesTrackerContentState
   }
 
   Widget _buildActivitiesSection(List activities) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Card(
-          margin: EdgeInsets.symmetric(horizontal: 16.w),
-          elevation: 1,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(16.r)),
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: const Color.fromARGB(255, 244, 244, 244),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.08), // Increased opacity
+            blurRadius: 10, // Increased blur
+            spreadRadius: 1, // Added spread
+            offset: const Offset(0, 3), // Slightly increased offset
           ),
-          color: Colors.white,
-          child: Container(
-            width: double.infinity,
-            constraints: BoxConstraints(minHeight: 200.h),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child: Text(
-                    'Activities',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.black,
-                    ),
-                  ),
-                ),
-                Padding(
-                  padding: EdgeInsets.all(16.w),
-                  child:
-                      activities.isEmpty
-                          ? Center(
-                            child: Text(
-                              "No activities found",
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16.sp,
-                                color: Colors.grey,
-                              ),
-                            ),
-                          )
-                          : Column(
-                            children:
-                                activities.map<Widget>((activity) {
-                                  return Column(
-                                    children: [
-                                      ActivityItemWidget(activity: activity),
-                                      SizedBox(height: 12.h),
-                                    ],
-                                  );
-                                }).toList(),
-                          ),
-                ),
-              ],
+        ],
+        borderRadius: BorderRadius.circular(8), // Added subtle rounded corners
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+            child: Text(
+              'Activities',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.black,
+              ),
             ),
           ),
-        ),
-      ],
+          Divider(height: 1, thickness: 1, color: const Color(0xFFEEEEEE)),
+          activities.isEmpty
+              ? Container(
+                alignment: Alignment.center,
+                padding: EdgeInsets.symmetric(vertical: 40.h),
+                child: Text(
+                  "No activities found",
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16.sp,
+                    color: Colors.grey,
+                  ),
+                ),
+              )
+              : Padding(
+                padding: EdgeInsets.all(16.w),
+                child: ListView.separated(
+                  physics: const NeverScrollableScrollPhysics(),
+                  shrinkWrap: true,
+                  itemCount: activities.length,
+                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                  itemBuilder: (context, index) {
+                    return ActivityItemWidget(activity: activities[index]);
+                  },
+                ),
+              ),
+        ],
+      ),
     );
   }
 }
