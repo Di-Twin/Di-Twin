@@ -119,9 +119,8 @@ class _ActivityStepsContent extends ConsumerStatefulWidget {
   final VoidCallback showMonthSelectionDrawer;
 
   const _ActivityStepsContent({
-    Key? key,
     required this.showMonthSelectionDrawer,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<_ActivityStepsContent> createState() => _ActivityStepsContentState();

@@ -16,7 +16,7 @@ import 'package:client/core/network/api_client.dart';
 import 'package:client/core/network/network_info.dart';
 
 class ActivityCaloriesTrackerPage extends StatelessWidget {
-  const ActivityCaloriesTrackerPage({Key? key}) : super(key: key);
+  const ActivityCaloriesTrackerPage({super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -2,7 +2,6 @@ import 'package:client/features/food_management/presentation/widgets/custom_date
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_progress_bars.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_legend.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_metrics_card.dart';

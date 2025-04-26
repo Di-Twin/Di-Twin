@@ -17,7 +17,7 @@ import '../widgets/animated_activity_block.dart';
 import '../widgets/decorative_block.dart';
 
 class ActivityStatsPage extends StatelessWidget {
-  const ActivityStatsPage({Key? key}) : super(key: key);
+  const ActivityStatsPage({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +44,7 @@ class ActivityStatsPage extends StatelessWidget {
 }
 
 class _ActivityStatsContent extends StatefulWidget {
-  const _ActivityStatsContent({Key? key}) : super(key: key);
+  const _ActivityStatsContent();
 
   @override
   State<_ActivityStatsContent> createState() => _ActivityStatsContentState();
@@ -270,18 +270,18 @@ class _ActivityStatsContentState extends State<_ActivityStatsContent> with Ticke
                     value: activity.value,
                     color: activity.color,
                     controller: _controllers[activity.name]!,
-                    left: position['left'] as double?,
-                    right: position['right'] as double?,
-                    top: position['top'] as double? ?? 0.0,
-                    targetTop: position['targetTop'] as double? ?? 0.0,
-                    width: position['width'] as double? ?? 100.0,
-                    height: position['height'] as double? ?? 100.0,
-                    rotation: position['rotation'] as double? ?? 0.0,
+                    left: position['left'],
+                    right: position['right'],
+                    top: position['top'] ?? 0.0,
+                    targetTop: position['targetTop'] ?? 0.0,
+                    width: position['width'] ?? 100.0,
+                    height: position['height'] ?? 100.0,
+                    rotation: position['rotation'] ?? 0.0,
                   );
                 } else {
                   return const SizedBox.shrink();
                 }
-              }).toList(),
+              }),
             ],
           );
         },

@@ -5,9 +5,9 @@ class AISuggestionCard extends StatelessWidget {
   final VoidCallback onViewSuggestion;
   
   const AISuggestionCard({
-    Key? key,
+    super.key,
     required this.onViewSuggestion,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

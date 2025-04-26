@@ -15,7 +15,7 @@ class AnimatedActivityBlock extends StatelessWidget {
   final double rotation;
   
   const AnimatedActivityBlock({
-    Key? key,
+    super.key,
     required this.activity,
     required this.value,
     required this.color,
@@ -27,7 +27,7 @@ class AnimatedActivityBlock extends StatelessWidget {
     required this.width,
     required this.height,
     this.rotation = 0.0,
-  }) : super(key: key);
+  });
   
   @override
   Widget build(BuildContext context) {

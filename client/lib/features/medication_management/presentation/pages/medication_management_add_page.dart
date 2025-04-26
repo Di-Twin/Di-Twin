@@ -1,4 +1,4 @@
-import 'package:client/features/medication_management/medication_management_add_step2.dart';
+import 'package:client/features/medication_management/presentation/pages/add_medication_page.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';

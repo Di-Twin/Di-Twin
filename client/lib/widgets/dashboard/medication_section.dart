@@ -1,5 +1,5 @@
-import 'package:client/features/medication_management/medication_management_add.dart';
-import 'package:client/features/medication_management/medication_management_screen.dart';
+import 'package:client/features/medication_management/presentation/pages/medication_management_add_page.dart';
+import 'package:client/features/medication_management/presentation/pages/medication_management_day.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -27,7 +27,7 @@ class MedicationSection extends StatelessWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => MedicationsScreen()),
+                  MaterialPageRoute(builder: (context) => MedicationsManagementDay()),
                 );
               },
               child: Text(

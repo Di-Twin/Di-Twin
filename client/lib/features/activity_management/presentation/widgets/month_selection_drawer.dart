@@ -8,11 +8,11 @@ class MonthSelectionDrawer extends StatefulWidget {
   final AnimationController drawerAnimationController;
 
   const MonthSelectionDrawer({
-    Key? key,
+    super.key,
     required this.selectedMonth,
     required this.onMonthSelected,
     required this.drawerAnimationController,
-  }) : super(key: key);
+  });
 
   @override
   State<MonthSelectionDrawer> createState() => _MonthSelectionDrawerState();
@@ -43,7 +43,7 @@ class _MonthSelectionDrawerState extends State<MonthSelectionDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    final Animation<Offset> _drawerSlideAnimation = Tween<Offset>(
+    final Animation<Offset> drawerSlideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
     ).animate(
@@ -57,7 +57,7 @@ class _MonthSelectionDrawerState extends State<MonthSelectionDrawer> {
     final double drawerHeight = MediaQuery.of(context).size.height * 0.6;
 
     return SlideTransition(
-      position: _drawerSlideAnimation,
+      position: drawerSlideAnimation,
       child: Container(
         height: drawerHeight,
         decoration: BoxDecoration(

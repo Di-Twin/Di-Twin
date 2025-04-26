@@ -15,7 +15,7 @@ class ManualEntryDrawer extends StatelessWidget {
   final bool isAddingActivity;
 
   const ManualEntryDrawer({
-    Key? key,
+    super.key,
     required this.currentStep,
     required this.selectedActivityType,
     required this.activityDuration,
@@ -24,7 +24,7 @@ class ManualEntryDrawer extends StatelessWidget {
     required this.onDurationChanged,
     required this.onAddActivity,
     required this.isAddingActivity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

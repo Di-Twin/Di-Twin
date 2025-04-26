@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:client/data/providers/food_management_provider.dart';
-import 'package:client/features/food_management/presentation/widgets/food_item.dart';
-import 'package:client/features/food_management/presentation/widgets/empty_time_period_state.dart';
+import 'package:provider/provider.dart';
+import '../../../../data/providers/food_management_provider.dart';
+import '../providers/daily_food_provider.dart';
+import '../../domain/entities/meal_item.dart';
+import 'empty_time_period_state.dart';
+import 'meal_type_section.dart';
 
 class TimePeriodSection extends StatelessWidget {
   final Map<String, dynamic> timePeriod;
@@ -23,220 +26,135 @@ class TimePeriodSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Filter foods that belong to this time period
-    List<Map<String, dynamic>> periodFoods =
-        foodProvider.getFoodsForTimePeriod(mealData, timePeriod);
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context);
+    final isCurrentTimePeriod = timePeriod['name'] == currentTimePeriod;
 
-    // Calculate total calories for this period
-    int totalCalories = 0;
-    for (var food in periodFoods) {
-      totalCalories += food['calories'] as int;
-    }
+    // Get meals for this time period
+    final mealsByTimePeriod =
+        dailyFoodProvider.dailyFood != null
+            ? dailyFoodProvider.getMealsByTimePeriod(timePeriod['name'])
+            : <String, List<MealItem>>{};
 
-    // Check if this is the current time period
-    bool isCurrentTimePeriod = timePeriod['name'] == currentTimePeriod;
+    final totalCalories =
+        dailyFoodProvider.dailyFood != null
+            ? dailyFoodProvider
+                .getTotalCaloriesForTimePeriod(timePeriod['name'])
+                .toInt()
+            : 0;
+
+    final bool hasMeals = mealsByTimePeriod.isNotEmpty;
 
     return Container(
       margin: EdgeInsets.only(bottom: 24.h),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16.r),
-        border: Border.all(
-          color: isCurrentTimePeriod ? timePeriod['color'] : Color(0xFFE2E8F0),
-          width: isCurrentTimePeriod ? 2.0 : 1.0,
-        ),
-        boxShadow:
-            isCurrentTimePeriod
-                ? [
-                  BoxShadow(
-                    color: (timePeriod['color'] as Color).withOpacity(0.2),
-                    blurRadius: 8,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-                : null,
-      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Time period header
-          Container(
-            decoration: BoxDecoration(
-              color: timePeriod['color'].withOpacity(0.1),
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(16.r),
-                topRight: Radius.circular(16.r),
+          Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.r),
+                decoration: BoxDecoration(
+                  color: timePeriod['color'].withOpacity(0.2),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  timePeriod['icon'],
+                  color: timePeriod['color'],
+                  size: 20.sp,
+                ),
               ),
-            ),
-            child: Padding(
-              padding: EdgeInsets.all(16.r),
-              child: Row(
-                children: [
-                  // Time period icon
-                  Container(
-                    width: 48.w,
-                    height: 48.w,
-                    decoration: BoxDecoration(
-                      color: timePeriod['color'].withOpacity(0.2),
-                      borderRadius: BorderRadius.circular(12.r),
-                    ),
-                    child: Icon(
-                      timePeriod['icon'] as IconData,
-                      color: timePeriod['color'] as Color,
-                      size: 24.sp,
+              SizedBox(width: 12.w),
+              Text(
+                timePeriod['name'],
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const Spacer(),
+              if (totalCalories > 0)
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 10.w,
+                    vertical: 4.h,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDF2FF),
+                    borderRadius: BorderRadius.circular(16.r),
+                  ),
+                  child: Text(
+                    '$totalCalories cal',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF0F67FE),
                     ),
                   ),
-
-                  SizedBox(width: 12.w),
-
-                  // Time period info
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          timePeriod['name'] as String,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1E293B),
-                          ),
-                        ),
-
-                        SizedBox(height: 4.h),
-
-                        Row(
-                          children: [
-                            Text(
-                              '$totalCalories calories',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Container(
-                              width: 4.w,
-                              height: 4.h,
-                              decoration: BoxDecoration(
-                                color: Color(0xFF64748B),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            SizedBox(width: 8.w),
-                            Text(
-                              '${periodFoods.length} items',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                color: Color(0xFF64748B),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // Current time indicator
-                  if (isCurrentTimePeriod)
-                    Container(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10.w,
-                        vertical: 6.h,
-                      ),
-                      decoration: BoxDecoration(
-                        color: timePeriod['color'].withOpacity(0.2),
-                        borderRadius: BorderRadius.circular(12.r),
-                      ),
-                      child: Text(
-                        'Now',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12.sp,
-                          fontWeight: FontWeight.bold,
-                          color: timePeriod['color'] as Color,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
+          SizedBox(height: 16.h),
 
-          // Food items or empty state
-          if (periodFoods.isEmpty)
-            EmptyTimePeriodState(timePeriod: timePeriod)
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: periodFoods.length,
-              separatorBuilder: (context, index) => Divider(
-                color: Color(0xFFE2E8F0),
-                height: 1,
-                indent: 20.r,
-                endIndent: 20.r,
-              ),
-              itemBuilder: (context, index) {
-                final food = periodFoods[index];
-                return StatefulBuilder(
-                  builder: (context, setState) {
-                    // Local state for expanded status
-                    bool isExpanded = false;
-                    
-                    return FoodItem(
-                      food: food,
-                      index: index,
-                      isSmallScreen: MediaQuery.of(context).size.width < 360,
-                      isExpanded: isExpanded,
-                      onToggleExpand: (idx) {
-                        setState(() {
-                          isExpanded = !isExpanded;
-                        });
-                      },
-                      onEdit: (food) {
-                        // Call the provider's edit method
-                        // foodProvider.editFood(food);
-                      },
-                      onDelete: (food) {
-                        // Call the provider's delete method
-                        // foodProvider.deleteFood(food);
-                      },
-                    );
-                  }
-                );
-              },
-            ),
-
-          // Single full-width add button
-          Padding(
+          // Time period content
+          Container(
             padding: EdgeInsets.all(16.r),
-            child: SizedBox(
-              width: double.infinity,
-              height: 48.h,
-              child: ElevatedButton.icon(
-                onPressed:
-                    () => showAddFoodBottomSheet(
-                      timePeriod['name'].toString().toLowerCase(),
-                    ),
-                icon: Icon(Icons.add, size: 18.sp),
-                label: Text(
-                  'Add ${timePeriod['name']} Food',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16.sp,
-                    fontWeight: FontWeight.w600,
-                  ),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16.r),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0x0A000000),
+                  blurRadius: 8.r,
+                  offset: const Offset(0, 2),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: timePeriod['color'] as Color,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.symmetric(vertical: 12.h),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                ),
-              ),
+              ],
             ),
+            child:
+                hasMeals
+                    ? Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children:
+                          mealsByTimePeriod.entries.map((entry) {
+                            final mealType = entry.key;
+                            final mealItems = entry.value;
+
+                            // Convert MealItems to a format MealTypeSection can use
+                            final foods =
+                                mealItems.map((item) {
+                                  // Create a map with default values in case properties don't exist
+                                  return {
+                                    'name':
+                                        item.toString(), // Use toString as fallback
+                                    'calories': 0,
+                                    'protein': 0,
+                                    'carbs': 0,
+                                    'fat': 0,
+                                    'time': '12:00',
+                                    'weight': 0,
+                                    'color': Colors.blue.shade200,
+                                  };
+                                }).toList();
+
+                            return MealTypeSection(
+                              title: mealType,
+                              foods: foods,
+                              color: Colors.blue,
+                              icon: Icons.restaurant,
+                              isSmallScreen:
+                                  MediaQuery.of(context).size.width < 380,
+                              expandedFoodIndex: null,
+                              onToggleExpand: (_) {},
+                              onEdit: (_) {},
+                              onDelete: (_) {},
+                            );
+                          }).toList(),
+                    )
+                    : EmptyTimePeriodState(
+                      timePeriod: timePeriod['name'],
+                      onAddFood: () => showAddFoodBottomSheet('custom'),
+                    ),
           ),
         ],
       ),

@@ -8,11 +8,11 @@ class WeeklyProgressChart extends StatelessWidget {
   final Function(int) onWeekChanged;
 
   const WeeklyProgressChart({
-    Key? key,
+    super.key,
     required this.weeklyProgress,
     required this.selectedWeek,
     required this.onWeekChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -66,7 +66,7 @@ class WeeklyProgressChart extends StatelessWidget {
                 ),
                 SizedBox(width: 8.w),
                 Text(
-                  'Week ${selectedWeek}',
+                  'Week $selectedWeek',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 16.sp,
                     fontWeight: FontWeight.w500,

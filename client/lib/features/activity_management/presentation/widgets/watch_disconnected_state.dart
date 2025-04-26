@@ -6,9 +6,9 @@ class WatchDisconnectedState extends StatelessWidget {
   final VoidCallback onAddActivity;
 
   const WatchDisconnectedState({
-    Key? key,
+    super.key,
     required this.onAddActivity,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

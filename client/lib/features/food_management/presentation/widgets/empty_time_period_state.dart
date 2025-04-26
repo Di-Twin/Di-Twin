@@ -3,54 +3,57 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EmptyTimePeriodState extends StatelessWidget {
-  final Map<String, dynamic> timePeriod;
+  final String timePeriod;
+  final VoidCallback onAddFood;
 
   const EmptyTimePeriodState({
-    Key? key,
+    super.key,
     required this.timePeriod,
-  }) : super(key: key);
+    required this.onAddFood,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(vertical: 24.h, horizontal: 16.w),
+      padding: EdgeInsets.symmetric(vertical: 24.h),
       child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // Empty state illustration
-          Container(
-            width: 80.w,
-            height: 80.h,
-            decoration: BoxDecoration(
-              color: timePeriod['color'].withOpacity(0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              Icons.restaurant,
-              size: 40.sp,
-              color: timePeriod['color'] as Color,
-            ),
+          Icon(
+            Icons.restaurant,
+            size: 48.sp,
+            color: const Color(0xFFCBD5E1),
           ),
-          
           SizedBox(height: 16.h),
-          
-          // Empty state text
           Text(
-            'No ${timePeriod['name']} foods yet',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
-            ),
-          ),
-          
-          SizedBox(height: 8.h),
-          
-          Text(
-            'Add your ${timePeriod['name'].toString().toLowerCase()} foods to track your nutrition',
-            textAlign: TextAlign.center,
+            'No meals recorded for $timePeriod',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14.sp,
-              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 16.h),
+          ElevatedButton(
+            onPressed: onAddFood,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF0F67FE),
+              foregroundColor: Colors.white,
+              padding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 10.h,
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'Add Food',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],
