@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:client/features/food_management/domain/entities/food_item.dart';
 import 'package:client/features/food_management/presentation/widgets/food_grid_item.dart';
 import 'package:client/features/food_management/presentation/widgets/sugar_spike_widget.dart';
 import 'package:client/features/food_management/presentation/widgets/food_impact_calculator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/food_management_provider.dart';
+import 'package:intl/intl.dart';
 
 class AddFoodBottomSheet extends ConsumerStatefulWidget {
   final String mealType;
@@ -83,6 +85,9 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
       _isLoadingImpact = true;
     });
 
+    // Add mealType to the food data
+    _selectedFood!['mealType'] = widget.mealType;
+
     // Calculate food impact
     final impactData = await FoodImpactCalculator.calculateImpact(food, ref);
 
@@ -105,29 +110,46 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
       
       // Create food data with current date and meal type
       final foodData = Map<String, dynamic>.from(_selectedFood!);
-      foodData['date'] = DateTime.now();
+      foodData['date'] = DateTime.now().toIso8601String();
       foodData['mealType'] = widget.mealType;
-      foodData['time'] = TimeOfDay.now().format(context);
+      foodData['time'] = DateFormat('HH:mm').format(DateTime.now());
+      foodData['foodName'] = foodData['name']; // Ensure name is mapped correctly
 
-      // Add food item - simplify by assuming it returns a boolean
-      try {
-        await foodProvider.addFoodItem(widget.mealType, foodData);
-        // If we get here without an exception, consider it a success
-        Navigator.pop(context, true);
-      } catch (e) {
-        // Show error
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to add food: $e'),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-      }
+      // Convert to FoodItem object
+      final FoodItem foodItem = FoodItem(
+        id: DateTime.now().millisecondsSinceEpoch.toString(),
+        name: foodData['name'],
+        calories: foodData['calories'] ?? 0,
+        weight: foodData['weight'] ?? '0g',  // Add the missing weight parameter
+        protein: foodData['protein'] ?? 0,
+        carbs: foodData['carbs'] ?? 0,
+        fat: foodData['fat'] ?? 0,
+        mealType: widget.mealType,
+        time: foodData['time'] ?? '',
+        date: DateTime.now(),
+        color: foodData['color'] ?? Colors.blue,
+      );
+
+      // Add food item to the API
+      await foodProvider.addFoodItem(widget.mealType, foodData);
+      
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${foodData['name']} added to ${widget.mealType}'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      
+      // Close the bottom sheet
+      Navigator.pop(context, true);
     } catch (e) {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('An error occurred: $e'),
+          content: Text('Failed to add food: $e'),
+          backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -136,6 +158,102 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
         _isAddingFood = false;
       });
     }
+  }
+
+  // Add custom food
+  void _showAddCustomFoodDialog() {
+    final nameController = TextEditingController();
+    final caloriesController = TextEditingController();
+    final proteinController = TextEditingController();
+    final carbsController = TextEditingController();
+    final fatController = TextEditingController();
+
+    // Create a map to store the custom food data
+    final customFood = <String, dynamic>{};
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Add Custom Food'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: InputDecoration(labelText: 'Food Name*'),
+              ),
+              TextField(
+                controller: caloriesController,
+                decoration: InputDecoration(labelText: 'Calories*'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: TextEditingController(),
+                decoration: InputDecoration(labelText: 'Weight (g)*'),
+                keyboardType: TextInputType.number,
+                onChanged: (value) {
+                  // Store the weight in the form
+                  if (value.isNotEmpty) {
+                    // Add 'g' suffix if the user doesn't include it
+                    final weightText = value.toLowerCase().endsWith('g') ? value : '${value}g';
+                    customFood['weight'] = weightText;
+                  }
+                },
+              ),
+              TextField(
+                controller: proteinController,
+                decoration: InputDecoration(labelText: 'Protein (g)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: carbsController,
+                decoration: InputDecoration(labelText: 'Carbs (g)'),
+                keyboardType: TextInputType.number,
+              ),
+              TextField(
+                controller: fatController,
+                decoration: InputDecoration(labelText: 'Fat (g)'),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              // Validate inputs
+              if (nameController.text.isEmpty || caloriesController.text.isEmpty) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Name and calories are required')),
+                );
+                return;
+              }
+
+              // Create custom food
+              final customFood = {
+                'name': nameController.text,
+                'calories': int.tryParse(caloriesController.text) ?? 0,
+                'weight': '0g', // Default weight
+                'protein': double.tryParse(proteinController.text) ?? 0,
+                'carbs': double.tryParse(carbsController.text) ?? 0,
+                'fat': double.tryParse(fatController.text) ?? 0,
+                'color': Colors.blue,
+              };
+
+              // Close dialog and select the custom food
+              Navigator.pop(context);
+              _selectFood(customFood);
+            },
+            child: Text('Add'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -260,16 +378,30 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Food grid header
+          // Food grid header with custom food button
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.r),
-            child: Text(
-              _isSearching ? 'Search Results' : 'Popular Foods',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18.sp,
-                fontWeight: FontWeight.bold,
-                color: const Color(0xFF1E293B),
-              ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  _isSearching ? 'Search Results' : 'Popular Foods',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: _showAddCustomFoodDialog,
+                  icon: Icon(Icons.add, size: 18.sp),
+                  label: Text('Custom Food'),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Color(0xFF0F67FE),
+                    padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
+                  ),
+                ),
+              ],
             ),
           ),
 

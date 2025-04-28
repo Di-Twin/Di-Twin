@@ -8,10 +8,10 @@ class DatePicker extends StatefulWidget {
   final Function(DateTime) onDateSelected;
 
   const DatePicker({
-    Key? key,
+    super.key,
     required this.selectedDate,
     required this.onDateSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<DatePicker> createState() => _DatePickerDrawerState();

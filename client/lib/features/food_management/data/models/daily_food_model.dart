@@ -2,34 +2,51 @@ import '../../domain/entities/daily_food.dart';
 import '../../domain/entities/meal_item.dart';
 
 class DailyFoodModel extends DailyFood {
-  const DailyFoodModel({
-    required super.id,
-    required super.sessionTime,
-    required super.totalCalories,
-    required super.totalProtein,
-    required super.totalCarbs,
-    required super.totalFats,
-    required super.scores,
-    required super.meals,
-  });
+  DailyFoodModel({
+    required String id,
+    required DateTime sessionTime,
+    required double totalCalories,
+    required double totalProtein,
+    required double totalCarbs,
+    required double totalFats,
+    required Map<String, double> scores,
+    required Map<String, List<MealItem>> meals,
+  }) : super(
+          id: id,
+          sessionTime: sessionTime,
+          totalCalories: totalCalories,
+          totalProtein: totalProtein,
+          totalCarbs: totalCarbs,
+          totalFats: totalFats,
+          scores: scores,
+          meals: meals,
+        );
 
   factory DailyFoodModel.fromJson(Map<String, dynamic> json) {
-    // Parse meals
-    Map<String, List<MealItem>> meals = {};
-    
-    if (json['meals'] != null) {
-      json['meals'].forEach((mealType, mealItems) {
-        meals[mealType] = List<MealItem>.from(
-          mealItems.map((item) => MealItemModel.fromJson(item)),
-        );
-      });
-    }
-
     // Parse scores
     Map<String, double> scores = {};
     if (json['scores'] != null) {
       json['scores'].forEach((key, value) {
         scores[key] = value.toDouble();
+      });
+    }
+
+    // Parse meals
+    Map<String, List<MealItem>> meals = {};
+    if (json['meals'] != null) {
+      json['meals'].forEach((mealType, mealItems) {
+        if (mealItems is List) {
+          meals[mealType] = mealItems.map((item) {
+            return MealItem(
+              foodName: item['foodName'] ?? 'Unknown Food',
+              calories: (item['calories'] ?? 0).toDouble(),
+              time: item['time'] != null 
+                  ? DateTime.parse(item['time']) 
+                  : DateTime.now(),
+              imageUrl: item['imageUrl'],
+            );
+          }).toList();
+        }
       });
     }
 

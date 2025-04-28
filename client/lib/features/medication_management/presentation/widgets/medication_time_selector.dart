@@ -9,11 +9,11 @@ class MedicationTimeSelector extends StatelessWidget {
   final Function(String) onTimeSelected;
 
   const MedicationTimeSelector({
-    Key? key,
+    super.key,
     required this.index,
     required this.timeValue,
     required this.onTimeSelected,
-  }) : super(key: key);
+  });
 
   String _getTimeLabelForIndex(int index) {
     switch (index) {

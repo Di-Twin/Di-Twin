@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import '../../domain/entities/daily_food.dart';
 import '../../domain/entities/meal_item.dart';
 import '../../domain/usecases/get_daily_food_usecase.dart';
@@ -67,13 +68,17 @@ class DailyFoodProvider extends ChangeNotifier {
     return total;
   }
 
-  // Get daily food data
-  Future<void> getDailyFood(String date) async {
+  // Get daily food data for a specific date - directly from API, not from cache
+  Future<void> getDailyFood({String? date, bool forceRefresh = true}) async {
     _isLoading = true;
     _error = '';
     notifyListeners();
 
-    final result = await getDailyFoodUseCase(date);
+    // Use provided date or current date in YYYY-MM-DD format
+    final dateStr = date ?? DateFormat('yyyy-MM-dd').format(DateTime.now());
+    
+    // Always fetch fresh data from the API
+    final result = await getDailyFoodUseCase(dateStr);
     
     result.fold(
       (failure) {

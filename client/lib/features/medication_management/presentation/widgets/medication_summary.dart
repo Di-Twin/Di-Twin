@@ -18,7 +18,7 @@ class MedicationSummary extends StatelessWidget {
   final Color borderColor;
 
   const MedicationSummary({
-    Key? key,
+    super.key,
     required this.selectedMedication,
     required this.dosage,
     required this.frequency,
@@ -31,7 +31,7 @@ class MedicationSummary extends StatelessWidget {
     required this.textPrimaryColor,
     required this.textSecondaryColor,
     required this.borderColor,
-  }) : super(key: key);
+  });
 
   Widget _buildSummaryItem(String label, String value) {
     return Padding(

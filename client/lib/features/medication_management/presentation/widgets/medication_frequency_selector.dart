@@ -9,11 +9,11 @@ class MedicationFrequencySelector extends StatelessWidget {
   final Color primaryColor;
 
   const MedicationFrequencySelector({
-    Key? key,
+    super.key,
     required this.frequency,
     required this.onFrequencyChanged,
     required this.primaryColor,
-  }) : super(key: key);
+  });
 
   String _getFrequencyDescription(String frequency) {
     switch (frequency) {

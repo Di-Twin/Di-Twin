@@ -10,6 +10,7 @@ class CustomButton extends StatelessWidget {
   final double height;
   final double fontSize;
   final double iconSize;
+  final double bottomMargin;
 
   const CustomButton({
     super.key,
@@ -20,45 +21,45 @@ class CustomButton extends StatelessWidget {
     this.height = 40, // Default height
     this.fontSize = 18, // Default font size
     this.iconSize = 24, // Default icon size
+    this.bottomMargin = 25, // Default bottom margin
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: onPressed,
-          style: ElevatedButton.styleFrom(
-            minimumSize: Size(width.w, height.h),
-            backgroundColor: const Color(0xFF0F67FE),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                text,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: fontSize.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 5.w),
-              Image.asset(
-                iconPath,
-                height: iconSize.h,
-                width: iconSize.w,
-              ),
-            ],
+    // Use a Container instead of Column to avoid overflow
+    return Container(
+      margin: EdgeInsets.only(bottom: bottomMargin.h),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size(width.w, height.h),
+          backgroundColor: const Color(0xFF0F67FE),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12.r),
           ),
         ),
-        SizedBox(height: 25.h),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: fontSize.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 5.w),
+            Image.asset(
+              iconPath,
+              height: iconSize.h,
+              width: iconSize.w,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
