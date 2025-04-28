@@ -11,12 +11,16 @@ import 'package:intl/intl.dart';
 
 class AddFoodBottomSheet extends ConsumerStatefulWidget {
   final String mealType;
+  final String mealTitle; // Add this new parameter
   final List<Map<String, dynamic>> popularFoods;
+  final Function(FoodItem)? onFoodAdded;
 
   const AddFoodBottomSheet({
     super.key,
     required this.mealType,
+    this.mealTitle = '', // Default value
     required this.popularFoods,
+    this.onFoodAdded,
   });
 
   @override
@@ -120,13 +124,13 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         name: foodData['name'],
         calories: foodData['calories'] ?? 0,
-        weight: foodData['weight'] ?? '0g',  // Add the missing weight parameter
+        weight: foodData['weight'] ?? '0g',
         protein: foodData['protein'] ?? 0,
         carbs: foodData['carbs'] ?? 0,
         fat: foodData['fat'] ?? 0,
         mealType: widget.mealType,
         time: foodData['time'] ?? '',
-        date: DateTime.now(),
+        date: DateTime.now().toString().substring(0, 10), // Convert DateTime to String
         color: foodData['color'] ?? Colors.blue,
       );
 
@@ -144,6 +148,10 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
       
       // Close the bottom sheet
       Navigator.pop(context, true);
+      // Call the callback if provided
+      if (widget.onFoodAdded != null) {
+        widget.onFoodAdded!(foodItem);
+      }
     } catch (e) {
       // Show error
       ScaffoldMessenger.of(context).showSnackBar(
@@ -290,7 +298,7 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Add to ${widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
+                  'Add to ${widget.mealTitle.isNotEmpty ? widget.mealTitle : widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 20.sp,
                     fontWeight: FontWeight.bold,
@@ -359,7 +367,7 @@ class _AddFoodBottomSheetState extends ConsumerState<AddFoodBottomSheet> {
                 child: _isAddingFood
                     ? CircularProgressIndicator(color: Colors.white)
                     : Text(
-                        'Add to ${widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
+                        'Add to ${widget.mealTitle.isNotEmpty ? widget.mealTitle : widget.mealType.substring(0, 1).toUpperCase() + widget.mealType.substring(1)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16.sp,
                           fontWeight: FontWeight.w600,

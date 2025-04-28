@@ -3,24 +3,15 @@ import '../../domain/entities/meal_item.dart';
 
 class DailyFoodModel extends DailyFood {
   DailyFoodModel({
-    required String id,
-    required DateTime sessionTime,
-    required double totalCalories,
-    required double totalProtein,
-    required double totalCarbs,
-    required double totalFats,
-    required Map<String, double> scores,
-    required Map<String, List<MealItem>> meals,
-  }) : super(
-          id: id,
-          sessionTime: sessionTime,
-          totalCalories: totalCalories,
-          totalProtein: totalProtein,
-          totalCarbs: totalCarbs,
-          totalFats: totalFats,
-          scores: scores,
-          meals: meals,
-        );
+    required super.id,
+    required super.sessionTime,
+    required super.totalCalories,
+    required super.totalProtein,
+    required super.totalCarbs,
+    required super.totalFats,
+    required super.scores,
+    required super.meals,
+  });
 
   factory DailyFoodModel.fromJson(Map<String, dynamic> json) {
     // Parse scores

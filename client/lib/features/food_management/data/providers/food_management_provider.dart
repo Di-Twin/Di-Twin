@@ -13,7 +13,6 @@ import 'package:client/features/food_management/data/datasources/food_local_data
 import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 import 'package:client/features/food_management/domain/entities/food_item.dart';
-import 'package:client/features/food_management/domain/usecases/add_food_item_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/delete_food_item_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/get_daily_food_data_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/get_food_score_usecase.dart';

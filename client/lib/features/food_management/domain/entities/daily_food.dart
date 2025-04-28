@@ -1,7 +1,6 @@
-import 'package:equatable/equatable.dart';
 import 'meal_item.dart';
 
-class DailyFood extends Equatable {
+class DailyFood {
   final String id;
   final DateTime sessionTime;
   final double totalCalories;
@@ -11,7 +10,7 @@ class DailyFood extends Equatable {
   final Map<String, double> scores;
   final Map<String, List<MealItem>> meals;
 
-  const DailyFood({
+  DailyFood({
     required this.id,
     required this.sessionTime,
     required this.totalCalories,
@@ -21,16 +20,4 @@ class DailyFood extends Equatable {
     required this.scores,
     required this.meals,
   });
-
-  @override
-  List<Object?> get props => [
-    id,
-    sessionTime,
-    totalCalories,
-    totalProtein,
-    totalCarbs,
-    totalFats,
-    scores,
-    meals,
-  ];
 }

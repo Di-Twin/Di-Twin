@@ -4,12 +4,12 @@ import 'dart:ui';
 import '../../domain/entities/food_item.dart';
 
 class FoodItemModel extends FoodItem {
-  FoodItemModel({
+  const FoodItemModel({
     required super.id,
     required super.name,
     required super.calories,
     required super.weight,
-    required super.date,
+    required super.date, // Changed from DateTime to String
     required super.time,
     required super.mealType,
     required super.protein,
@@ -24,7 +24,7 @@ class FoodItemModel extends FoodItem {
       name: json['name'],
       calories: json['calories'],
       weight: json['weight'],
-      date: DateTime.parse(json['date']),
+      date: json['date'],
       time: json['time'],
       mealType: json['mealType'],
       protein: json['protein'],
@@ -40,7 +40,7 @@ class FoodItemModel extends FoodItem {
       'name': name,
       'calories': calories,
       'weight': weight,
-      'date': date.toIso8601String(),
+      'date': date,
       'time': time,
       'mealType': mealType,
       'protein': protein,

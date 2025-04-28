@@ -71,6 +71,7 @@ dependencies:
   internet_connection_checker: ^3.0.1
   data_connection_checker_tv: ^0.3.5-nullsafety
   table_calendar: ^3.0.9
+  shimmer: ^3.0.0
 
 dev_dependencies:
   flutter_test:

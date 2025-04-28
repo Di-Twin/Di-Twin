@@ -21,95 +21,95 @@ import 'package:client/features/auth/domain/usecases/delete_user_account_usecase
 
 // Data Source provider - Make it a singleton to ensure the same instance is used throughout the app
 final authRemoteDataSourceProvider = Provider<AuthRemoteDataSource>((ref) {
-  return AuthRemoteDataSourceImpl();
+ return AuthRemoteDataSourceImpl();
 });
 
 // Repository provider
 final authRepositoryProvider = Provider<AuthRepository>((ref) {
-  final remoteDataSource = ref.read(authRemoteDataSourceProvider);
-  return AuthRepositoryImpl(remoteDataSource);
+ final remoteDataSource = ref.read(authRemoteDataSourceProvider);
+ return AuthRepositoryImpl(remoteDataSource);
 });
 
 // Use case providers
 final checkAuthStatusUseCaseProvider = Provider<CheckAuthStatusUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return CheckAuthStatusUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return CheckAuthStatusUseCase(repository);
 });
 
 final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return SignOutUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return SignOutUseCase(repository);
 });
 
 final initiateEmailSignupUseCaseProvider = Provider<InitiateEmailSignupUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return InitiateEmailSignupUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return InitiateEmailSignupUseCase(repository);
 });
 
 final completeEmailSignupUseCaseProvider = Provider<CompleteEmailSignupUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return CompleteEmailSignupUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return CompleteEmailSignupUseCase(repository);
 });
 
 final loginWithEmailUseCaseProvider = Provider<LoginWithEmailUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return LoginWithEmailUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return LoginWithEmailUseCase(repository);
 });
 
 final startUserRegistrationUseCaseProvider = Provider<StartUserRegistrationUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return StartUserRegistrationUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return StartUserRegistrationUseCase(repository);
 });
 
 final completeRegistrationUseCaseProvider = Provider<CompleteRegistrationUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return CompleteRegistrationUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return CompleteRegistrationUseCase(repository);
 });
 
 final signInUserUseCaseProvider = Provider<SignInUserUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return SignInUserUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return SignInUserUseCase(repository);
 });
 
 final resendOtpUseCaseProvider = Provider<ResendOtpUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return ResendOtpUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return ResendOtpUseCase(repository);
 });
 
 final getAccessTokenUseCaseProvider = Provider<GetAccessTokenUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return GetAccessTokenUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return GetAccessTokenUseCase(repository);
 });
 
 // Add the new use case providers to the existing file
 final oauthSignInUseCaseProvider = Provider<OAuthSignInUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return OAuthSignInUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return OAuthSignInUseCase(repository);
 });
 
 final forgotPasswordUseCaseProvider = Provider<ForgotPasswordUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return ForgotPasswordUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return ForgotPasswordUseCase(repository);
 });
 
 final resetPasswordUseCaseProvider = Provider<ResetPasswordUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return ResetPasswordUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return ResetPasswordUseCase(repository);
 });
 
 final getUserProfileUseCaseProvider = Provider<GetUserProfileUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return GetUserProfileUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return GetUserProfileUseCase(repository);
 });
 
 final updateUserProfileUseCaseProvider = Provider<UpdateUserProfileUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return UpdateUserProfileUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return UpdateUserProfileUseCase(repository);
 });
 
 final deleteUserAccountUseCaseProvider = Provider<DeleteUserAccountUseCase>((ref) {
-  final repository = ref.read(authRepositoryProvider);
-  return DeleteUserAccountUseCase(repository);
+ final repository = ref.read(authRepositoryProvider);
+ return DeleteUserAccountUseCase(repository);
 });
 
 // State providers for form data
@@ -131,8 +131,8 @@ final signupTokenProvider = StateProvider<String?>((ref) => null);
 
 // Authentication state
 final isAuthenticatedProvider = FutureProvider<bool>((ref) async {
-  final checkAuthStatusUseCase = ref.read(checkAuthStatusUseCaseProvider);
-  return checkAuthStatusUseCase.execute();
+ final checkAuthStatusUseCase = ref.read(checkAuthStatusUseCaseProvider);
+ return checkAuthStatusUseCase.execute();
 });
 
 // Auth service provider for settings page

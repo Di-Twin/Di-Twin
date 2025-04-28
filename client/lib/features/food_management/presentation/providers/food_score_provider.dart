@@ -44,10 +44,7 @@ class FoodScoreProvider extends ChangeNotifier {
   // Get current date in YYYY-MM-DD format if not provided
   final today = date ?? DateTime.now().toString().substring(0, 10);
   
-  // Assuming we need an access token - use a placeholder or get it from a secure storage
-  final accessToken = "placeholder-token"; // Replace with actual token retrieval
-  
-  final result = await getDailyFoodScoreUseCase(accessToken, today);
+  final result = await getDailyFoodScoreUseCase(today);
   
   result.fold(
     (failure) {

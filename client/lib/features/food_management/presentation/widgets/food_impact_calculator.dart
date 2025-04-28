@@ -1,38 +1,46 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'dart:math';
 
 class FoodImpactCalculator {
-  // Calculate the impact of a food on blood sugar
+  // Calculate the impact of a food item on blood sugar
   static Future<Map<String, dynamic>> calculateImpact(
     Map<String, dynamic> food,
     WidgetRef ref,
   ) async {
-    // Simulate a network delay for calculation
-    await Future.delayed(Duration(milliseconds: 800));
+    // Simulate a calculation delay
+    await Future.delayed(const Duration(milliseconds: 800));
     
-    // Extract nutritional values
-    final carbs = food['carbs'] as num? ?? 0;
-    final protein = food['protein'] as num? ?? 0;
-    final fat = food['fat'] as num? ?? 0;
+    // Extract food properties
+    final int calories = food['calories'] ?? 0;
+    final int carbs = food['carbs'] ?? 0;
+    final int protein = food['protein'] ?? 0;
+    final int fat = food['fat'] ?? 0;
     
-    // Calculate glycemic impact (simplified algorithm)
-    // Higher carbs = higher spike, protein and fat reduce the spike
-    double sugarSpike = carbs * 1.2;
-    sugarSpike -= protein * 0.5;
-    sugarSpike -= fat * 0.3;
+    // Calculate a sugar spike score based on carbs, protein, and fat
+    // This is a simplified model - in a real app, this would be more sophisticated
+    double sugarSpike = 0.0;
     
-    // Ensure spike is not negative
-    sugarSpike = max(0, sugarSpike);
+    // Carbs have the highest impact on blood sugar
+    sugarSpike += carbs * 1.0;
     
-    // Determine impact level
+    // Protein has a moderate impact
+    sugarSpike += protein * 0.5;
+    
+    // Fat has the lowest impact
+    sugarSpike += fat * 0.2;
+    
+    // Normalize the score to a 0-10 scale
+    sugarSpike = sugarSpike / 10;
+    if (sugarSpike > 10) sugarSpike = 10;
+    
+    // Determine impact level and color
     String impactLevel;
     Color impactColor;
     
-    if (sugarSpike < 5) {
+    if (sugarSpike < 3) {
       impactLevel = 'Low';
       impactColor = Colors.green;
-    } else if (sugarSpike < 15) {
+    } else if (sugarSpike < 7) {
       impactLevel = 'Moderate';
       impactColor = Colors.orange;
     } else {
@@ -40,7 +48,7 @@ class FoodImpactCalculator {
       impactColor = Colors.red;
     }
     
-    // Return impact data
+    // Return the impact data
     return {
       'sugarSpike': sugarSpike,
       'impactLevel': impactLevel,
