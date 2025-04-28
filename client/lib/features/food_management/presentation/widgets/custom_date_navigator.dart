@@ -11,13 +11,13 @@ class CustomDateNavigation extends StatefulWidget {
   final VoidCallback onNext;
 
   const CustomDateNavigation({
-    Key? key,
+    super.key,
     required this.selectedDate,
     required this.isCurrentDate,
     required this.onDateSelected,
     required this.onPrevious,
     required this.onNext,
-  }) : super(key: key);
+  });
 
   @override
   State<CustomDateNavigation> createState() => _CustomDateNavigationState();

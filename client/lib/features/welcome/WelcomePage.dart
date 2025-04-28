@@ -1,4 +1,4 @@
-import 'package:client/features/auth/signin.dart';
+import 'package:client/features/auth/presentation/pages/sign_in_page.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -121,7 +121,7 @@ class WelcomePage extends StatelessWidget {
                                     context,
                                     MaterialPageRoute(
                                       builder:
-                                          (context) => const SignInScreen(),
+                                          (context) => const SignInPage(),
                                     ),
                                   );
                                 },

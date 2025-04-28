@@ -1,4 +1,6 @@
 // lib/features/food_management/domain/entities/food_item.dart
+import 'package:flutter/material.dart'; // Add this import for Color
+
 import 'dart:ui';
 
 class FoodItem {

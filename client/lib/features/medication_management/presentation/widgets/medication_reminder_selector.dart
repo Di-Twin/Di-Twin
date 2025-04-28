@@ -13,7 +13,7 @@ class MedicationReminderSelector extends StatelessWidget {
   final Color cardColor;
 
   const MedicationReminderSelector({
-    Key? key,
+    super.key,
     required this.autoReminder,
     required this.onReminderChanged,
     required this.primaryColor,
@@ -21,7 +21,7 @@ class MedicationReminderSelector extends StatelessWidget {
     required this.textSecondaryColor,
     required this.borderColor,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

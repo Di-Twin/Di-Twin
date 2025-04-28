@@ -13,7 +13,7 @@ class MedicationDosageSelector extends StatelessWidget {
   final Color cardColor;
 
   const MedicationDosageSelector({
-    Key? key,
+    super.key,
     required this.dosage,
     required this.onDosageChanged,
     required this.primaryColor,
@@ -21,7 +21,7 @@ class MedicationDosageSelector extends StatelessWidget {
     required this.textSecondaryColor,
     required this.borderColor,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -8,10 +8,10 @@ import 'package:client/widgets/settings/contact_information_screen.dart';
 import 'package:client/widgets/settings/feedback_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:client/data/providers/auth_provider.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 // Add import for AvatarData at the top of the file
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
+import 'package:client/features/auth/presentation/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
@@ -525,7 +525,7 @@ Container(
                GestureDetector(
                  onTap: () async {
                    try {
-                     final authService = ref.read(authProvider);
+                     final authService = ref.read(authRemoteDataSourceProvider);
                      await authService.signOut();
                      
                      // Ensure context is still valid after async operation

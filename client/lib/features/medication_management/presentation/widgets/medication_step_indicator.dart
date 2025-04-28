@@ -8,12 +8,12 @@ class MedicationStepIndicator extends StatefulWidget {
   final Color borderColor;
 
   const MedicationStepIndicator({
-    Key? key,
+    super.key,
     required this.currentStep,
     required this.totalSteps,
     required this.primaryColor,
     required this.borderColor,
-  }) : super(key: key);
+  });
 
   @override
   State<MedicationStepIndicator> createState() => _MedicationStepIndicatorState();

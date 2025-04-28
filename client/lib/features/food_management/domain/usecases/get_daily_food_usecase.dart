@@ -1,7 +1,7 @@
+import '../repositories/daily_food_repository.dart';
 import 'package:dartz/dartz.dart';
 import '../../../../core/errors/failures.dart';
 import '../entities/daily_food.dart';
-import '../repositories/daily_food_repository.dart';
 
 class GetDailyFoodUseCase {
   final DailyFoodRepository repository;
