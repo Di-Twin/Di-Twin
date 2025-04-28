@@ -85,7 +85,7 @@ void main() async {
   );
 
   // Create network info
-  final networkInfo = NetworkInfoImpl(InternetConnectionChecker.createInstance());
+  final networkInfo = NetworkInfoImpl(connectionChecker: InternetConnectionChecker.createInstance());
 
   // Create daily food remote data source
   final dailyFoodRemoteDataSource = DailyFoodRemoteDataSourceImpl(apiClient: apiClient);
@@ -103,7 +103,10 @@ void main() async {
   final dailyFoodProvider = DailyFoodProvider(getDailyFoodUseCase: getDailyFoodUseCase);
 
   // Create food remote data source
-  final foodRemoteDataSource = FoodRemoteDataSourceImpl(apiClient: apiClient);
+  final foodRemoteDataSource = FoodRemoteDataSourceImpl(
+    apiClient: apiClient,
+    client: http.Client(),
+  );
 
   // Create food repository
   final foodRepository = FoodRepositoryImpl(

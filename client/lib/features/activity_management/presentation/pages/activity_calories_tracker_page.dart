@@ -34,7 +34,7 @@ class ActivityCaloriesTrackerPage extends StatelessWidget {
           httpClient: httpClient,
         );
 
-        final networkInfo = NetworkInfoImpl(connectionChecker);
+        final networkInfo = NetworkInfoImpl(connectionChecker: connectionChecker);
 
         final remoteDataSource = ActivityCaloriesRemoteDataSourceImpl(
           client: httpClient,

@@ -7,26 +7,29 @@ class FoodGridItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const FoodGridItem({
-    Key? key,
+    super.key,
     required this.food,
     required this.onTap,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    // Extract food properties with fallbacks
+    final String name = food['name'] ?? 'Unknown Food';
+    final int calories = food['calories'] ?? 0;
+    final Color color = food['color'] ?? Colors.blue;
+    
+    return GestureDetector(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(16.r),
       child: Container(
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16.r),
-          border: Border.all(color: Colors.grey[200]!),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withOpacity(0.05),
               blurRadius: 8,
-              offset: Offset(0, 2),
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -38,42 +41,43 @@ class FoodGridItem extends StatelessWidget {
               width: 48.w,
               height: 48.w,
               decoration: BoxDecoration(
-                color: food['color'] != null 
-                    ? (food['color'] as Color).withOpacity(0.2) 
-                    : Color(0xFFEDF2FF),
+                color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
               child: Icon(
-                _getFoodIcon(food['name']),
-                color: food['color'] ?? Color(0xFF0F67FE),
+                _getFoodIcon(name),
+                color: color,
                 size: 24.sp,
               ),
             ),
+            
             SizedBox(height: 8.h),
             
             // Food name
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 8.w),
               child: Text(
-                food['name'],
+                name,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF1E293B),
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF1E293B),
                 ),
-                textAlign: TextAlign.center,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.center,
               ),
             ),
+            
             SizedBox(height: 4.h),
             
             // Calories
             Text(
-              '${food['calories']} cal',
+              '$calories cal',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.sp,
-                color: Colors.grey[600],
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
               ),
             ),
           ],
@@ -81,7 +85,7 @@ class FoodGridItem extends StatelessWidget {
       ),
     );
   }
-
+  
   // Get icon based on food name
   IconData _getFoodIcon(String foodName) {
     final lowerCaseName = foodName.toLowerCase();
