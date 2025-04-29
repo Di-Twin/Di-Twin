@@ -85,7 +85,7 @@ class _ActivityStepsPageState extends ConsumerState<ActivityStepsPage>
             httpClient: httpClient,
           );
           final connectionChecker = InternetConnectionChecker.createInstance();
-          final networkInfo = NetworkInfoImpl(connectionChecker);
+          final networkInfo = NetworkInfoImpl(connectionChecker: connectionChecker);
           final remoteDataSource = StepActivityRemoteDataSourceImpl(
             client: httpClient,
             baseUrl: 'https://test-prod-f427.onrender.com',

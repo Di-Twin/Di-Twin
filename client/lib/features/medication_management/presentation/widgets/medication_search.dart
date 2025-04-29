@@ -7,10 +7,10 @@ class MedicationSearch extends StatefulWidget {
   final Function(String) onMedicationSelected;
 
   const MedicationSearch({
-    Key? key,
+    super.key,
     required this.selectedMedication,
     required this.onMedicationSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<MedicationSearch> createState() => _MedicationSearchState();

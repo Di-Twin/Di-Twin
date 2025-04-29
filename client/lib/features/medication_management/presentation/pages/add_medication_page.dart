@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:client/features/medication_management/data/providers/medication_service.dart';
 
 class AddMedicationPage extends StatefulWidget {
-  const AddMedicationPage({Key? key}) : super(key: key);
+  const AddMedicationPage({super.key});
 
   @override
   State<AddMedicationPage> createState() => _AddMedicationPageState();

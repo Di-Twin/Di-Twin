@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 import 'package:table_calendar/table_calendar.dart';
 
 class DatePicker extends StatefulWidget {
@@ -8,10 +7,10 @@ class DatePicker extends StatefulWidget {
   final Function(DateTime) onDateSelected;
 
   const DatePicker({
-    Key? key,
+    super.key,
     required this.selectedDate,
     required this.onDateSelected,
-  }) : super(key: key);
+  });
 
   @override
   State<DatePicker> createState() => _DatePickerDrawerState();

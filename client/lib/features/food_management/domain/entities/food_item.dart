@@ -1,12 +1,13 @@
 // lib/features/food_management/domain/entities/food_item.dart
 import 'dart:ui';
+import 'package:equatable/equatable.dart';
 
-class FoodItem {
+class FoodItem extends Equatable {
   final String id;
   final String name;
   final int calories;
   final String weight;
-  final DateTime date;
+  final String date; // Changed from DateTime to String
   final String time;
   final String mealType;
   final int protein;
@@ -14,7 +15,7 @@ class FoodItem {
   final int fat;
   final Color color;
 
-  FoodItem({
+  const FoodItem({
     required this.id,
     required this.name,
     required this.calories,
@@ -27,4 +28,19 @@ class FoodItem {
     required this.fat,
     required this.color,
   });
+
+  @override
+  List<Object?> get props => [
+        id,
+        name,
+        calories,
+        weight,
+        date,
+        time,
+        mealType,
+        protein,
+        carbs,
+        fat,
+        color,
+      ];
 }

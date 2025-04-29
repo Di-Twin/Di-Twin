@@ -13,7 +13,7 @@ class FrequencySelectionDialog extends StatelessWidget {
   final Color cardColor;
 
   const FrequencySelectionDialog({
-    Key? key,
+    super.key,
     required this.frequency,
     required this.onFrequencyChanged,
     required this.primaryColor,
@@ -21,7 +21,7 @@ class FrequencySelectionDialog extends StatelessWidget {
     required this.textSecondaryColor,
     required this.borderColor,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   String _getFrequencyDescription(String frequency) {
     switch (frequency) {

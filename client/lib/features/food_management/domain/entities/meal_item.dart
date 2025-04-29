@@ -1,6 +1,4 @@
-import 'package:equatable/equatable.dart';
-
-class MealItem extends Equatable {
+class MealItem {
   final String foodName;
   final double calories;
   final DateTime time;
@@ -12,7 +10,4 @@ class MealItem extends Equatable {
     required this.time,
     this.imageUrl,
   });
-
-  @override
-  List<Object?> get props => [foodName, calories, time, imageUrl];
 }

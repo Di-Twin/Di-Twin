@@ -17,7 +17,7 @@ class MedicationDurationSelector extends StatefulWidget {
   final Color cardColor;
 
   const MedicationDurationSelector({
-    Key? key,
+    super.key,
     required this.startDate,
     required this.endDate,
     required this.beforeMeal,
@@ -28,7 +28,7 @@ class MedicationDurationSelector extends StatefulWidget {
     required this.textSecondaryColor,
     required this.borderColor,
     required this.cardColor,
-  }) : super(key: key);
+  });
 
   @override
   State<MedicationDurationSelector> createState() => _MedicationDurationSelectorState();

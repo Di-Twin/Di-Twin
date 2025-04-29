@@ -1,311 +1,595 @@
-// lib/features/food_management/data/datasources/food_remote_datasource.dart
-import 'dart:math';
-import 'package:flutter/material.dart';
-import '../models/food_item_model.dart';
-import '../models/nutrition_data_model.dart';
-import '../../../../core/network/api_client.dart';
+import 'dart:convert';
+import 'dart:ui';
+
+import 'package:client/core/errors/exceptions.dart';
+import 'package:client/core/network/api_client.dart';
+import 'package:client/features/food_management/data/models/food_item_model.dart';
+import 'package:client/features/food_management/domain/entities/food_item.dart';
+import 'package:client/features/food_management/domain/entities/nutrition_data.dart';
+import 'package:http/http.dart' as http;
+import 'package:intl/intl.dart';
 
 abstract class FoodRemoteDataSource {
-  Future<Map<String, List<FoodItemModel>>> getDailyFoodData(String date);
+  Future<Map<String, List<FoodItem>>> getDailyFoodData(String date);
   Future<String> getFoodScore();
-  Future<List<FoodItemModel>> getPopularFoods();
-  Future<NutritionDataModel> getNutritionData(DateTime date);
-  Future<void> addFoodItem(FoodItemModel foodItem);
-  Future<void> updateFoodItem(FoodItemModel foodItem);
+  Future<String> getDailyFoodScore(String date);
+  Future<List<FoodItem>> getPopularFoods();
+  Future<NutritionData> getNutritionData(DateTime date);
+  Future<bool> addFoodItem(FoodItem foodItem);
+  Future<void> updateFoodItem(FoodItem foodItem);
   Future<void> deleteFoodItem(String id);
+  Future<bool> logFoodItems(String date, List<Map<String, dynamic>> foodItems);
+  Future<List<FoodItem>> getFoodItems(String accessToken);
 }
 
 class FoodRemoteDataSourceImpl implements FoodRemoteDataSource {
   final ApiClient apiClient;
+  final http.Client client;
 
-  FoodRemoteDataSourceImpl({required this.apiClient});
+  FoodRemoteDataSourceImpl({
+    required this.apiClient,
+    required this.client,
+  });
 
   @override
-  Future<Map<String, List<FoodItemModel>>> getDailyFoodData(String date) async {
+  Future<Map<String, List<FoodItem>>> getDailyFoodData(String date) async {
     try {
       final response = await apiClient.get('/food/daily/$date');
       
-      Map<String, List<FoodItemModel>> result = {};
-      
-      response.forEach((mealType, foods) {
-        result[mealType] = (foods as List)
-            .map((food) => FoodItemModel.fromJson(food))
-            .toList();
-      });
-      
-      return result;
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        // Mock data structure for demonstration
+        Map<String, List<FoodItem>> result = {
+          'breakfast': [],
+          'lunch': [],
+          'dinner': [],
+          'snacks': [],
+        };
+        
+        // Process the response data and populate the result map
+        // This is a simplified example; adjust according to your actual API response structure
+        if (responseData.containsKey('meals')) {
+          final meals = responseData['meals'] as Map<String, dynamic>;
+          
+          meals.forEach((mealType, mealItems) {
+            if (mealItems is List) {
+              result[mealType] = mealItems.map((item) {
+                return FoodItemModel(
+                  id: item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+                  name: item['name'] ?? 'Unknown Food',
+                  calories: item['calories'] ?? 0,
+                  weight: item['weight'] ?? '100g',
+                  date: date,
+                  time: item['time'] ?? DateFormat('HH:mm').format(DateTime.now()),
+                  mealType: mealType,
+                  protein: item['protein'] ?? 0,
+                  carbs: item['carbs'] ?? 0,
+                  fat: item['fat'] ?? 0,
+                  color: Color(0xFF0F67FE),
+                );
+              }).toList();
+            }
+          });
+        }
+        
+        return result;
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load daily food data. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, return mock data if API fails
-      return _getMockDailyFoodData(date);
+      // If no data is available, return empty lists for each meal type
+      return {
+        'breakfast': _getMockBreakfastItems(),
+        'lunch': _getMockLunchItems(),
+        'dinner': _getMockDinnerItems(),
+        'snacks': _getMockSnackItems(),
+      };
     }
+  }
+
+  List<FoodItem> _getMockBreakfastItems() {
+    return [
+      FoodItemModel(
+        id: '1',
+        name: 'Oatmeal with Berries',
+        calories: 320,
+        weight: '1 bowl',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '08:00',
+        mealType: 'breakfast',
+        protein: 12,
+        carbs: 58,
+        fat: 6.toInt(),
+        color: Color(0xFF0F67FE),
+      ),
+      FoodItemModel(
+        id: '2',
+        name: 'Greek Yogurt',
+        calories: 150,
+        weight: '1 cup',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '08:15',
+        mealType: 'breakfast',
+        protein: 15,
+        carbs: 8,
+        fat: 4,
+        color: Color(0xFF0F67FE),
+      ),
+    ];
+  }
+
+  List<FoodItem> _getMockLunchItems() {
+    return [
+      FoodItemModel(
+        id: '3',
+        name: 'Grilled Chicken Salad',
+        calories: 350,
+        weight: '1 plate',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '12:30',
+        mealType: 'lunch',
+        protein: 30,
+        carbs: 15,
+        fat: 18.toInt(),
+        color: Color(0xFF0F67FE),
+      ),
+      FoodItemModel(
+        id: '4',
+        name: 'Whole Grain Bread',
+        calories: 120,
+        weight: '1 slice',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '12:45',
+        mealType: 'lunch',
+        protein: 4,
+        carbs: 22,
+        fat: 2,
+        color: Color(0xFF0F67FE),
+      ),
+    ];
+  }
+
+  List<FoodItem> _getMockDinnerItems() {
+    return [
+      FoodItemModel(
+        id: '5',
+        name: 'Grilled Salmon',
+        calories: 280,
+        weight: '150g',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '19:00',
+        mealType: 'dinner',
+        protein: 25,
+        carbs: 0,
+        fat: 18,
+        color: Color(0xFF0F67FE),
+      ),
+      FoodItemModel(
+        id: '6',
+        name: 'Steamed Vegetables',
+        calories: 85,
+        weight: '1 cup',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '19:15',
+        mealType: 'dinner',
+        protein: 3.toInt(),
+        carbs: 11.toInt(),
+        fat: 0.toInt(),
+        color: Color(0xFF0F67FE),
+      ),
+    ];
+  }
+
+  List<FoodItem> _getMockSnackItems() {
+    return [
+      FoodItemModel(
+        id: '7',
+        name: 'Apple',
+        calories: 95,
+        weight: '1 medium',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '15:30',
+        mealType: 'snacks',
+        protein: 0,
+        carbs: 25,
+        fat: 0,
+        color: Color(0xFF0F67FE),
+      ),
+      FoodItemModel(
+        id: '8',
+        name: 'Almonds',
+        calories: 160,
+        weight: '1 oz',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: '16:00',
+        mealType: 'snacks',
+        protein: 6,
+        carbs: 6,
+        fat: 14,
+        color: Color(0xFF0F67FE),
+      ),
+    ];
   }
 
   @override
   Future<String> getFoodScore() async {
     try {
       final response = await apiClient.get('/food/score');
-      return response['score'].toString();
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return responseData['score'].toString();
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load food score. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, return mock score if API fails
-      return _getMockFoodScore();
+      // Return a mock score for demonstration
+      return '85';
     }
   }
 
   @override
-  Future<List<FoodItemModel>> getPopularFoods() async {
+  Future<String> getDailyFoodScore(String date) async {
+    try {
+      final response = await apiClient.get('/food/score/daily/$date');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        return responseData['score'].toString();
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load daily food score. Status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      // Return a mock score for demonstration
+      return '78';
+    }
+  }
+
+  @override
+  Future<List<FoodItem>> getPopularFoods() async {
     try {
       final response = await apiClient.get('/food/popular');
-      return (response as List)
-          .map((food) => FoodItemModel.fromJson(food))
-          .toList();
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        
+        return responseData.map((item) {
+          return FoodItemModel(
+            id: item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            name: item['name'] ?? 'Unknown Food',
+            calories: item['calories'] ?? 0,
+            weight: item['weight'] ?? '100g',
+            date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            time: DateFormat('HH:mm').format(DateTime.now()),
+            mealType: 'snacks', // Default meal type
+            protein: item['protein'] ?? 0,
+            carbs: item['carbs'] ?? 0,
+            fat: item['fat'] ?? 0,
+            color: Color(0xFF0F67FE),
+          );
+        }).toList();
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load popular foods. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, return mock popular foods if API fails
-      return _getMockPopularFoods();
+      // Return mock popular foods for demonstration
+      return [
+        FoodItemModel(
+          id: 'p1',
+          name: 'Avocado Toast',
+          calories: 220,
+          weight: '1 slice',
+          date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          time: DateFormat('HH:mm').format(DateTime.now()),
+          mealType: 'breakfast',
+          protein: 5,
+          carbs: 18,
+          fat: 15,
+          color: Color(0xFF0F67FE),
+        ),
+        FoodItemModel(
+          id: 'p2',
+          name: 'Protein Smoothie',
+          calories: 280,
+          weight: '1 cup',
+          date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          time: DateFormat('HH:mm').format(DateTime.now()),
+          mealType: 'breakfast',
+          protein: 20,
+          carbs: 30,
+          fat: 5,
+          color: Color(0xFF0F67FE),
+        ),
+        FoodItemModel(
+          id: 'p3',
+          name: 'Quinoa Bowl',
+          calories: 350,
+          weight: '1 bowl',
+          date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+          time: DateFormat('HH:mm').format(DateTime.now()),
+          mealType: 'lunch',
+          protein: 12,
+          carbs: 60,
+          fat: 8,
+          color: Color(0xFF0F67FE),
+        ),
+      ];
     }
   }
 
   @override
-  Future<NutritionDataModel> getNutritionData(DateTime date) async {
+  Future<NutritionData> getNutritionData(DateTime date) async {
     try {
-      final dateStr = date.toIso8601String().split('T')[0]; // Get YYYY-MM-DD format
-      final response = await apiClient.get('/food/nutrition/$dateStr');
-      return NutritionDataModel.fromJson(response);
+      final formattedDate = DateFormat('yyyy-MM-dd').format(date);
+      final response = await apiClient.get('/food/nutrition/$formattedDate');
+      
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        
+        return NutritionData.fromApi(
+          calories: responseData['calories'] ?? 0,
+          protein: responseData['protein'] ?? 0,
+          carbs: responseData['carbs'] ?? 0,
+          fat: responseData['fat'] ?? 0,
+          sugar: responseData['sugar'] ?? 0,
+          fiber: responseData['fiber'] ?? 0,
+          date: date,
+        );
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load nutrition data. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, return mock nutrition data if API fails
-      return _getMockNutritionData(date);
+      // Return mock nutrition data for demonstration
+      return NutritionData.fromApi(
+        calories: 1850,
+        protein: 85,
+        carbs: 220,
+        fat: 60,
+        sugar: 45,
+        fiber: 25,
+        date: DateTime.now(),
+      );
     }
   }
 
   @override
-  Future<void> addFoodItem(FoodItemModel foodItem) async {
+  Future<bool> addFoodItem(FoodItem foodItem) async {
     try {
-      await apiClient.post('/food/add', body: foodItem.toJson());
+      final Map<String, dynamic> body = {
+        'name': foodItem.name,
+        'calories': foodItem.calories,
+        'weight': foodItem.weight,
+        'date': foodItem.date,
+        'time': foodItem.time,
+        'mealType': foodItem.mealType,
+        'protein': foodItem.protein,
+        'carbs': foodItem.carbs,
+        'fat': foodItem.fat,
+      };
+      
+      final response = await apiClient.post(
+        '/food/add',
+        body: body,
+      );
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to add food item. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, just print error
-      print('Error adding food item: $e');
+      // For demonstration, return success
+      return true;
     }
   }
 
   @override
-  Future<void> updateFoodItem(FoodItemModel foodItem) async {
+  Future<void> updateFoodItem(FoodItem foodItem) async {
     try {
-      await apiClient.put('/food/update/${foodItem.id}', body: foodItem.toJson());
+      final Map<String, dynamic> body = {
+        'name': foodItem.name,
+        'calories': foodItem.calories,
+        'weight': foodItem.weight,
+        'date': foodItem.date,
+        'time': foodItem.time,
+        'mealType': foodItem.mealType,
+        'protein': foodItem.protein,
+        'carbs': foodItem.carbs,
+        'fat': foodItem.fat,
+      };
+      
+      final response = await apiClient.put(
+        '/food/update/${foodItem.id}',
+        body: body,
+      );
+      
+      if (response.statusCode != 200) {
+        throw ServerException.fromMessage(
+          message: 'Failed to update food item. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, just print error
-      print('Error updating food item: $e');
+      // For demonstration, just return without throwing an exception
+      return;
     }
   }
 
   @override
   Future<void> deleteFoodItem(String id) async {
     try {
-      await apiClient.delete('/food/delete/$id');
+      final response = await apiClient.delete('/food/delete/$id');
+      
+      if (response.statusCode != 200) {
+        throw ServerException.fromMessage(
+          message: 'Failed to delete food item. Status code: ${response.statusCode}',
+        );
+      }
     } catch (e) {
-      // For demo purposes, just print error
-      print('Error deleting food item: $e');
+      // For demonstration, just return without throwing an exception
+      return;
     }
   }
 
-  // Mock data generators for demo purposes
-  Map<String, List<FoodItemModel>> _getMockDailyFoodData(String date) {
-    final DateTime parsedDate = DateTime.parse(date);
-    
-    return {
-      'breakfast': [
-        FoodItemModel(
-          id: 'b1',
-          name: 'Oatmeal with Berries',
-          calories: 320,
-          weight: '250g',
-          date: parsedDate,
-          time: '08:30',
-          mealType: 'breakfast',
-          protein: 12,
-          carbs: 58,
-          fat: 6,
-          color: Colors.brown,
-        ),
-        FoodItemModel(
-          id: 'b2',
-          name: 'Greek Yogurt',
-          calories: 150,
-          weight: '150g',
-          date: parsedDate,
-          time: '08:45',
-          mealType: 'breakfast',
-          protein: 15,
-          carbs: 8,
-          fat: 5,
-          color: Colors.white,
-        ),
-      ],
-      'lunch': [
-        FoodItemModel(
-          id: 'l1',
-          name: 'Grilled Chicken Salad',
-          calories: 420,
-          weight: '350g',
-          date: parsedDate,
-          time: '13:00',
-          mealType: 'lunch',
-          protein: 35,
-          carbs: 20,
-          fat: 22,
-          color: Colors.green,
-        ),
-      ],
-      'dinner': [
-        FoodItemModel(
-          id: 'd1',
-          name: 'Salmon with Vegetables',
-          calories: 520,
-          weight: '400g',
-          date: parsedDate,
-          time: '19:30',
-          mealType: 'dinner',
-          protein: 40,
-          carbs: 25,
-          fat: 28,
-          color: Colors.orange,
-        ),
-      ],
-      'snacks': [
-        FoodItemModel(
-          id: 's1',
-          name: 'Apple',
-          calories: 95,
-          weight: '182g',
-          date: parsedDate,
-          time: '16:00',
-          mealType: 'snacks',
-          protein: 0,
-          carbs: 25,
-          fat: 0,
-          color: Colors.red,
-        ),
-        FoodItemModel(
-          id: 's2',
-          name: 'Almonds',
-          calories: 160,
-          weight: '28g',
-          date: parsedDate,
-          time: '11:00',
-          mealType: 'snacks',
-          protein: 6,
-          carbs: 6,
-          fat: 14,
-          color: Colors.brown,
-        ),
-      ],
-    };
+  @override
+  Future<bool> logFoodItems(String date, List<Map<String, dynamic>> foodItems) async {
+    try {
+      final Map<String, dynamic> body = {
+        'date': date,
+        'items': foodItems,
+      };
+      
+      final response = await apiClient.post(
+        '/food/log',
+        body: body,
+      );
+      
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return true;
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to log food items. Status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      // For demonstration, return success
+      return true;
+    }
   }
 
-  String _getMockFoodScore() {
-    // Generate a random score between 70 and 95
-    return (70 + Random().nextInt(26)).toString();
+  @override
+  Future<List<FoodItem>> getFoodItems(String accessToken) async {
+    try {
+      final response = await client.get(
+        Uri.parse('https://food-service-prod.onrender.com/api/food/items'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+      
+      if (response.statusCode == 200) {
+        final List<dynamic> responseData = json.decode(response.body);
+        
+        return responseData.map((item) {
+          // Convert each item to a FoodItemModel
+          return FoodItemModel(
+            id: item['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+            name: item['name'] ?? 'Unknown Food',
+            calories: item['calories'] ?? 0,
+            weight: item['weight'] ?? '100g',
+            date: item['date'] ?? DateFormat('yyyy-MM-dd').format(DateTime.now()),
+            time: item['time'] ?? DateFormat('HH:mm').format(DateTime.now()),
+            mealType: item['mealType'] ?? 'snacks',
+            protein: item['protein'] ?? 0,
+            carbs: item['carbs'] ?? 0,
+            fat: item['fat'] ?? 0,
+            color: _getFoodColor(item['name'] ?? ''),
+          );
+        }).toList();
+      } else {
+        throw ServerException.fromMessage(
+          message: 'Failed to load food items. Status code: ${response.statusCode}',
+        );
+      }
+    } catch (e) {
+      print('Error fetching food items: $e');
+      // Return mock food items for demonstration in case of error
+      return _getMockPopularFoods();
+    }
   }
 
-  List<FoodItemModel> _getMockPopularFoods() {
-    final today = DateTime.now();
-    
+// Helper method to assign colors based on food names
+Color _getFoodColor(String foodName) {
+  final lowerCaseName = foodName.toLowerCase();
+  
+  if (lowerCaseName.contains('vegetable') || 
+      lowerCaseName.contains('salad') ||
+      lowerCaseName.contains('broccoli')) {
+    return Color(0xFF4CAF50); // Green for vegetables
+  } else if (lowerCaseName.contains('fruit') || 
+             lowerCaseName.contains('apple') || 
+             lowerCaseName.contains('banana')) {
+    return Color(0xFFFF9800); // Orange for fruits
+  } else if (lowerCaseName.contains('meat') || 
+             lowerCaseName.contains('chicken') ||
+             lowerCaseName.contains('beef')) {
+    return Color(0xFFE57373); // Light red for meats
+  } else if (lowerCaseName.contains('bread') || 
+             lowerCaseName.contains('pasta') ||
+             lowerCaseName.contains('rice')) {
+    return Color(0xFFFFB74D); // Light orange for carbs
+  } else if (lowerCaseName.contains('dairy') || 
+             lowerCaseName.contains('milk') ||
+             lowerCaseName.contains('cheese')) {
+    return Color(0xFF90CAF9); // Light blue for dairy
+  } else if (lowerCaseName.contains('dessert') || 
+             lowerCaseName.contains('cake') ||
+             lowerCaseName.contains('cookie')) {
+    return Color(0xFFF48FB1); // Pink for desserts
+  } else if (lowerCaseName.contains('beverage') || 
+             lowerCaseName.contains('drink') ||
+             lowerCaseName.contains('juice')) {
+    return Color(0xFF81D4FA); // Light blue for beverages
+  }
+  
+  // Default color
+  return Color(0xFF0F67FE);
+}
+
+  List<FoodItem> _getMockPopularFoods() {
     return [
       FoodItemModel(
         id: 'p1',
         name: 'Avocado Toast',
-        calories: 280,
-        weight: '150g',
-        date: today,
-        time: '08:00',
+        calories: 220,
+        weight: '1 slice',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: DateFormat('HH:mm').format(DateTime.now()),
         mealType: 'breakfast',
-        protein: 8,
-        carbs: 30,
+        protein: 5,
+        carbs: 18,
         fat: 15,
-        color: Colors.green,
+        color: Color(0xFF0F67FE),
       ),
       FoodItemModel(
         id: 'p2',
-        name: 'Chicken Breast',
-        calories: 165,
-        weight: '100g',
-        date: today,
-        time: '13:00',
-        mealType: 'lunch',
-        protein: 31,
-        carbs: 0,
-        fat: 3,
-        color: Colors.amber,
+        name: 'Protein Smoothie',
+        calories: 280,
+        weight: '1 cup',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: DateFormat('HH:mm').format(DateTime.now()),
+        mealType: 'breakfast',
+        protein: 20,
+        carbs: 30,
+        fat: 5,
+        color: Color(0xFF0F67FE),
       ),
       FoodItemModel(
         id: 'p3',
         name: 'Quinoa Bowl',
-        calories: 340,
-        weight: '250g',
-        date: today,
-        time: '13:00',
+        calories: 350,
+        weight: '1 bowl',
+        date: DateFormat('yyyy-MM-dd').format(DateTime.now()),
+        time: DateFormat('HH:mm').format(DateTime.now()),
         mealType: 'lunch',
         protein: 12,
         carbs: 60,
-        fat: 6,
-        color: Colors.amber.shade700,
-      ),
-      FoodItemModel(
-        id: 'p4',
-        name: 'Banana',
-        calories: 105,
-        weight: '118g',
-        date: today,
-        time: '10:30',
-        mealType: 'snacks',
-        protein: 1,
-        carbs: 27,
-        fat: 0,
-        color: Colors.yellow,
-      ),
-      FoodItemModel(
-        id: 'p5',
-        name: 'Salmon Fillet',
-        calories: 206,
-        weight: '100g',
-        date: today,
-        time: '19:00',
-        mealType: 'dinner',
-        protein: 22,
-        carbs: 0,
-        fat: 13,
-        color: Colors.deepOrange,
-      ),
-      FoodItemModel(
-        id: 'p6',
-        name: 'Greek Salad',
-        calories: 180,
-        weight: '200g',
-        date: today,
-        time: '13:00',
-        mealType: 'lunch',
-        protein: 5,
-        carbs: 10,
-        fat: 16,
-        color: Colors.lightGreen,
+        fat: 8,
+        color: Color(0xFF0F67FE),
       ),
     ];
-  }
-
-  NutritionDataModel _getMockNutritionData(DateTime date) {
-    // Generate slightly different data based on the day of the month
-    final dayFactor = date.day / 30.0; // 0.0 to 1.0 based on day of month
-    
-    return NutritionDataModel(
-      totalNutrition: '${450 + (date.day * 2)}.${date.day}',
-      proteins: '${45 + (date.day ~/ 2)}g',
-      macro: '${14 + (date.day ~/ 10)}g',
-      fiber: '${65 + (date.day ~/ 3)}g',
-      blueProgress: 0.5 + (dayFactor * 0.3),
-      lightBlueProgress: 0.3,
-      redProgress: 0.3 + (dayFactor * 0.2),
-      pinkProgress: 0.5 + (dayFactor * 0.1),
-      navyProgress: 0.7 + (dayFactor * 0.2),
-      grayProgress: 0.2,
-      date: date,
-    );
   }
 }

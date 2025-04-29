@@ -1,4 +1,5 @@
-import 'package:client/features/auth/signup.dart';
+import 'package:client/features/auth/presentation/pages/sign_in_page.dart';
+import 'package:client/features/auth/presentation/pages/sign_up_page.dart';
 import 'package:client/features/health_assessment/health_assessment_age.dart';
 import 'package:client/features/health_assessment/health_assessment_medication.dart';
 import 'package:client/features/health_assessment/health_assessment_symptoms.dart';
@@ -14,7 +15,6 @@ import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
-import 'features/auth/signin.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -37,6 +37,11 @@ import 'package:client/features/food_management/data/datasources/daily_food_remo
 import 'package:client/features/food_management/data/repositories/daily_food_repository_impl.dart';
 import 'package:client/features/food_management/domain/usecases/get_daily_food_usecase.dart';
 import 'package:client/features/food_management/presentation/providers/daily_food_provider.dart';
+import 'package:client/features/food_management/domain/usecases/get_daily_food_score_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/get_food_score_usecase.dart';
+import 'package:client/features/food_management/presentation/providers/food_score_provider.dart';
+import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
+import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -80,7 +85,7 @@ void main() async {
   );
 
   // Create network info
-  final networkInfo = NetworkInfoImpl(InternetConnectionChecker.createInstance());
+  final networkInfo = NetworkInfoImpl(connectionChecker: InternetConnectionChecker.createInstance());
 
   // Create daily food remote data source
   final dailyFoodRemoteDataSource = DailyFoodRemoteDataSourceImpl(apiClient: apiClient);
@@ -97,11 +102,36 @@ void main() async {
   // Create daily food provider
   final dailyFoodProvider = DailyFoodProvider(getDailyFoodUseCase: getDailyFoodUseCase);
 
+  // Create food remote data source
+  final foodRemoteDataSource = FoodRemoteDataSourceImpl(
+    apiClient: apiClient,
+    client: http.Client(),
+  );
+
+  // Create food repository
+  final foodRepository = FoodRepositoryImpl(
+    remoteDataSource: foodRemoteDataSource,
+    networkInfo: networkInfo,
+  );
+
+  // Create food score use cases
+  final getDailyFoodScoreUseCase = GetDailyFoodScoreUseCase(foodRepository);
+  final getFoodScoreUseCase = GetFoodScoreUseCase(foodRepository);
+
+  // Create food score provider
+  final foodScoreProvider = FoodScoreProvider(
+    getDailyFoodScoreUseCase: getDailyFoodScoreUseCase,
+    getFoodScoreUseCase: getFoodScoreUseCase,
+  );
+
   runApp(
     provider.MultiProvider(
       providers: [
         provider.ChangeNotifierProvider<DailyFoodProvider>(
           create: (context) => dailyFoodProvider,
+        ),
+        provider.ChangeNotifierProvider<FoodScoreProvider>(
+          create: (context) => foodScoreProvider,
         ),
       ],
       child: ProviderScope(
@@ -269,8 +299,8 @@ class _MyAppState extends State<MyApp> {
               routes: {
                 '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
-                '/signin': (context) => const SignInScreen(),
-                '/signup': (context) => const SignUpScreen(),
+                '/signin': (context) => const SignInPage(),
+                '/signup': (context) => const SignUpPage(),
                 '/questions/goal': (context) => const HealthAssessmentGoal(),
                 '/questions/weight': (context) => const WeightInputPage(),
                 '/questions/height': (context) => const HeightInputPage(),

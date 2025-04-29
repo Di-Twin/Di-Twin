@@ -3,9 +3,6 @@ import '../../../../core/network/api_client.dart';
 import '../models/daily_food_model.dart';
 
 abstract class DailyFoodRemoteDataSource {
-  /// Calls the /food/daily/:date endpoint
-  ///
-  /// Throws a [ServerException] for all error codes.
   Future<DailyFoodModel> getDailyFood(String date);
 }
 
@@ -17,20 +14,24 @@ class DailyFoodRemoteDataSourceImpl implements DailyFoodRemoteDataSource {
   @override
   Future<DailyFoodModel> getDailyFood(String date) async {
     try {
+      // Use the correct endpoint format
       final response = await apiClient.get('/food/daily/$date');
       
-      if (response['success'] == true) {
+      // Check if the response has the expected structure
+      if (response['success'] == true && response['data'] != null) {
+        // Parse the data field which contains the actual daily food information
         return DailyFoodModel.fromJson(response['data']);
       } else {
         throw ServerException(
           message: response['message'] ?? 'Failed to fetch daily food data',
-          statusCode: 400,
+          statusCode: response['status'] ?? 400, // Add the required statusCode parameter
         );
       }
     } catch (e) {
+      print('Error fetching daily food: $e');
       throw ServerException(
         message: e.toString(),
-        statusCode: 500,
+        statusCode: 500, // Add the required statusCode parameter
       );
     }
   }

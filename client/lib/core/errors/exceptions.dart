@@ -6,6 +6,9 @@ class ServerException implements Exception {
     required this.message,
     required this.statusCode,
   });
+  
+  // Add a named constructor for backward compatibility
+  ServerException.fromMessage({required this.message}) : statusCode = 500;
 }
 
 class CacheException implements Exception {

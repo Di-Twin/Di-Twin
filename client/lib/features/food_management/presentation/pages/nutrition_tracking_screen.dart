@@ -2,12 +2,15 @@ import 'package:client/features/food_management/presentation/widgets/custom_date
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
+import 'package:intl/intl.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_progress_bars.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_legend.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_metrics_card.dart';
 import 'package:client/features/food_management/presentation/widgets/date_picker.dart';
 import 'package:client/features/food_management/presentation/widgets/nutrition_header.dart';
 import 'package:client/features/food_management/presentation/widgets/add_food_button.dart';
+import 'package:client/features/food_management/presentation/providers/daily_food_provider.dart';
 
 class NutritionTrackingPage extends StatefulWidget {
   const NutritionTrackingPage({super.key});
@@ -113,6 +116,17 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     // Initialize page controller
     _pageController = PageController(initialPage: 1); // Start in the middle
     _currentPage = 1;
+    
+    // Load daily food data
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadDailyFoodData();
+    });
+  }
+  
+  void _loadDailyFoodData() {
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context, listen: false);
+    dailyFoodProvider.getDailyFood(date: dateStr);
   }
 
   @override
@@ -144,6 +158,9 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     setState(() {
       _selectedDate = _selectedDate.subtract(const Duration(days: 1));
       _updateDataForSelectedDate();
+      
+      // Load daily food data for the new date
+      _loadDailyFoodData();
     });
 
     // First reset to middle page if we're at the end
@@ -170,6 +187,9 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     setState(() {
       _selectedDate = _selectedDate.add(const Duration(days: 1));
       _updateDataForSelectedDate();
+      
+      // Load daily food data for the new date
+      _loadDailyFoodData();
     });
 
     // First reset to middle page if we're at the beginning
@@ -347,6 +367,35 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
 
   // Build nutrition content page
   Widget _buildNutritionPage(double screenWidth) {
+    final dailyFoodProvider = Provider.of<DailyFoodProvider>(context);
+    final dailyFood = dailyFoodProvider.dailyFood;
+    
+    // Use API data if available, otherwise use mock data
+    final totalNutrition = dailyFood != null 
+        ? dailyFood.totalCalories.toStringAsFixed(2)
+        : _currentData['totalNutrition'];
+        
+    final proteins = dailyFood != null 
+        ? '${dailyFood.totalProtein.toStringAsFixed(1)}g'
+        : _currentData['proteins'];
+        
+    final carbs = dailyFood != null 
+        ? '${dailyFood.totalCarbs.toStringAsFixed(1)}g'
+        : _currentData['macro'];
+        
+    final fats = dailyFood != null 
+        ? '${dailyFood.totalFats.toStringAsFixed(1)}g'
+        : _currentData['fiber'];
+    
+    // Create a data map that combines API and mock data
+    final displayData = Map<String, dynamic>.from(_currentData);
+    if (dailyFood != null) {
+      displayData['totalNutrition'] = totalNutrition;
+      displayData['proteins'] = proteins;
+      displayData['macro'] = carbs;
+      displayData['fiber'] = fats;
+    }
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: LayoutBuilder(
@@ -404,7 +453,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
                                 textBaseline: TextBaseline.alphabetic,
                                 children: [
                                   Text(
-                                    _currentData['totalNutrition'],
+                                    displayData['totalNutrition'],
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 60,
                                       fontWeight: FontWeight.bold,
@@ -432,7 +481,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
 
                     // Progress bars with animation
                     NutritionProgressBars(
-                      currentData: _currentData,
+                      currentData: displayData,
                       progressAnimation: _progressAnimation,
                     ),
 
@@ -464,7 +513,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
                           child: Transform.translate(
                             offset: Offset(0, 20 * (1 - value)),
                             child: NutritionMetricsCard(
-                              currentData: _currentData,
+                              currentData: displayData,
                             ),
                           ),
                         );
@@ -508,6 +557,27 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
                 children: [
                   // Header
                   NutritionHeader(onBack: () => Navigator.pop(context)),
+
+            // Loading indicator or error message
+            Consumer<DailyFoodProvider>(
+              builder: (context, provider, child) {
+                if (provider.isLoading) {
+                  return const Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: Center(child: CircularProgressIndicator()),
+                  );
+                } else if (provider.error.isNotEmpty) {
+                  return Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    child: Text(
+                      'Error: ${provider.error}',
+                      style: const TextStyle(color: Colors.red),
+                    ),
+                  );
+                }
+                return const SizedBox.shrink();
+              },
+            ),
 
                   // Main content with PageView for transitions
                   Expanded(

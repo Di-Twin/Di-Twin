@@ -2,15 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:intl/intl.dart';
 
 import '../widgets/medication_step_indicator.dart';
 import '../widgets/medication_frequency_selector.dart';
 import '../widgets/medication_duration_selector.dart';
 import '../widgets/medication_reminder_selector.dart';
 import '../widgets/medication_dosage_selector.dart';
-import '../widgets/medication_summary.dart';
-import '../widgets/medication_time_selector.dart';
 
 class MedicationManagementEdit extends StatefulWidget {
   const MedicationManagementEdit({super.key});
@@ -235,8 +232,9 @@ class _MedicationManagementEditState extends State<MedicationManagementEdit> wit
                     if (i < selectedTimes.length) {
                       newTimes.add(selectedTimes[i]);
                     } else {
-                      if (i == 0) newTimes.add("9:00 AM");
-                      else if (i == 1) newTimes.add("2:00 PM");
+                      if (i == 0) {
+                        newTimes.add("9:00 AM");
+                      } else if (i == 1) newTimes.add("2:00 PM");
                       else if (i == 2) newTimes.add("8:00 PM");
                       else newTimes.add("12:00 PM");
                     }
