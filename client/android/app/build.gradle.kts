@@ -12,11 +12,13 @@ android {
     namespace = "com.example.client"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = "27.0.12077973"
+    
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_11
         targetCompatibility = JavaVersion.VERSION_11
         isCoreLibraryDesugaringEnabled = true
+        
     }
 
     kotlinOptions {
@@ -49,4 +51,17 @@ dependencies {
 
 flutter {
     source = "../.."
+}
+
+dependencies {
+    // Core library desugaring
+    coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.4")
+
+    implementation(platform("com.google.firebase:firebase-bom:32.7.0"))
+    implementation("com.google.firebase:firebase-messaging-ktx")
+    
+    implementation("org.jetbrains.kotlin:kotlin-stdlib:1.9.22")
+
+    // Your existing dependencies
+    // ...
 }

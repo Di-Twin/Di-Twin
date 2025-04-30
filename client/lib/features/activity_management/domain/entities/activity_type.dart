@@ -20,7 +20,7 @@ class ActivityType {
         label: 'Jogging',
         icon: FontAwesomeIcons.personRunning,
         color: const Color(0xFF1E293B),
-        type: 'running',
+        type: 'jogging',
       ),
       ActivityType(
         label: 'Running',
@@ -38,13 +38,13 @@ class ActivityType {
         label: 'Outdoor Sport',
         icon: FontAwesomeIcons.baseball,
         color: const Color(0xFFFF9800),
-        type: 'other',
+        type: 'outdoor sport',
       ),
       ActivityType(
         label: 'Elliptical',
         icon: FontAwesomeIcons.personWalking,
         color: const Color(0xFF9C27B0),
-        type: 'other',
+        type: 'elliptical',
       ),
       ActivityType(
         label: 'Strength Training',
@@ -56,7 +56,7 @@ class ActivityType {
         label: 'Treadmill',
         icon: FontAwesomeIcons.personRunning,
         color: const Color(0xFF607D8B),
-        type: 'running',
+        type: 'treadmill',
       ),
       ActivityType(
         label: 'Cycling',
@@ -68,7 +68,7 @@ class ActivityType {
         label: 'Bike',
         icon: FontAwesomeIcons.bicycle,
         color: const Color(0xFF3F51B5),
-        type: 'cycling',
+        type: 'bike',
       ),
       ActivityType(
         label: 'Swimming',
@@ -80,25 +80,25 @@ class ActivityType {
         label: 'Boxing',
         icon: FontAwesomeIcons.handFist,
         color: const Color(0xFFFF5722),
-        type: 'other',
+        type: 'boxing',
       ),
       ActivityType(
         label: 'Skipping',
         icon: FontAwesomeIcons.arrowDown,
         color: const Color(0xFF8BC34A),
-        type: 'other',
+        type: 'skipping',
       ),
       ActivityType(
         label: 'Table Tennis',
         icon: FontAwesomeIcons.tableTennisPaddleBall,
         color: const Color(0xFF673AB7),
-        type: 'other',
+        type: 'table tennis',
       ),
       ActivityType(
         label: 'Badminton',
         icon: FontAwesomeIcons.locationArrow,
         color: const Color(0xFFCDDC39),
-        type: 'other',
+        type: 'badminton',
       ),
       ActivityType(
         label: 'Yoga',
@@ -110,7 +110,7 @@ class ActivityType {
         label: 'Skating',
         icon: FontAwesomeIcons.personSkating,
         color: const Color(0xFF2196F3),
-        type: 'other',
+        type: 'skating',
       ),
     ];
   }

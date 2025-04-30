@@ -8,9 +8,10 @@ import 'package:flutter/material.dart';
 class ActivityRemoteDataSource {
   static const String baseUrl = 'https://test-prod-f427.onrender.com';
 
-  // Hardcoded token for testing purposes
-  static const String hardcodedAccessToken =
-      "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxNzI2MDc2OC00YzQ5LTQ5ZjItYTU3NC0zNDY0ODQ5ZWIzOGQiLCJtb2JpbGUiOiIrOTE3ODQyOTAwMTU1IiwiaWF0IjoxNzQ1OTA1Mzc4LCJleHAiOjE3NDU5OTE3Nzh9.pamzqQROsUpidyYDKdvkrSSH8ipNfE7ihMucZjJJQRY";
+  static Future<String?> _getStoredAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
 
   static Future<List<Map<String, dynamic>>> fetchTopActivities(
     DateTime date,
@@ -18,11 +19,11 @@ class ActivityRemoteDataSource {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
       // Use hardcoded access token for testing
-      final accessToken = hardcodedAccessToken;
+      final accessToken = await _getStoredAccessToken() ?? '';
 
       // Try GET method instead of POST since we're fetching data
       final response = await http.get(
-        Uri.parse('$baseUrl/api/activities/top/$formattedDate'),
+        Uri.parse('$baseUrl/api/activity/top-activities/$formattedDate'),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -32,9 +33,18 @@ class ActivityRemoteDataSource {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
-        if (responseData['success'] == true && responseData['data'] != null) {
-          // The API returns an array of activity objects
-          return _transformActivities(responseData['data']);
+        if (responseData['success'] == true) {
+          // Handle both cases where data might be a Map or List
+          final dynamic data = responseData['data'];
+
+          if (data is List) {
+            return _transformActivities(data);
+          } else if (data is Map) {
+            // If the API returns a single activity as Map, wrap it in a List
+            return _transformActivities([data]);
+          } else {
+            return []; // Return empty list for unexpected formats
+          }
         } else {
           print('Failed to load activities: ${responseData['message']}');
           throw Exception(
@@ -57,11 +67,10 @@ class ActivityRemoteDataSource {
     try {
       final formattedDate = DateFormat('yyyy-MM-dd').format(date);
       // Use hardcoded access token for testing
-      final accessToken = hardcodedAccessToken;
+      final accessToken = await _getStoredAccessToken() ?? '';
 
-      // Using GET method as specified in the API documentation
       final response = await http.get(
-        Uri.parse('$baseUrl/api/activities/score/$formattedDate'),
+        Uri.parse('$baseUrl/api/activity/daily-score/$formattedDate'),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -71,37 +80,38 @@ class ActivityRemoteDataSource {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
 
-        if (responseData['success'] == true && responseData['data'] != null) {
-          // The API returns an object with activity_score property
-          return responseData['data']['activity_score'] as int;
+        if (responseData['success'] == true) {
+          // Safely handle the case where data or activity_score might be null
+          final data = responseData['data'];
+          if (data != null && data['activity_score'] != null) {
+            return data['activity_score'] as int;
+          }
+          // Return default value if no score is available
+          return 0;
         } else {
           print('Failed to load activity score: ${responseData['message']}');
-          throw Exception(
-            'Failed to load activity score: ${responseData['message']}',
-          );
+          return 0;
         }
       } else {
         print(
           'Failed to load activity score. Status: ${response.statusCode}, Body: ${response.body}',
         );
-        throw Exception(
-          'Failed to load activity score: ${response.statusCode}',
-        );
+        return 0;
       }
     } catch (e) {
       print('Error fetching activity score: $e');
-      throw Exception('Error fetching activity score: $e');
+      return 0;
     }
   }
 
   // static Future<bool> addActivity(Map<String, dynamic> activityData) async {
   //   try {
   //     // Use hardcoded access token for testing
-  //     final accessToken = hardcodedAccessToken;
+  //     final accessToken = await _getStoredAccessToken() ?? '';
 
   //     // Send request to API
   //     final response = await http.post(
-  //       Uri.parse('$baseUrl/api/activities/add'),
+  //       Uri.parse('$baseUrl/api/activity/add'),
   //       headers: {
   //         'Authorization': 'Bearer $accessToken',
   //         'Content-Type': 'application/json',
@@ -124,24 +134,29 @@ class ActivityRemoteDataSource {
 
   // Method to add to ActivityRemoteDataSource class
   static Future<Map<String, dynamic>> addManualActivity(
-    List<Map<String, dynamic>> payload,
+    Map<String, dynamic> payload,
   ) async {
     try {
-      final accessToken = hardcodedAccessToken;
+      final accessToken = await _getStoredAccessToken() ?? '';
+
       final response = await http.post(
-        Uri.parse('${baseUrl}/api/connect/manual-entry/activity'),
+        Uri.parse('$baseUrl/api/connect/manual-entry/activity'),
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': 'Bearer ${accessToken}',
+          'Authorization': 'Bearer $accessToken',
         },
         body: jsonEncode(payload),
       );
 
       final responseData = jsonDecode(response.body);
-
+      debugPrint('API Response: $responseData');
       if (response.statusCode == 200 || response.statusCode == 201) {
+        debugPrint('Activity added successfully: ${responseData['message']}');
         return responseData;
       } else {
+        debugPrint(
+          'Failed to add activity. Status: ${response.statusCode}, Body: ${response.body}',
+        );
         throw Exception('Failed to add activity: ${responseData['message']}');
       }
     } catch (e) {
@@ -160,23 +175,41 @@ class ActivityRemoteDataSource {
     final List<Map<String, dynamic>> transformedActivities = [];
 
     final Map<String, IconData> activityIcons = {
+      'jogging': FontAwesomeIcons.personRunning,
       'running': FontAwesomeIcons.personRunning,
-      'cycling': FontAwesomeIcons.bicycle,
       'walking': FontAwesomeIcons.personWalking,
+      'outdoor sport': FontAwesomeIcons.volleyball,
+      'elliptical': FontAwesomeIcons.personWalking,
+      'strength training': FontAwesomeIcons.dumbbell,
+      'treadmill': FontAwesomeIcons.personRunning,
+      'cycling': FontAwesomeIcons.bicycle,
+      'bike': FontAwesomeIcons.bicycle,
       'swimming': FontAwesomeIcons.personSwimming,
+      'boxing': FontAwesomeIcons.handFist,
+      'skipping': FontAwesomeIcons.personSkating,
+      'table tennis': FontAwesomeIcons.tableTennisPaddleBall,
+      'badminton': Icons.sports_tennis,
       'yoga': Icons.spa,
-      'weightlifting': FontAwesomeIcons.dumbbell,
-      // Add more activity types as needed
+      'skating': FontAwesomeIcons.skating,
     };
 
     final Map<String, Color> activityColors = {
-      'running': Colors.redAccent,
-      'cycling': const Color(0xFF0066FF),
-      'walking': const Color(0xFF1E293B),
-      'swimming': Colors.blueAccent,
-      'yoga': Colors.purpleAccent,
-      'weightlifting': Colors.orangeAccent,
-      // Add more activity types as needed
+      'jogging': Colors.black,
+      'running': Colors.blue,
+      'walking': Colors.green,
+      'outdoor sport': Colors.orange,
+      'elliptical': Colors.purple,
+      'strength training': Colors.brown,
+      'treadmill': Colors.grey,
+      'cycling': Colors.pink,
+      'bike': Colors.pink,
+      'swimming': Colors.cyan,
+      'boxing': Colors.deepOrange,
+      'skipping': Colors.lightGreen,
+      'table tennis': Color(0xFF558B2F),
+      'badminton': Color(0xFF1976D2), 
+      'yoga': Colors.deepPurple,
+      'skating': Colors.indigo,
     };
 
     for (var activity in apiActivities) {

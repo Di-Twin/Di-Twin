@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/foundation.dart';
+import 'package:jwt_decoder/jwt_decoder.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
@@ -96,12 +98,35 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   AuthRemoteDataSourceImpl._internal() {
     _loadTokens(); // Load tokens on app startup
   }
+
+  Map<String, dynamic> decodeJwt(String token) {
+  final parts = token.split('.');
+  if (parts.length != 3) {
+    throw Exception('Invalid JWT token');
+  }
+
+  final payload = parts[1];
+  final normalized = base64Url.normalize(payload);
+  final decoded = utf8.decode(base64Url.decode(normalized));
+
+  final payloadMap = json.decode(decoded);
+
+  if (payloadMap is! Map<String, dynamic>) {
+    throw Exception('Invalid payload');
+  }
+
+  return payloadMap;
+}
   
   // Private helper methods
   Future<void> _saveTokens(String accessToken, String refreshToken) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString("access_token", accessToken);
     await prefs.setString("refresh_token", refreshToken);
+
+    final decodedToken = decodeJwt(prefs.getString("access_token")!);
+    final userId = decodedToken["userId"];
+    await prefs.setString("user_id", userId);
   }
 
   Future<void> _loadTokens() async {
@@ -319,7 +344,8 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         Uri.parse(backendUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode(requestBody),
-      ).timeout(const Duration(seconds: 15));
+      );
+      // .timeout(const Duration(seconds: 15));
 
       print("⚡ Response status code: ${response.statusCode}");
       print("⚡ Response body: ${response.body}");

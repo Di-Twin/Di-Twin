@@ -188,44 +188,54 @@ class ActivityProvider {
     return token;
   }
 
-  /// Get monthly activity data
-  Future<List<Map<String, dynamic>>> getMonthlyActivityData(
-    int year,
-    int month,
-  ) async {
-    try {
-      final token = await _getAccessToken();
+ Future<MonthlyActivityResponse> getMonthlyActivityData(int year, int month) async {
+  try {
+    final token = await _getAccessToken();
 
-      final response = await http.get(
-        Uri.parse('$_baseUrl/api/activity/monthly-data/$year/$month'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-      );
+    final response = await http.get(
+      Uri.parse('$_baseUrl/api/activity/monthly-stats/$year/$month'),
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
 
-      if (response.statusCode == 200) {
-        final responseData = json.decode(response.body);
-
-        if (responseData['success'] == true && responseData['data'] != null) {
-          return List<Map<String, dynamic>>.from(
-            responseData['data'].map((x) => Map<String, dynamic>.from(x)),
-          );
-        } else {
-          print(
-            'Failed to fetch monthly activity data: ${responseData['message']}',
-          );
-          return []; // Empty list if success is false
-        }
-      } else {
-        print(
-          'Failed to fetch monthly activity data. Status: ${response.statusCode}',
+    if (response.statusCode == 200) {
+      final responseData = json.decode(response.body);
+      
+      if (responseData['success'] == true && responseData['data'] != null) {
+        final days = (responseData['data']['days'] as List).cast<Map<String, dynamic>>();
+        
+        // Handle the summary which might be a Map or an int
+        final totalActivities = responseData['data']['summary'] is int 
+            ? responseData['data']['summary'] as int
+            : (responseData['data']['summary'] as Map<String, dynamic>)['totalActivities'] as int;
+        
+        return MonthlyActivityResponse(
+          days: days,
+          totalActivities: totalActivities,
         );
-        return []; // Empty list on error
+      } else {
+        throw Exception('Failed to load data: ${responseData['message']}');
       }
-    } catch (e) {
-      print('Error fetching monthly activity data: $e');
-      return []; // Empty list on exception
+    } else {
+      throw Exception('Failed to load data. Status: ${response.statusCode}');
     }
+  } catch (e) {
+    print('Error fetching monthly activity data: $e');
+    rethrow;
   }
+}
+
+}
+
+
+class MonthlyActivityResponse {
+  final List<Map<String, dynamic>> days;
+  final int totalActivities; // Or Map<String, dynamic> if summary has more fields
+
+  MonthlyActivityResponse({
+    required this.days,
+    required this.totalActivities,
+  });
 }
