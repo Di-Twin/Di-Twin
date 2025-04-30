@@ -4,6 +4,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:confetti/confetti.dart';
 import 'package:flutter_rating_bar/flutter_rating_bar.dart';
 import 'package:lottie/lottie.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class FeedbackFormScreen extends StatefulWidget {
   const FeedbackFormScreen({super.key});
@@ -48,6 +50,8 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
   String _selectedMood = 'happy';
   bool _isSubmitting = false;
   bool _isLottieLoaded = false;
+  bool _submitError = false;
+  String _errorMessage = '';
   
   // Track selected categories
   final Map<String, bool> _categorySelections = {
@@ -149,21 +153,81 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
     }
   }
   
-  void _submitFeedback() {
+  // Get access token from SharedPreferences
+  Future<String?> _getAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString('access_token');
+  }
+  
+  // Submit feedback to the backend API
+  Future<void> _submitFeedback() async {
     setState(() {
       _isSubmitting = true;
+      _submitError = false;
+      _errorMessage = '';
     });
     
-    // Simulate submission
-    Future.delayed(const Duration(seconds: 1), () {
-      _confettiController.play();
-      _saveFeedbackSubmission();
+    try {
+      // Get access token
+      final accessToken = await _getAccessToken();
       
-      // Show success and close after delay
-      Future.delayed(const Duration(seconds: 3), () {
-        Navigator.pop(context);
+      if (accessToken == null) {
+        throw Exception('Authentication token not found');
+      }
+      
+      // Prepare request data
+      final Map<String, dynamic> requestData = {
+        'feedback': _feedbackController.text,
+        'rating': _appRating.toInt(),
+      };
+      
+      // Make API request
+      final response = await http.post(
+        Uri.parse('https://test-prod-f427.onrender.com/api/users/feedback'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode(requestData),
+      );
+      
+      // Check response
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        // Success
+        debugPrint('Feedback submitted successfully!');
+        _confettiController.play();
+        await _saveFeedbackSubmission();
+        
+        // Show success and close after delay
+        Future.delayed(const Duration(seconds: 3), () {
+          Navigator.pop(context);
+        });
+      } else {
+        // Handle error
+        final responseData = jsonDecode(response.body);
+        throw Exception(responseData['message'] ?? 'Failed to submit feedback');
+      }
+    } catch (e) {
+      setState(() {
+        _isSubmitting = false;
+        _submitError = true;
+        _errorMessage = e.toString();
       });
-    });
+      
+      // Show error snackbar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error: ${e.toString()}'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 5),
+          action: SnackBarAction(
+            label: 'Retry',
+            onPressed: _submitFeedback,
+            textColor: Colors.white,
+          ),
+        ),
+      );
+    }
   }
   
   Widget _buildProgressIndicator() {
@@ -304,59 +368,67 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: moods.entries.map((entry) {
-              final isSelected = _selectedMood == entry.key;
-              return GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _selectedMood = entry.key;
-                  });
-                },
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  margin: const EdgeInsets.symmetric(horizontal: 8),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: isSelected 
-                      ? entry.value['color'] as Color
-                      : Colors.grey.shade100,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isSelected 
-                        ? entry.value['color'] as Color
-                        : Colors.grey.shade300,
-                      width: 2,
-                    ),
-                    boxShadow: isSelected ? [
-                      BoxShadow(
-                        color: (entry.value['color'] as Color).withOpacity(0.3),
-                        blurRadius: 8,
-                        offset: const Offset(0, 4),
-                      )
-                    ] : [],
-                  ),
-                  child: Column(
-                    children: [
-                      Text(
-                        entry.value['emoji'] as String,
-                        style: const TextStyle(fontSize: 40),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        entry.key.capitalize(),
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: isSelected ? Colors.white : Colors.black87,
+          // Replace Row with SingleChildScrollView for horizontal scrolling
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                // Remove mainAxisAlignment.center to allow natural layout
+                children: moods.entries.map((entry) {
+                  final isSelected = _selectedMood == entry.key;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _selectedMood = entry.key;
+                      });
+                    },
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 200),
+                      margin: const EdgeInsets.symmetric(horizontal: 8),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isSelected 
+                          ? entry.value['color'] as Color
+                          : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: isSelected 
+                            ? entry.value['color'] as Color
+                            : Colors.grey.shade300,
+                          width: 2,
                         ),
+                        boxShadow: isSelected ? [
+                          BoxShadow(
+                            color: (entry.value['color'] as Color).withOpacity(0.3),
+                            blurRadius: 8,
+                            offset: const Offset(0, 4),
+                          )
+                        ] : [],
                       ),
-                    ],
-                  ),
-                ),
-              );
-            }).toList(),
+                      child: Column(
+                        children: [
+                          Text(
+                            entry.value['emoji'] as String,
+                            style: const TextStyle(fontSize: 40),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            entry.key.capitalize(),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: isSelected ? Colors.white : Colors.black87,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
           ),
           const SizedBox(height: 20),
           Text(
@@ -372,7 +444,7 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
       ),
     );
   }
-  
+
   String _getMoodMessage() {
     switch (_selectedMood) {
       case 'love':
@@ -681,6 +753,52 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
       ],
     );
   }
+  
+  // Error view when submission fails
+  Widget _buildErrorView() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(
+          Icons.error_outline,
+          size: 80,
+          color: Colors.red,
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Submission Failed',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          _errorMessage,
+          textAlign: TextAlign.center,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16,
+            color: Colors.grey.shade700,
+          ),
+        ),
+        const SizedBox(height: 30),
+        ElevatedButton.icon(
+          onPressed: _submitFeedback,
+          icon: Icon(Icons.refresh),
+          label: Text('Try Again'),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.red.shade600,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -691,6 +809,8 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
         return !_isSubmitting;
       },
       child: Scaffold(
+        // Set resizeToAvoidBottomInset to true to resize the body when keyboard appears
+        resizeToAvoidBottomInset: true,
         body: Container(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -703,6 +823,8 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
             ),
           ),
           child: SafeArea(
+            // Make the content scrollable when keyboard appears
+            bottom: false, // Don't include bottom safe area to allow full scrolling
             child: Column(
               children: [
                 // Back button
@@ -729,131 +851,141 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
                 const Spacer(),
   
                 // White container with form
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 300),
-                  width: double.infinity,
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(30),
-                      topRight: Radius.circular(30),
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(30),
+                        topRight: Radius.circular(30),
+                      ),
                     ),
-                  ),
-                  child: Column(
-                    children: [
-                      // Handle indicator
-                      Container(
-                        margin: const EdgeInsets.only(top: 12),
-                        width: 40,
-                        height: 4,
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade300,
-                          borderRadius: BorderRadius.circular(2),
-                        ),
-                      ),
-  
-                      const SizedBox(height: 24),
-                      
-                      // Progress indicator
-                      if (!_isSubmitting) _buildProgressIndicator(),
-                      
-                      const SizedBox(height: 30),
-                      
-                      // Content based on current step
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                        child: _isSubmitting
-                          ? _buildSuccessView()
-                          : [
-                              _buildRatingStep(),
-                              _buildMoodStep(),
-                              _buildCategoryStep(),
-                              _buildCommentStep(),
-                            ][_currentStep],
-                      ),
-  
-                      const SizedBox(height: 40),
-  
-                      // Navigation buttons
-                      if (!_isSubmitting)
-                        Padding(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 24.0,
-                            vertical: 16.0,
+                    child: Column(
+                      children: [
+                        // Handle indicator
+                        Container(
+                          margin: const EdgeInsets.only(top: 12),
+                          width: 40,
+                          height: 4,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade300,
+                            borderRadius: BorderRadius.circular(2),
                           ),
-                          child: Row(
-                            children: [
-                              // Back button (except on first step)
-                              if (_currentStep > 0)
+                        ),
+  
+                        const SizedBox(height: 24),
+                        
+                        // Progress indicator
+                        if (!_isSubmitting) _buildProgressIndicator(),
+                        
+                        const SizedBox(height: 30),
+                        
+                        // Content based on current step - make it scrollable
+                        Expanded(
+                          child: SingleChildScrollView(
+                            physics: const BouncingScrollPhysics(),
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: 24.0, 
+                                right: 24.0,
+                                // Add bottom padding when keyboard is visible
+                                bottom: MediaQuery.of(context).viewInsets.bottom > 0 ? 20 : 0,
+                              ),
+                              child: _isSubmitting
+                                ? (_submitError ? _buildErrorView() : _buildSuccessView())
+                                : [
+                                    _buildRatingStep(),
+                                    _buildMoodStep(),
+                                    _buildCategoryStep(),
+                                    _buildCommentStep(),
+                                  ][_currentStep],
+                            ),
+                          ),
+                        ),
+  
+                        // Navigation buttons
+                        if (!_isSubmitting && MediaQuery.of(context).viewInsets.bottom == 0)
+                          Padding(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 24.0,
+                              vertical: 16.0,
+                            ),
+                            child: Row(
+                              children: [
+                                // Back button (except on first step)
+                                if (_currentStep > 0)
+                                  Expanded(
+                                    child: SizedBox(
+                                      height: 56,
+                                      child: OutlinedButton(
+                                        onPressed: _previousStep,
+                                        style: OutlinedButton.styleFrom(
+                                          foregroundColor: const Color(0xFF1E293B),
+                                          side: BorderSide(color: Colors.grey.shade300),
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(50),
+                                          ),
+                                        ),
+                                        child: Text(
+                                          'Back',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                
+                                if (_currentStep > 0)
+                                  const SizedBox(width: 16),
+                                
+                                // Next/Submit button
                                 Expanded(
+                                  flex: _currentStep == 0 ? 1 : 2,
                                   child: SizedBox(
                                     height: 56,
-                                    child: OutlinedButton(
-                                      onPressed: _previousStep,
-                                      style: OutlinedButton.styleFrom(
-                                        foregroundColor: const Color(0xFF1E293B),
-                                        side: BorderSide(color: Colors.grey.shade300),
+                                    child: ElevatedButton(
+                                      onPressed: _nextStep,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: const Color(0xFF0066FF),
+                                        foregroundColor: Colors.white,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(50),
                                         ),
+                                        elevation: 0,
                                       ),
-                                      child: Text(
-                                        'Back',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              
-                              if (_currentStep > 0)
-                                const SizedBox(width: 16),
-                              
-                              // Next/Submit button
-                              Expanded(
-                                flex: _currentStep == 0 ? 1 : 2,
-                                child: SizedBox(
-                                  height: 56,
-                                  child: ElevatedButton(
-                                    onPressed: _nextStep,
-                                    style: ElevatedButton.styleFrom(
-                                      backgroundColor: const Color(0xFF0066FF),
-                                      foregroundColor: Colors.white,
-                                      shape: RoundedRectangleBorder(
-                                        borderRadius: BorderRadius.circular(50),
-                                      ),
-                                      elevation: 0,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          _currentStep < 3 ? 'Next' : 'Submit Feedback',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            _currentStep < 3 ? 'Next' : 'Submit Feedback',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Icon(
-                                          _currentStep < 3 
-                                            ? Icons.arrow_forward
-                                            : Icons.check_circle,
-                                          size: 20,
-                                        ),
-                                      ],
+                                          const SizedBox(width: 8),
+                                          Icon(
+                                            _currentStep < 3 
+                                              ? Icons.arrow_forward
+                                              : Icons.check_circle,
+                                            size: 20,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      
-                      const SizedBox(height: 20),
-                    ],
+                        
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -865,10 +997,10 @@ class _FeedbackFormScreenState extends State<FeedbackFormScreen> with TickerProv
   }
 }
 
+
 // Extension to capitalize first letter of a string
 extension StringExtension on String {
   String capitalize() {
     return "${this[0].toUpperCase()}${substring(1)}";
   }
 }
-  
