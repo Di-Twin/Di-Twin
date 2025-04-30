@@ -3,11 +3,16 @@ import 'package:google_fonts/google_fonts.dart';
 
 class MonthlyScoreCard extends StatelessWidget {
   final int activitiesCount;
+  final int caloriesBurned;
+  final int totalTimeSpent;
   
   const MonthlyScoreCard({
     super.key,
     required this.activitiesCount,
+    required this.caloriesBurned,
+    required this.totalTimeSpent,
   });
+
 
   @override
   Widget build(BuildContext context) {
@@ -66,11 +71,11 @@ class MonthlyScoreCard extends StatelessWidget {
             children: [
               _buildCompactStatItem(
                 Icons.local_fire_department,
-                '1,250',
+                '$caloriesBurned',
                 'kcal',
               ),
               SizedBox(width: 16),
-              _buildCompactStatItem(Icons.timer, '8h', 'total'),
+              _buildCompactStatItem(Icons.timer, '${(totalTimeSpent / 60).toStringAsFixed(1)} hrs', 'total'),
             ],
           ),
         ],

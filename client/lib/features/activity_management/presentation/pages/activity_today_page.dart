@@ -177,17 +177,17 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
         final formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         
         // Create activity payload according to API requirements
-        final payload = [
+        final payload = 
           {
             'activity_type': activityType,
             'start_time': formatter.format(startTime),
             'end_time': formatter.format(endTime),
             'source_device': 'Manual Entry',
-          }
-        ];
+          };
         
         // Send request to API
         final response = await ActivityRemoteDataSource.addManualActivity(payload);
+        print('response: $response');
         
         // Handle response
         if (response['success'] == true) {
@@ -279,7 +279,7 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
                     CustomActivityHeader(
                       title: 'Activities',
                       badgeText: isWatchConnected ? 'Normal' : 'Disconnected',
-                      score: isWatchConnected ? _activityScore.toString() : _activityScore.toString(),
+                      score: isWatchConnected ? _activityScore.toString() : '0',
                       subtitle: 'Activities Today',
                       buttonImage: 'images/SignInAddIcon.png',
                       onButtonTap: _navigateToMyActivities,

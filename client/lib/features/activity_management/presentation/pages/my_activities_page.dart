@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -101,14 +102,11 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
     _selectedMonth = DateTime(_today.year, _today.month, 1);
     _selectedYear = _today.year;
 
-    // Generate last 5 days for default view
-    _generateLast5Days();
-
     // Initialize the collections
     _generateAvailableYears();
     _generateAvailableMonths();
 
-    // Initialize animation controller for page transition
+    // Initialize animation controllers
     _pageTransitionController = AnimationController(
       duration: const Duration(milliseconds: 400),
       vsync: this,
@@ -188,11 +186,21 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
 
   List<ActivityHistory> _getFilteredActivities() {
     if (_selectedDate == null) {
-      // Show last 5 days activities by default
-      return [];
+      // Sort by date (newest first) and take the first 5
+      _activityHistory.sort(
+        (a, b) => b.date.compareTo(a.date),
+      ); // Sort descending (newest first)
+      return _activityHistory
+          .take(5) // Take the first 5 (most recent)
+          .toList();
     }
 
-    return [];
+    // Filter activities for the selected date
+    return _activityHistory.where((activity) {
+      return activity.date.year == _selectedDate!.year &&
+          activity.date.month == _selectedDate!.month &&
+          activity.date.day == _selectedDate!.day;
+    }).toList();
   }
 
   void _generateAvailableYears() {
@@ -251,9 +259,15 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
             DateTime oldMonth = _selectedMonth;
 
             if (newMonth.isBefore(oldMonth)) {
-              _slideDirection = const Offset(-1.0, 0.0); // Right slide (newer to older)
+              _slideDirection = const Offset(
+                -1.0,
+                0.0,
+              ); // Right slide (newer to older)
             } else if (newMonth.isAfter(oldMonth)) {
-              _slideDirection = const Offset(1.0, 0.0); // Left slide (older to newer)
+              _slideDirection = const Offset(
+                1.0,
+                0.0,
+              ); // Left slide (older to newer)
             } else {
               // Same month, no animation needed
               setState(() {
@@ -267,7 +281,10 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
               begin: _slideDirection,
               end: Offset.zero,
             ).animate(
-              CurvedAnimation(parent: _pageTransitionController, curve: Curves.easeOut),
+              CurvedAnimation(
+                parent: _pageTransitionController,
+                curve: Curves.easeOut,
+              ),
             );
 
             // Reset animation
@@ -341,9 +358,7 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) {
-        return SuggestionDetailsSheet(
-          onClose: () => Navigator.pop(context),
-        );
+        return SuggestionDetailsSheet(onClose: () => Navigator.pop(context));
       },
     );
   }
@@ -429,14 +444,19 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
                                   const Icon(Icons.calendar_today, size: 18),
                                   const SizedBox(width: 8),
                                   Text(
-                                    DateFormat('MMM yyyy').format(_selectedMonth),
+                                    DateFormat(
+                                      'MMM yyyy',
+                                    ).format(_selectedMonth),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w500,
                                     ),
                                   ),
                                   const SizedBox(width: 4),
-                                  const Icon(Icons.keyboard_arrow_down, size: 18),
+                                  const Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: 18,
+                                  ),
                                 ],
                               ),
                             ),
@@ -447,7 +467,11 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
                       const SizedBox(height: 16),
 
                       // Monthly score card
-                      MonthlyScoreCard(activitiesCount: _activityRegularity.length),
+                      MonthlyScoreCard(
+                        activitiesCount: _totalActivities,
+                        caloriesBurned: _totalCalories,
+                        totalTimeSpent: _totalMinutes,
+                      ),
 
                       const SizedBox(height: 24),
 
@@ -471,19 +495,21 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
                       const SizedBox(height: 32),
 
                       // AI Activity Suggestions
-                      Text(
-                        'AI Activity Suggestions',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
+                      // Text(
+                      //   'AI Activity Suggestions',
+                      //   style: GoogleFonts.plusJakartaSans(
+                      //     fontSize: 20,
+                      //     fontWeight: FontWeight.bold,
+                      //     color: const Color(0xFF1E293B),
+                      //   ),
+                      // ),
 
-                      const SizedBox(height: 16),
+                      // const SizedBox(height: 16),
 
-                      // Enhanced suggestion card
-                      AISuggestionCard(onViewSuggestion: _showSuggestionDetails),
+                      // // Enhanced suggestion card
+                      // AISuggestionCard(
+                      //   onViewSuggestion: _showSuggestionDetails,
+                      // ),
 
                       const SizedBox(height: 32),
 
@@ -546,19 +572,182 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
     );
   }
 
+  int _totalActivities = 0;
+  int _totalCalories = 0;
+  int _totalMinutes = 0;
+
   Future<void> _fetchMonthlyActivityData() async {
     final activityProvider = ActivityProvider();
     try {
-      final monthlyData = await activityProvider.getMonthlyActivityData(_selectedYear, _selectedMonth.month);
+      final response = await activityProvider.getMonthlyActivityData(
+        _selectedYear,
+        _selectedMonth.month,
+      );
+
+      // Clear existing data
       setState(() {
         _activityRegularity.clear();
-        for (var dayData in monthlyData) {
-          _activityRegularity[dayData['dayNumber']] = dayData['activityScore'] > 0;
+        _activityHistory.clear();
+        _totalActivities = 0;
+        _totalCalories = 0;
+        _totalMinutes = 0;
+      });
+
+      int totalCalories = 0;
+      int totalMinutes = 0;
+
+      setState(() {
+        _totalActivities = response.totalActivities;
+      });
+
+      // Process each day's activities
+      for (var dayData in response.days) {
+        final dayNumber = dayData['dayNumber'] as int;
+        final activities = (dayData['activities'] as List<dynamic>?) ?? [];
+
+        _activityRegularity[dayNumber] = activities.isNotEmpty;
+
+        for (var activity in activities) {
+          final activityMap = activity as Map<String, dynamic>;
+          final startTime = DateTime.parse(activityMap['startTime'] as String);
+          final endTime = DateTime.parse(activityMap['endTime'] as String);
+          final duration = endTime.difference(startTime);
+
+          // Map activity type
+          var iconData = Icons.fitness_center;
+          var color = const Color(0xFF5D6B89);
+          String displayName = 'Activity';
+
+          switch (activityMap['activityType'] as String) {
+            case 'jogging':
+              iconData = Icons.directions_run;
+              color = Colors.black;
+              displayName = 'Jogging';
+              break;
+            case 'running':
+              iconData = Icons.directions_run;
+              color = Colors.blue;
+              displayName = 'Running';
+              break;
+            case 'walking':
+              iconData = Icons.directions_walk;
+              color = Colors.green;
+              displayName = 'Walking';
+              break;
+            case 'outdoor sport':
+              iconData = Icons.sports_soccer;
+              color = Colors.orange;
+              displayName = 'Outdoor Sport';
+              break;
+            case 'elliptical':
+              iconData = Icons.fitness_center;
+              color = Colors.purple;
+              displayName = 'Elliptical';
+              break;
+            case 'weightlifting':
+              iconData = Icons.fitness_center_rounded;
+              color = Colors.brown;
+              displayName = 'Strength Training';
+              break;
+            case 'treadmill':
+              iconData = Icons.directions_run;
+              color = Colors.grey;
+              displayName = 'Treadmill';
+              break;
+            case 'cycling':
+              iconData = Icons.directions_bike;
+              color = Colors.pink;
+              displayName = 'Cycling';
+              break;
+            case 'bike':
+              iconData = Icons.directions_bike;
+              color = Colors.indigo;
+              displayName = 'Bike';
+              break;
+            case 'swimming':
+              iconData = Icons.pool;
+              color = Colors.cyan; // sky blue
+              displayName = 'Swimming';
+              break;
+            case 'boxing':
+              iconData = Icons.sports_mma;
+              color = Colors.deepOrange; // reddish orange
+              displayName = 'Boxing';
+              break;
+            case 'skipping':
+              iconData = Icons.sports;
+              color = Colors.lightGreen;
+              displayName = 'Skipping';
+              break;
+            case 'table tennis':
+              iconData = Icons.sports_tennis;
+              color = Color(0xFF558B2F); // leaf green
+              displayName = 'Table Tennis';
+              break;
+            case 'badminton':
+              iconData = Icons.sports_tennis;
+              color = Color(0xFF1976D2); // slightly darker blue
+              displayName = 'Badminton';
+              break;
+            case 'yoga':
+              iconData = Icons.self_improvement;
+              color = Colors.deepPurple;
+              displayName = 'Yoga';
+              break;
+            case 'skating':
+              iconData = Icons.sports;
+              color = Colors.indigo;
+              displayName = 'Skating';
+              break;
+            default:
+              iconData = Icons.help_outline;
+              color = Colors.grey;
+              displayName = 'Other';
+              break;
+          }
+
+          final caloriesBurned = activityMap['caloriesBurned'];
+          final calories =
+              caloriesBurned != null
+                  ? (caloriesBurned is double
+                      ? caloriesBurned.toInt()
+                      : caloriesBurned as int)
+                  : 0;
+
+          final distance = activityMap['distance']?.toString();
+
+          // Track totals
+          totalCalories += calories;
+          totalMinutes += duration.inMinutes;
+
+          final activityHistory = ActivityHistory(
+            name: displayName,
+            calories: calories,
+            icon: iconData,
+            color: color,
+            date: startTime,
+            duration: '${duration.inMinutes} min',
+            distance: distance != null ? '$distance km' : null,
+          );
+
+          setState(() {
+            _activityHistory.add(activityHistory);
+          });
         }
+      }
+
+      // Final setState for totals
+      setState(() {
+        _totalCalories = totalCalories;
+        _totalMinutes = totalMinutes;
       });
     } catch (e) {
       print('Error fetching monthly activity data: $e');
-      // Handle error appropriately
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Failed to load activity data')),
+        );
+      }
     }
   }
 }

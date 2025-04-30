@@ -19,10 +19,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:client/features/dashboard/dashboard.dart';
-// Import notification service
-import 'package:client/services/notification/notification_service.dart';
-// Import notification test screen
-import 'package:client/screens/notification_test_screen.dart';
+// Import notification services
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'features/notification/services/firebase_services.dart';
+import 'features/notification/services/socket_services.dart';
+import 'features/notification/managers/notification_manager.dart';
+import 'features/notification/services/helper_services.dart';
+
 // Import app_links
 import 'package:app_links/app_links.dart';
 import 'dart:async';
@@ -48,6 +51,22 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 // Store pending Fitbit URI for processing when dashboard is available
 Uri? pendingFitbitUri;
 
+// Background message handler for Firebase Cloud Messaging
+@pragma('vm:entry-point')
+Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  try {
+    // Initialize Firebase if not already initialized
+    await Firebase.initializeApp();
+    
+    print('Handling a background message: ${message.messageId}');
+    
+    // Process the notification
+    NotificationManager.processFirebaseMessage(message);
+  } catch (e) {
+    print('Error in background handler: $e');
+  }
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
@@ -55,23 +74,25 @@ void main() async {
   await Firebase.initializeApp();
   print('✅ Firebase Initialized');
 
-  // Initialize notification service
-  final notificationService = NotificationService();
+  // Set background message handler for FCM
+  FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
+  // Initialize notification manager
   print('🚀 Init notification service...');
   try {
-    await notificationService.init();
-    print('✅ Notification service initialized');
+    await NotificationManager.initialize();
+    print('✅ Notification manager initialized');
+    
+    // Set notification tap handler
+    NotificationManager.onNotificationTap = (payload) {
+      if (payload != null) {
+        print('Notification tapped: $payload');
+        // Navigate to appropriate screen based on payload
+        // You can use navigatorKey.currentState?.pushNamed() here
+      }
+    };
   } catch (e) {
-    print('❌ Error initializing notification service: $e');
-  }
-
-  print('🔐 Requesting notification permissions...');
-  try {
-    await notificationService.requestPermissions();
-    print('✅ Notification permissions granted');
-  } catch (e) {
-    print('❌ Error requesting notification permissions: $e');
+    print('❌ Error initializing notification manager: $e');
   }
   
   // Reset feedback session flag on app start
@@ -133,6 +154,10 @@ void main() async {
         provider.ChangeNotifierProvider<FoodScoreProvider>(
           create: (context) => foodScoreProvider,
         ),
+        // Add SocketService provider
+        provider.ChangeNotifierProvider<SocketService>(
+          create: (context) => SocketService(),
+        ),
       ],
       child: ProviderScope(
         child: const MyApp(),
@@ -158,13 +183,6 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initAppLinks();
-    
-    // Register URL launcher for Fitbit domain  {
-    super.initState();
-    initAppLinks();
-    
-    // Register URL launcher for Fitbit domain
-    // _registerCustomScheme();
   }
   
   // Check if feedback form should be shown (every 3 days)
@@ -315,8 +333,7 @@ class _MyAppState extends State<MyApp> {
                 '/questions/medication': (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
                 '/feedback': (context) => const FeedbackFormScreen(),
-                // Add notification test screen route
-                '/notification-test': (context) => const NotificationTestScreen(),
+                
                 // '/': (context) => const MedicationsScreen(),
               },
             );
