@@ -6,7 +6,7 @@ import 'package:client/features/food_management/presentation/widgets/food_grid_i
 import 'package:client/features/food_management/presentation/widgets/sugar_spike_widget.dart';
 import 'package:client/features/food_management/presentation/widgets/food_impact_calculator.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:client/data/providers/food_management_provider.dart';
+import 'package:client/features/food_management/presentation/providers/food_management_provider.dart';
 import 'package:intl/intl.dart';
 
 class AddFoodBottomSheet extends ConsumerStatefulWidget {

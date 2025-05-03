@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
-import 'package:client/data/providers/food_management_provider.dart';
+import 'package:client/features/food_management/presentation/providers/food_management_provider.dart';
 import 'package:client/features/food_management/presentation/widgets/monthly_score_card.dart';
 import 'package:client/features/food_management/presentation/widgets/meal_type_section.dart';
 import 'package:client/features/food_management/presentation/widgets/month_year_picker.dart';
@@ -90,6 +90,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
     _today = DateTime.now();
     _selectedMonth = DateTime(_today.year, _today.month, 1);
     _selectedYear = _today.year;
+    _selectedDate = _today; // Initialize selected date to today
 
     // Generate last 5 days for default view
     _generateLast5Days();
@@ -383,7 +384,10 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   }
 
   // Show food edit drawer
-  void _showFoodEditDrawer(Map<String, dynamic> food) {
+  void _showFoodEditDrawer(dynamic foodData) {
+    // Cast the dynamic to Map<String, dynamic>
+    final food = foodData as Map<String, dynamic>;
+    
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -421,7 +425,10 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   }
 
   // Show delete confirmation dialog
-  void _showDeleteConfirmation(Map<String, dynamic> food) {
+  dynamic _showDeleteConfirmation(dynamic foodData) {
+    // Cast the dynamic to Map<String, dynamic>
+    final food = foodData as Map<String, dynamic>;
+    
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -454,6 +461,9 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
         );
       },
     );
+    
+    // Return null to match the expected return type
+    return null;
   }
 
   @override
@@ -546,7 +556,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
                                   ),
                                   SizedBox(width: 4),
                                   Text(
-                                    DateFormat('MMM d, yyyy').format(_selectedDate!),
+                                    DateFormat('MMM d, yyyy').format(_selectedDate ?? _today),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: isSmallScreen ? 12 : 16,
                                       fontWeight: FontWeight.w600,

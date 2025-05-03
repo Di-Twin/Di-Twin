@@ -34,9 +34,13 @@ class CustomButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           minimumSize: Size(width.w, height.h),
           backgroundColor: const Color(0xFF0F67FE),
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shadowColor: const Color(0xFF0F67FE).withOpacity(0.5),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12.r),
+            borderRadius: BorderRadius.circular(15.r),
           ),
+          padding: EdgeInsets.symmetric(vertical: 12.h),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -51,7 +55,7 @@ class CustomButton extends StatelessWidget {
                 color: Colors.white,
               ),
             ),
-            SizedBox(width: 5.w),
+            SizedBox(width: 8.w),
             Image.asset(
               iconPath,
               height: iconSize.h,
