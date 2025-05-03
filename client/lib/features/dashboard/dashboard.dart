@@ -11,8 +11,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-// Import for Clipboard
-// Import for WebViewConfiguration
+import 'package:url_launcher/url_launcher.dart';
+import 'package:flutter/services.dart'; // Import for Clipboard
+import 'package:provider/provider.dart';
+// Import notification services
+import '../notification/services/socket_services.dart';
+import '../notification/services/helper_services.dart';
 
 // Import the FitbitCallbackNotification from main.dart
 import 'package:client/main.dart';
@@ -101,7 +105,43 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _processFitbitCallback(pendingFitbitUri!);
         pendingFitbitUri = null; // Clear the pending URI
       }
+      
+      // Initialize notification services
+      _initializeNotificationServices();
     });
+  }
+  
+  // Initialize notification services
+  Future<void> _initializeNotificationServices() async {
+    try {
+      // Get access token and user ID from shared preferences
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token');
+      final userId = prefs.getString('user_id');
+      
+      if (accessToken != null && userId != null) {
+        // Initialize socket service
+        final socketService = Provider.of<SocketService>(context, listen: false);
+        if (!socketService.isConnected) {
+          socketService.initSocket(
+            userId,
+            accessToken: accessToken,
+          );
+        }
+        
+        // Initialize notification helper service
+        await NotificationHelperService().initialize(
+          accessToken: accessToken,
+          userId: userId,
+        );
+        
+        print('✅ Notification services initialized with user credentials');
+      } else {
+        print('⚠️ Cannot initialize notification services: Missing user credentials');
+      }
+    } catch (e) {
+      print('❌ Error initializing notification services: $e');
+    }
   }
 
   @override

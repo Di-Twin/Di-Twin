@@ -1,16 +1,20 @@
+import 'dart:convert';
+
 import 'package:client/data/API/health_score_data.dart';
 import 'package:client/widgets/CustomSecondaryButton.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/onboarding_provider.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
 class HealthAssessmentScore extends ConsumerStatefulWidget {
   const HealthAssessmentScore({super.key});
 
   @override
-  ConsumerState<HealthAssessmentScore> createState() => _HealthAssessmentScoreState();
+  ConsumerState<HealthAssessmentScore> createState() =>
+      _HealthAssessmentScoreState();
 }
 
 class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
@@ -51,6 +55,9 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
       // Save the score to cache
       await _saveHealthScoreToCache(score);
 
+      // Update user profile with health score
+      await _updateUserHealthScore(score);
+
       setState(() {
         _score = score;
         _isLoading = false;
@@ -60,6 +67,38 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
         _errorMessage = e.toString();
         _isLoading = false;
       });
+    }
+  }
+
+  Future<void> _updateUserHealthScore(int score) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token');
+
+      if (accessToken == null) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse(
+        'https://test-prod-f427.onrender.com/api/profiles',
+      ); // Replace with actual base URL
+
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'health_score': score}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ Health score updated successfully');
+      } else {
+        print('❌ Failed to update health score: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error updating health score: $e');
     }
   }
 
