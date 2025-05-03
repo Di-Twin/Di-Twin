@@ -72,6 +72,7 @@ dependencies:
   data_connection_checker_tv: ^0.3.5-nullsafety
   table_calendar: ^3.0.9
   shimmer: ^3.0.0
+  flutter_appauth: ^9.0.0
 
 dev_dependencies:
   flutter_test:

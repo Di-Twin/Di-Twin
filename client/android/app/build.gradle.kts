@@ -1,4 +1,4 @@
-    plugins {
+plugins {
     id("com.android.application")
     // START: FlutterFire Configuration
     id("com.google.gms.google-services")
@@ -32,6 +32,9 @@ android {
         targetSdk = 33
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+        
+        // Fix: Use proper Kotlin DSL syntax for manifest placeholders
+        manifestPlaceholders["appAuthRedirectScheme"] = "com.example.client"
     }
 
     buildTypes {

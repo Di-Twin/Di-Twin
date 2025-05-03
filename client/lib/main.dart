@@ -42,6 +42,7 @@ import 'package:client/features/food_management/domain/usecases/get_food_score_u
 import 'package:client/features/food_management/presentation/providers/food_score_provider.dart';
 import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
+import 'package:client/core/network/network_checker.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -73,22 +74,45 @@ void main() async {
   } catch (e) {
     print('❌ Error requesting notification permissions: $e');
   }
-  
+
   // Reset feedback session flag on app start
   final prefs = await SharedPreferences.getInstance();
   await prefs.setBool('feedback_shown_this_session', false);
 
   // Create API client
   final apiClient = ApiClient(
-    baseUrl: 'https://test-prod-f427.onrender.com',
+    baseUrl: 'https://test-prod-f427.onrender.com/api',
     httpClient: http.Client(),
   );
 
+  // Test API connection
+  print('🔍 Testing API connection...');
+  try {
+    final isConnected = await NetworkChecker.isApiServerReachable(
+      'https://test-prod-f427.onrender.com/api',
+    );
+    print(
+      '🔍 API connection test result: ${isConnected ? 'SUCCESS' : 'FAILED'}',
+    );
+
+    if (!isConnected) {
+      print(
+        '⚠️ Warning: API server appears to be unreachable. The app may not function correctly.',
+      );
+    }
+  } catch (e) {
+    print('🔍 API connection test error: $e');
+  }
+
   // Create network info
-  final networkInfo = NetworkInfoImpl(connectionChecker: InternetConnectionChecker.createInstance());
+  final networkInfo = NetworkInfoImpl(
+    connectionChecker: InternetConnectionChecker.createInstance(),
+  );
 
   // Create daily food remote data source
-  final dailyFoodRemoteDataSource = DailyFoodRemoteDataSourceImpl(apiClient: apiClient);
+  final dailyFoodRemoteDataSource = DailyFoodRemoteDataSourceImpl(
+    apiClient: apiClient,
+  );
 
   // Create daily food repository
   final dailyFoodRepository = DailyFoodRepositoryImpl(
@@ -100,7 +124,9 @@ void main() async {
   final getDailyFoodUseCase = GetDailyFoodUseCase(dailyFoodRepository);
 
   // Create daily food provider
-  final dailyFoodProvider = DailyFoodProvider(getDailyFoodUseCase: getDailyFoodUseCase);
+  final dailyFoodProvider = DailyFoodProvider(
+    getDailyFoodUseCase: getDailyFoodUseCase,
+  );
 
   // Create food remote data source
   final foodRemoteDataSource = FoodRemoteDataSourceImpl(
@@ -114,7 +140,7 @@ void main() async {
     networkInfo: networkInfo,
   );
 
-  // Create food score use cases
+  // Create food score use cases  
   final getDailyFoodScoreUseCase = GetDailyFoodScoreUseCase(foodRepository);
   final getFoodScoreUseCase = GetFoodScoreUseCase(foodRepository);
 
@@ -134,9 +160,7 @@ void main() async {
           create: (context) => foodScoreProvider,
         ),
       ],
-      child: ProviderScope(
-        child: const MyApp(),
-      ),
+      child: ProviderScope(child: const MyApp()),
     ),
   );
 }
@@ -158,31 +182,31 @@ class _MyAppState extends State<MyApp> {
   void initState() {
     super.initState();
     initAppLinks();
-    
+
     // Register URL launcher for Fitbit domain  {
     super.initState();
     initAppLinks();
-    
+
     // Register URL launcher for Fitbit domain
     // _registerCustomScheme();
   }
-  
+
   // Check if feedback form should be shown (every 3 days)
   Future<void> _checkFeedbackReminder() async {
     // Prevent multiple checks
     if (_isFeedbackChecked) return;
     _isFeedbackChecked = true;
-    
+
     // Wait for app to fully initialize and be stable
     await Future.delayed(const Duration(seconds: 2));
-    
+
     if (!mounted) return;
-    
+
     final shouldShow = await FeedbackFormScreen.shouldShowFeedback();
     if (shouldShow && mounted && navigatorKey.currentContext != null) {
       // Show the feedback form
       Navigator.of(navigatorKey.currentContext!).push(
-        MaterialPageRoute(builder: (context) => const FeedbackFormScreen())
+        MaterialPageRoute(builder: (context) => const FeedbackFormScreen()),
       );
     }
   }
@@ -192,17 +216,20 @@ class _MyAppState extends State<MyApp> {
     _linkSubscription?.cancel();
     super.dispose();
   }
-  
+
   // Initialize app links and handle both initial and incoming links
   Future<void> initAppLinks() async {
     _appLinks = AppLinks();
 
     // Handle app links when the app is already running
-    _linkSubscription = _appLinks.uriLinkStream.listen((Uri uri) {
-      _handleIncomingLink(uri);
-    }, onError: (Object error) {
-      print('Error in app link stream: $error');
-    });
+    _linkSubscription = _appLinks.uriLinkStream.listen(
+      (Uri uri) {
+        _handleIncomingLink(uri);
+      },
+      onError: (Object error) {
+        print('Error in app link stream: $error');
+      },
+    );
 
     // Get the initial link if the app was launched from a link
     try {
@@ -219,13 +246,13 @@ class _MyAppState extends State<MyApp> {
   // Handle incoming links
   void _handleIncomingLink(Uri uri) {
     print('Received app link: $uri');
-    
+
     if (uri.scheme == 'dtwin' && uri.host == 'fitbit-auth') {
       // Extract the authorization code
       final code = uri.queryParameters['code'];
       if (code != null) {
         print('Received Fitbit authorization code: $code');
-        
+
         // Show a success message
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (navigatorKey.currentContext != null) {
@@ -237,10 +264,10 @@ class _MyAppState extends State<MyApp> {
             );
           }
         });
-        
+
         // Store the URI for processing when the dashboard is available
         pendingFitbitUri = uri;
-        
+
         // Try to find the current route
         final currentContext = navigatorKey.currentContext;
         if (currentContext != null) {
@@ -257,7 +284,7 @@ class _MyAppState extends State<MyApp> {
       }
     }
   }
-  
+
   // Process Fitbit callback by finding the HomeScreen and calling its method
   void processFitbitCallback(Uri uri) {
     // This will be called when we're on the dashboard screen
@@ -277,7 +304,7 @@ class _MyAppState extends State<MyApp> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkFeedbackReminder();
     });
-    
+
     return LayoutBuilder(
       builder: (context, constraints) {
         bool isTablet = constraints.maxWidth > 600;
@@ -305,18 +332,23 @@ class _MyAppState extends State<MyApp> {
                 '/questions/weight': (context) => const WeightInputPage(),
                 '/questions/height': (context) => const HeightInputPage(),
                 '/questions/age': (context) => const HealthAssessmentAge(),
-                '/loading': (context) => const HealthAssessmentLoading(
+                '/loading':
+                    (context) => const HealthAssessmentLoading(
                       loadingDuration: Duration(seconds: 5),
                       nextScreen: HealthAssessmentScore(),
                     ),
                 '/avatar': (context) => const HealthAssessmentAvatar(),
-                '/questions/gender': (context) => const HealthAssessmentGender(),
-                '/questions/allergy': (context) => const SymptomsSelectionPage(),
-                '/questions/medication': (context) => const HealthAssessmentMedication(),
+                '/questions/gender':
+                    (context) => const HealthAssessmentGender(),
+                '/questions/allergy':
+                    (context) => const SymptomsSelectionPage(),
+                '/questions/medication':
+                    (context) => const HealthAssessmentMedication(),
                 '/dashboard': (context) => const HomeScreen(),
                 '/feedback': (context) => const FeedbackFormScreen(),
                 // Add notification test screen route
-                '/notification-test': (context) => const NotificationTestScreen(),
+                '/notification-test':
+                    (context) => const NotificationTestScreen(),
                 // '/': (context) => const MedicationsScreen(),
               },
             );
@@ -330,6 +362,6 @@ class _MyAppState extends State<MyApp> {
 // Create a notification class to communicate with the HomeScreen
 class FitbitCallbackNotification extends Notification {
   final Uri uri;
-  
+
   FitbitCallbackNotification(this.uri);
 }

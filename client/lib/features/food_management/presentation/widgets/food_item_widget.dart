@@ -33,11 +33,11 @@ class FoodItemWidget extends StatelessWidget {
               color: const Color(0xFFE2E8F0),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: foodItem.imageUrl != null && foodItem.imageUrl!.isNotEmpty
+            child: foodItem.imageUrl.isNotEmpty
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(8.r),
                     child: Image.network(
-                      foodItem.imageUrl!,
+                      foodItem.imageUrl,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) => const Icon(
                         Icons.restaurant,

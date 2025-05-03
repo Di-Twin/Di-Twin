@@ -26,11 +26,12 @@
             </intent-filter>
             
             <!-- Deep linking intent filter for Fitbit OAuth -->
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="dtwin" android:host="fitbit-auth" />
+             <intent-filter>
+              <action android:name="android.intent.action.VIEW" />
+              <category android:name="android.intent.category.DEFAULT" />
+              <category android:name="android.intent.category.BROWSABLE" />
+              <!-- Accepts URIs that begin with "com.ditwin.app://fitbit/callback" -->
+              <data android:scheme="com.ditwin.app" android:host="fitbit" android:pathPrefix="/callback" />
             </intent-filter>
         </activity>
         <!-- Don't delete the meta-data below.

@@ -34,7 +34,7 @@ class FoodItemWidget extends StatelessWidget {
               borderRadius: BorderRadius.circular(8.r),
               image: foodItem.imageUrl != null
                   ? DecorationImage(
-                      image: NetworkImage(foodItem.imageUrl!),
+                      image: NetworkImage(foodItem.imageUrl),
                       fit: BoxFit.cover,
                     )
                   : null,

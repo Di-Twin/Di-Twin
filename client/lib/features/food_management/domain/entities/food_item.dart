@@ -1,4 +1,3 @@
-// lib/features/food_management/domain/entities/food_item.dart
 import 'dart:ui';
 import 'package:equatable/equatable.dart';
 
@@ -7,7 +6,7 @@ class FoodItem extends Equatable {
   final String name;
   final int calories;
   final String weight;
-  final String date; // Changed from DateTime to String
+  final String date;
   final String time;
   final String mealType;
   final int protein;

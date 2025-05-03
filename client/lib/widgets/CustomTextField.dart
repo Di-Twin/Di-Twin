@@ -68,13 +68,23 @@ class _CustomTextFieldState extends State<CustomTextField> {
               _isFocused = hasFocus;
             });
           },
-          child: Container(
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(10.r),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(
                 color: _isFocused ? const Color(0xFF0F67FE) : Colors.grey[300]!,
                 width: 1.5,
               ),
+              boxShadow: _isFocused
+                  ? [
+                      BoxShadow(
+                        color: const Color(0xFF0F67FE).withOpacity(0.1),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ]
+                  : null,
             ),
             child: TextField(
               controller: widget.controller,
@@ -104,11 +114,11 @@ class _CustomTextFieldState extends State<CustomTextField> {
                   color: Colors.grey[500],
                 ),
                 contentPadding: EdgeInsets.symmetric(
-                  vertical: 12.h,
-                  horizontal: 12.w,
+                  vertical: 14.h,
+                  horizontal: 14.w,
                 ),
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10.r),
+                  borderRadius: BorderRadius.circular(12.r),
                   borderSide: BorderSide.none,
                 ),
                 suffixIcon: widget.label.toLowerCase().contains("password")
