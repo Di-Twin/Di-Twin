@@ -644,7 +644,7 @@ class _MyActivitiesPageState extends State<MyActivitiesPage>
               color = Colors.purple;
               displayName = 'Elliptical';
               break;
-            case 'weightlifting':
+            case 'strength training':
               iconData = Icons.fitness_center_rounded;
               color = Colors.brown;
               displayName = 'Strength Training';

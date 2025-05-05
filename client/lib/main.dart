@@ -365,8 +365,9 @@ class _MyAppState extends State<MyApp> {
                 '/dashboard': (context) => const HomeScreen(),
                 '/feedback': (context) => const FeedbackFormScreen(),
                 // Add notification test screen route
-                '/notification-test':
-                    (context) => const NotificationTestScreen(),
+                // '/notification-test':
+                //     (context) => const NotificationTestScreen(),
+
                 // '/': (context) => const MedicationsScreen(),
               },
             );

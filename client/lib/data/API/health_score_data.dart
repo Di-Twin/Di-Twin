@@ -4,7 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 class HealthScoreService {
   final String _endpoint =
-      'https://test-prod-f427.onrender.com/api/profile/health-score';
+      'https://test-prod-f427.onrender.com/api/profiles/health-score';
 
   Future<String?> _getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
