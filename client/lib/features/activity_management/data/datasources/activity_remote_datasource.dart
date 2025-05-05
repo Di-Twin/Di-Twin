@@ -149,6 +149,7 @@ class ActivityRemoteDataSource {
       );
 
       final responseData = jsonDecode(response.body);
+      debugPrint('Response status: $payload');
       debugPrint('API Response: $responseData');
       if (response.statusCode == 200 || response.statusCode == 201) {
         debugPrint('Activity added successfully: ${responseData['message']}');

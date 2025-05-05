@@ -50,7 +50,7 @@ class ActivityType {
         label: 'Strength Training',
         icon: FontAwesomeIcons.dumbbell,
         color: const Color(0xFF795548),
-        type: 'weightlifting',
+        type: 'strength training',
       ),
       ActivityType(
         label: 'Treadmill',

@@ -33,7 +33,7 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
   Future<void> _saveHealthScoreToCache(int score) async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('health_score', score);
+      await prefs.setInt('profile_health_score', score);
       print('✅ Health score saved to cache: $score');
     } catch (e) {
       print('❌ Error saving health score to cache: $e');
@@ -56,7 +56,7 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
       await _saveHealthScoreToCache(score);
 
       // Update user profile with health score
-      await _updateUserHealthScore(score);
+      await _updateUserHealthScore();
 
       setState(() {
         _score = score;
@@ -70,10 +70,11 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
     }
   }
 
-  Future<void> _updateUserHealthScore(int score) async {
+  Future<void> _updateUserHealthScore() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token');
+      final score = prefs.getInt('profile_health_score');
 
       if (accessToken == null) {
         throw Exception('Access token not found');
@@ -93,7 +94,7 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
       );
 
       if (response.statusCode == 200 || response.statusCode == 204) {
-        print('✅ Health score updated successfully');
+        print('✅ Health score updated successfully: ${response.body}');
       } else {
         print('❌ Failed to update health score: ${response.body}');
       }

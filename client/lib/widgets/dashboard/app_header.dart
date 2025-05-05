@@ -80,7 +80,7 @@ class _AppHeaderState extends State<AppHeader> {
       }
       
       // Load cached health score
-      final cachedHealthScore = prefs.getInt('health_score');
+      final cachedHealthScore = prefs.getInt('profile_health_score');
       
       if (mounted) {
         setState(() {
@@ -142,11 +142,11 @@ class _AppHeaderState extends State<AppHeader> {
     }
     
     try {
-      final healthScore = await _healthScoreService.getHealthScore();
       final prefs = await SharedPreferences.getInstance();
+      final healthScore = prefs.getInt('profile_health_score') ?? 0;
       
-      await prefs.setInt('health_score', healthScore);
-      
+      // await prefs.setInt('profile_health_score', healthScore); // Uncommented this line to save the health score
+
       if (mounted) {
         setState(() {
           _cachedHealthScore = healthScore;
