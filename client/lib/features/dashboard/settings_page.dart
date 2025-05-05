@@ -2,7 +2,6 @@ import 'package:client/data/API/user_profile_data.dart';
 import 'package:client/data/providers/user_profile_provider.dart';
 import 'package:client/widgets/settings/notification_settings_screen.dart';
 import 'package:client/widgets/settings/personal_informations_screen.dart';
-import 'package:client/widgets/settings/security_settings_screen.dart';
 import 'package:client/widgets/settings/about_us_screen.dart';
 import 'package:client/widgets/settings/contact_information_screen.dart';
 import 'package:client/widgets/settings/feedback_form_screen.dart';
@@ -44,18 +43,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to load user data: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load user data: $e')));
     }
   }
 
   void _showDeleteAccountDialog() {
     _nameController.clear();
-    
+
     // Use the dynamic user data for name verification
     final userName = userData != null ? userData!.firstName : '';
-    
+
     // Rest of the method remains the same, but replace hardcoded 'Karishma' with userName
     // ...
 
@@ -283,133 +282,139 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
 
                 // Enhanced Profile card
                 // Enhanced Profile card
-Container(
-  decoration: BoxDecoration(
-    gradient: LinearGradient(
-      begin: Alignment.topLeft,
-      end: Alignment.bottomRight,
-      colors: [Colors.blue.shade600, Colors.blue.shade800],
-    ),
-    borderRadius: BorderRadius.circular(16),
-    boxShadow: [
-      BoxShadow(
-        color: Colors.blue.withOpacity(0.3),
-        blurRadius: 10,
-        offset: const Offset(0, 4),
-      ),
-    ],
-  ),
-  padding: const EdgeInsets.all(20),
-  child: isLoading 
-    ? const Center(child: CircularProgressIndicator(color: Colors.white))
-    : Row(
-        children: [
-          // Profile image with border
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.2),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: Colors.white.withOpacity(0.5),
-                width: 2,
-              ),
-            ),
-            child: AvatarData.getCurrentAvatarWidget(
-              width: 80,
-              height: 80,
-              borderRadius: 16,
-            ),
-          ),
-          const SizedBox(width: 20),
-
-          // Name and email with status indicator
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Text(
-                      userData?.firstName ?? 'Loading...',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Container(
-                      width: 10,
-                      height: 10,
-                      decoration: const BoxDecoration(
-                        color: Colors.greenAccent,
-                        shape: BoxShape.circle,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  userData?.email ?? 'Email not available',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    color: Colors.white.withOpacity(0.8),
-                  ),
-                ),
-                const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 4,
-                  ),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.2),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    userData?.userPlan ?? 'Basic',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Colors.blue.shade600, Colors.blue.shade800],
                     ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Edit button remains the same
-      
-
-                      // Edit button with improved styling
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
-                          ),
-                          onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const PersonalInformationScreen(),
-                      ),
-                    );
-                  },
-                          padding: EdgeInsets.zero,
-                        ),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.blue.withOpacity(0.3),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
                       ),
                     ],
                   ),
+                  padding: const EdgeInsets.all(20),
+                  child:
+                      isLoading
+                          ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
+                          : Row(
+                            children: [
+                              // Profile image with border
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.5),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: AvatarData.getCurrentAvatarWidget(
+                                  width: 80,
+                                  height: 80,
+                                  borderRadius: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 20),
+
+                              // Name and email with status indicator
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          userData?.firstName ?? 'Loading...',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.greenAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      userData?.email ?? 'Email not available',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        color: Colors.white.withOpacity(0.8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        userData?.userPlan ?? 'Basic',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Edit button remains the same
+
+                              // Edit button with improved styling
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                const PersonalInformationScreen(),
+                                      ),
+                                    );
+                                  },
+                                  padding: EdgeInsets.zero,
+                                ),
+                              ),
+                            ],
+                          ),
                 ),
                 const SizedBox(height: 24),
 
@@ -452,20 +457,19 @@ Container(
                 //     );
                 //   },
                 // ),
-                _buildSettingItem(
-                  icon: Icons.lock_outline,
-                  title: 'Security',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SecurityScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-
+                // _buildSettingItem(
+                //   icon: Icons.lock_outline,
+                //   title: 'Security',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const SecurityScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // const SizedBox(height: 24),
                 // // Help & Support
                 // _buildSectionHeader('Help & Support'),
                 // _buildToggleItem(
@@ -520,91 +524,96 @@ Container(
                 ),
                 const SizedBox(height: 24),
 
-              // Sign Out
-               _buildSectionHeader('Sign Out'),
-               GestureDetector(
-                 onTap: () async {
-                   try {
-                     final authService = ref.read(authRemoteDataSourceProvider);
-                     await authService.signOut();
-                     
-                     // Ensure context is still valid after async operation
-                     if (!mounted) return;
-                     
-                     // Navigate to signin page after successful logout
-                     Navigator.pushReplacementNamed(context, '/signin');
-                     
-                     ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(
-                         content: Text(
-                           'Signed out successfully',
-                           style: GoogleFonts.plusJakartaSans(),
-                         ),
-                         backgroundColor: Colors.green,
-                         behavior: SnackBarBehavior.floating,
-                         shape: RoundedRectangleBorder(
-                           borderRadius: BorderRadius.circular(10),
-                         ),
-                       ),
-                     );
-                   } catch (e) {
-                     ScaffoldMessenger.of(context).showSnackBar(
-                       SnackBar(
-                         content: Text(
-                           'Failed to sign out: ${e.toString()}',
-                           style: GoogleFonts.plusJakartaSans(),
-                         ),
-                         backgroundColor: Colors.red,
-                         behavior: SnackBarBehavior.floating,
-                         shape: RoundedRectangleBorder(
-                           borderRadius: BorderRadius.circular(10),
-                         ),
-                       ),
-                     );
-                   }
-                 },
-                 child: Container(
-                   margin: const EdgeInsets.only(bottom: 12),
-                   decoration: BoxDecoration(
-                     color: const Color(0xFFFFEDED),
-                     borderRadius: BorderRadius.circular(12),
-                     boxShadow: [
-                       BoxShadow(
-                         color: Colors.red.withOpacity(0.05),
-                         blurRadius: 10,
-                         offset: const Offset(0, 2),
-                       ),
-                     ],
-                   ),
-                   child: ListTile(
-                     leading: Container(
-                       padding: const EdgeInsets.all(8),
-                       decoration: BoxDecoration(
-                         color: const Color(0xFFFF5757),
-                         borderRadius: BorderRadius.circular(8),
-                       ),
-                       child: const Icon(Icons.logout, color: Colors.white),
-                     ),
-                     title: Text(
-                       'Sign Out',
-                       style: GoogleFonts.plusJakartaSans(
-                         fontSize: 16,
-                         fontWeight: FontWeight.w500,
-                         color: const Color(0xFFFF5757),
-                       ),
-                     ),
-                     trailing: const Icon(
-                       Icons.chevron_right,
-                       color: Color(0xFFFF5757),
-                     ),
-                     contentPadding:
-                         const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                     shape: RoundedRectangleBorder(
-                         borderRadius: BorderRadius.circular(12)),
-                   ),
-                 ),
-               ),
-               const SizedBox(height: 24),
+                // Sign Out
+                _buildSectionHeader('Sign Out'),
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      final authService = ref.read(
+                        authRemoteDataSourceProvider,
+                      );
+                      await authService.signOut();
+
+                      // Ensure context is still valid after async operation
+                      if (!mounted) return;
+
+                      // Navigate to signin page after successful logout
+                      Navigator.pushReplacementNamed(context, '/signin');
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Signed out successfully',
+                            style: GoogleFonts.plusJakartaSans(),
+                          ),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to sign out: ${e.toString()}',
+                            style: GoogleFonts.plusJakartaSans(),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEDED),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF5757),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.logout, color: Colors.white),
+                      ),
+                      title: Text(
+                        'Sign Out',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFFF5757),
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFFFF5757),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
                 // Danger Zone
                 // _buildSectionHeader('Danger Zone'),
@@ -642,48 +651,48 @@ Container(
     );
   }
 
- Widget _buildSettingItem({
-   required IconData icon,
-   required String title,
-   required VoidCallback? onTap,
- }) {
-   return Container(
-     margin: const EdgeInsets.only(bottom: 12),
-     decoration: BoxDecoration(
-       color: Colors.white,
-       borderRadius: BorderRadius.circular(12),
-       boxShadow: [
-         BoxShadow(
-           color: Colors.black.withOpacity(0.03),
-           blurRadius: 10,
-           offset: const Offset(0, 2),
-         ),
-       ],
-     ),
-     child: ListTile(
-       leading: Container(
-         padding: const EdgeInsets.all(8),
-         decoration: BoxDecoration(
-           color: const Color(0xFFF1F5F9),
-           borderRadius: BorderRadius.circular(8),
-         ),
-         child: Icon(icon, color: const Color(0xFF1E293B)),
-       ),
-       title: Text(
-         title,
-         style: GoogleFonts.plusJakartaSans(
-           fontSize: 16,
-           fontWeight: FontWeight.w500,
-           color: const Color(0xFF1E293B),
-         ),
-       ),
-       trailing: const Icon(Icons.chevron_right, color: Colors.black45),
-       onTap: onTap,
-       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-     ),
-   );
- }
+  Widget _buildSettingItem({
+    required IconData icon,
+    required String title,
+    required VoidCallback? onTap,
+  }) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, color: const Color(0xFF1E293B)),
+        ),
+        title: Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF1E293B),
+          ),
+        ),
+        trailing: const Icon(Icons.chevron_right, color: Colors.black45),
+        onTap: onTap,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      ),
+    );
+  }
 
   Widget _buildToggleItem({
     required IconData icon,

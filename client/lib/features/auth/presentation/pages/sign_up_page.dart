@@ -5,7 +5,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:ditwin_country_code/ditwin_country_code.dart';
-import 'package:client/widgets/CustomButton.dart';
 import 'package:client/widgets/CustomTextField.dart';
 import 'package:client/features/auth/presentation/providers/auth_provider.dart';
 
@@ -38,7 +37,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       _showErrorSnackBar("Please enter a valid email address");
       return false;
     }
-    if (!RegExp(r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+").hasMatch(emailController.text.trim())) {
+    if (!RegExp(
+      r"^[a-zA-Z0-9.a-zA-Z0-9.!#$%&'*+-/=?^_`{|}~]+@[a-zA-Z0-9]+\.[a-zA-Z]+",
+    ).hasMatch(emailController.text.trim())) {
       _showErrorSnackBar("Please enter a valid email address");
       return false;
     }
@@ -63,26 +64,24 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       SnackBar(
         content: Text(message),
         backgroundColor: Colors.red,
-        action: message.contains("server is temporarily unavailable") 
-            ? SnackBarAction(
-                label: "Retry",
-                textColor: Colors.white,
-                onPressed: () {
-                  handleSignUp(isRetry: true);
-                },
-              )
-            : null,
-      )
+        action:
+            message.contains("server is temporarily unavailable")
+                ? SnackBarAction(
+                  label: "Retry",
+                  textColor: Colors.white,
+                  onPressed: () {
+                    handleSignUp(isRetry: true);
+                  },
+                )
+                : null,
+      ),
     );
   }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        backgroundColor: Colors.green,
-      )
+      SnackBar(content: Text(message), backgroundColor: Colors.green),
     );
   }
 
@@ -97,7 +96,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     // Update providers
     ref.read(emailProvider.notifier).state = emailController.text.trim();
     ref.read(passwordProvider.notifier).state = passwordController.text.trim();
-    ref.read(firstNameProvider.notifier).state = firstNameController.text.trim();
+    ref.read(firstNameProvider.notifier).state =
+        firstNameController.text.trim();
     ref.read(lastNameProvider.notifier).state = lastNameController.text.trim();
     ref.read(phoneProvider.notifier).state = phoneController.text.trim();
     ref.read(loadingProvider.notifier).state = true;
@@ -110,8 +110,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
 
     try {
       // Get the use case
-      final initiateEmailSignupUseCase = ref.read(initiateEmailSignupUseCaseProvider);
-      
+      final initiateEmailSignupUseCase = ref.read(
+        initiateEmailSignupUseCaseProvider,
+      );
+
       // Execute the use case - make exactly ONE attempt
       final result = await initiateEmailSignupUseCase.execute(
         email: email,
@@ -125,7 +127,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
       setState(() {
         isRetrying = false;
       });
-      
+
       print("📊 Signup result: $result");
 
       if (result["userExists"] == true) {
@@ -140,51 +142,65 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         } else if (result.containsKey("token")) {
           token = result["token"] ?? "";
         }
-        
+
         print("🔑 Extracted token: $token");
-        
+
         if (token.isEmpty) {
-          _showErrorSnackBar("Failed to get verification token. Please try again.");
+          _showErrorSnackBar(
+            "Failed to get verification token. Please try again.",
+          );
           return;
         }
-        
+
         // Show success message
         if (mounted) {
           _showSuccessSnackBar("OTP sent successfully to your email!");
-          
+
           // Navigate to OTP screen with the token
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (context) => OtpVerificationPage(
-                email: email,
-                firstName: firstName,
-                lastName: lastName,
-                isEmailFlow: true,
-                signupToken: token, // Pass the token directly
-              ),
+              builder:
+                  (context) => OtpVerificationPage(
+                    email: email,
+                    firstName: firstName,
+                    lastName: lastName,
+                    isEmailFlow: true,
+                    signupToken: token, // Pass the token directly
+                  ),
             ),
           );
         }
       } else if (result["error"] == "server_unavailable") {
         if (mounted) {
-          _showErrorSnackBar("The server is temporarily unavailable. Please try again in a few minutes.");
+          _showErrorSnackBar(
+            "The server is temporarily unavailable. Please try again in a few minutes.",
+          );
         }
       } else if (result["error"] == "empty_response") {
         if (mounted) {
-          _showErrorSnackBar("The server returned an empty response. Please try again.");
+          _showErrorSnackBar(
+            "The server returned an empty response. Please try again.",
+          );
         }
       } else {
         if (mounted) {
-          _showErrorSnackBar(result["message"] ?? "Failed to send OTP. Please try again.");
+          _showErrorSnackBar(
+            result["message"] ?? "Failed to send OTP. Please try again.",
+          );
         }
       }
     } catch (e) {
       if (mounted) {
         String errorMessage = e.toString();
         // Clean up the error message
-        if (errorMessage.contains("Exception: Email Signup Error: Exception:")) {
-          errorMessage = errorMessage.replaceAll("Exception: Email Signup Error: Exception:", "");
+        if (errorMessage.contains(
+          "Exception: Email Signup Error: Exception:",
+        )) {
+          errorMessage = errorMessage.replaceAll(
+            "Exception: Email Signup Error: Exception:",
+            "",
+          );
         }
         _showErrorSnackBar(errorMessage);
         ref.read(loadingProvider.notifier).state = false;
@@ -210,7 +226,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
     final isLoading = ref.watch(loadingProvider);
 
     return Scaffold(
-      backgroundColor: Colors.grey[100],
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: GestureDetector(
           onTap: () => FocusScope.of(context).unfocus(),
@@ -224,48 +240,209 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // 📌 Header Section
+                        // Enhanced Header Section
                         Container(
-                          height: 0.35.sh, // Reduced height to make more room for form
+                          height: 0.32.sh, // Slightly reduced height
                           width: double.infinity,
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1A2B50),
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [Color(0xFF1A2B50), Color(0xFF0F67FE)],
+                            ),
                             borderRadius: BorderRadius.only(
                               bottomLeft: Radius.circular(30.r),
                               bottomRight: Radius.circular(30.r),
                             ),
-                          ),
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Image.asset(
-                                'images/WhiteDtwinLogo.png',
-                                height: 40.h,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.1),
+                                blurRadius: 10,
+                                offset: const Offset(0, 5),
                               ),
-                              SizedBox(height: 10.h),
-                              Text(
-                                'Create Your Account!',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 24.sp,
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                            ],
+                          ),
+                          child: Stack(
+                            children: [
+                              // Decorative elements
+                              Positioned(
+                                top: -20.h,
+                                right: -20.w,
+                                child: Container(
+                                  height: 120.h,
+                                  width: 120.w,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                bottom: 20.h,
+                                left: -30.w,
+                                child: Container(
+                                  height: 100.h,
+                                  width: 100.w,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.1),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                top: 40.h,
+                                left: 20.w,
+                                child: Container(
+                                  height: 30.h,
+                                  width: 30.w,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.2),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                              ),
+                              // Enhanced content with animations
+                              Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    // Animated logo
+                                    TweenAnimationBuilder(
+                                      tween: Tween<double>(
+                                        begin: 0.8,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 800,
+                                      ),
+                                      curve: Curves.easeOutBack,
+                                      builder: (context, value, child) {
+                                        return Transform.scale(
+                                          scale: value,
+                                          child: child,
+                                        );
+                                      },
+                                      child: Image.asset(
+                                        'images/WhiteDtwinLogo.png',
+                                        height: 50.h,
+                                      ),
+                                    ),
+                                    SizedBox(height: 15.h),
+                                    // Animated title
+                                    TweenAnimationBuilder(
+                                      tween: Tween<double>(
+                                        begin: 0.0,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 800,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      builder: (context, value, child) {
+                                        return Opacity(
+                                          opacity: value,
+                                          child: Transform.translate(
+                                            offset: Offset(0, 20 * (1 - value)),
+                                            child: child,
+                                          ),
+                                        );
+                                      },
+                                      child: Text(
+                                        'Create Your Account!',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 26.sp,
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    // Animated divider
+                                    TweenAnimationBuilder(
+                                      tween: Tween<double>(
+                                        begin: 0.0,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 1000,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      builder: (context, value, child) {
+                                        return Container(
+                                          width: 50.w * value,
+                                          height: 4.h,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white,
+                                            borderRadius: BorderRadius.circular(
+                                              2.r,
+                                            ),
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                    SizedBox(height: 10.h),
+                                    // Animated subtitle
+                                    TweenAnimationBuilder(
+                                      tween: Tween<double>(
+                                        begin: 0.0,
+                                        end: 1.0,
+                                      ),
+                                      duration: const Duration(
+                                        milliseconds: 1200,
+                                      ),
+                                      curve: Curves.easeOut,
+                                      builder: (context, value, child) {
+                                        return Opacity(
+                                          opacity: value,
+                                          child: child,
+                                        );
+                                      },
+                                      child: Text(
+                                        'Join us to start your health journey',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 15.sp,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white.withOpacity(0.9),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
                             ],
                           ),
                         ),
 
-                        // 📌 Sign-up Form (Now Scrollable)
+                        // Enhanced Sign-up Form
                         Expanded(
                           child: Padding(
                             padding: EdgeInsets.symmetric(
-                              horizontal: 20.w,
-                              vertical: 15.h,
+                              horizontal: 24.w,
+                              vertical: 20.h,
                             ),
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // First Name & Last Name Fields
+                                // Enhanced section title
+                                Text(
+                                  "Personal Information",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1A2B50),
+                                  ),
+                                ),
+                                SizedBox(height: 8.h),
+                                Text(
+                                  "Please fill in your details to create an account",
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                                SizedBox(height: 20.h),
+
+                                // Enhanced First Name & Last Name Fields
                                 Row(
                                   children: [
                                     Expanded(
@@ -285,7 +462,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                         },
                                       ),
                                     ),
-                                    SizedBox(width: 10.w),
+                                    SizedBox(width: 12.w),
                                     Expanded(
                                       child: CustomTextField(
                                         label: "Last Name",
@@ -303,9 +480,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                     ),
                                   ],
                                 ),
-                                SizedBox(height: 5.h),
 
-                                // 📌 Email Field
+                                // Enhanced Email Field
                                 CustomTextField(
                                   label: "Email",
                                   hintText: "Enter your email",
@@ -314,15 +490,13 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                   keyboardType: TextInputType.emailAddress,
                                   onChanged: (value) {
                                     if (mounted) {
-                                      ref
-                                          .read(emailProvider.notifier)
-                                          .state = value;
+                                      ref.read(emailProvider.notifier).state =
+                                          value;
                                     }
                                   },
                                 ),
-                                SizedBox(height: 5.h),
 
-                                // 📌 Password Field
+                                // Enhanced Password Field
                                 CustomTextField(
                                   label: "Password",
                                   hintText: "Enter your password",
@@ -337,9 +511,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                     }
                                   },
                                 ),
-                                SizedBox(height: 5.h),
 
-                                // 📌 Phone Number
+                                // Enhanced Phone Number
                                 Text(
                                   "Phone Number",
                                   style: GoogleFonts.plusJakartaSans(
@@ -351,11 +524,23 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                 SizedBox(height: 5.h),
                                 Container(
                                   padding: EdgeInsets.symmetric(
-                                    horizontal: 10.w,
+                                    horizontal: 15.w,
+                                    vertical: 5.h,
                                   ),
                                   decoration: BoxDecoration(
                                     borderRadius: BorderRadius.circular(12.r),
                                     color: Colors.white,
+                                    border: Border.all(
+                                      color: Colors.grey[300]!,
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: Colors.black.withOpacity(0.03),
+                                        blurRadius: 4,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
                                   ),
                                   child: Row(
                                     children: [
@@ -367,14 +552,14 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                           });
                                         },
                                       ),
-                                      SizedBox(width: 5.w),
+                                      SizedBox(width: 8.w),
                                       Expanded(
                                         child: TextField(
                                           controller: phoneController,
                                           keyboardType: TextInputType.phone,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14.sp,
-                                            fontWeight: FontWeight.w800,
+                                            fontWeight: FontWeight.w600,
                                             color: Colors.black87,
                                           ),
                                           decoration: InputDecoration(
@@ -403,21 +588,88 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                     ],
                                   ),
                                 ),
-                                SizedBox(height: 20.h),
+                                SizedBox(height: 25.h),
 
-                                // 📌 Continue Button
-                                CustomButton(
-                                  text: isLoading 
-                                      ? (isRetrying ? "Retrying..." : "Please wait...") 
-                                      : "Continue",
-                                  iconPath: 'images/SignInAddIcon.png',
-                                  onPressed: isLoading ? null : handleSignUp,
+                                // Enhanced Continue Button with loading state
+                                AnimatedContainer(
+                                  duration: const Duration(milliseconds: 300),
+                                  height: 55.h,
+                                  width: double.infinity,
+                                  child: ElevatedButton(
+                                    onPressed: isLoading ? null : handleSignUp,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF0F67FE),
+                                      foregroundColor: Colors.white,
+                                      elevation: 3,
+                                      shadowColor: const Color(
+                                        0xFF0F67FE,
+                                      ).withOpacity(0.5),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(
+                                          15.r,
+                                        ),
+                                      ),
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 12.h,
+                                      ),
+                                    ),
+                                    child:
+                                        isLoading
+                                            ? Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                SizedBox(
+                                                  height: 20.h,
+                                                  width: 20.w,
+                                                  child:
+                                                      const CircularProgressIndicator(
+                                                        color: Colors.white,
+                                                        strokeWidth: 3,
+                                                      ),
+                                                ),
+                                                SizedBox(width: 12.w),
+                                                Text(
+                                                  isRetrying
+                                                      ? "Retrying..."
+                                                      : "Please wait...",
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                ),
+                                              ],
+                                            )
+                                            : Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  "Continue",
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        fontSize: 16.sp,
+                                                        fontWeight:
+                                                            FontWeight.w700,
+                                                      ),
+                                                ),
+                                                SizedBox(width: 8.w),
+                                                Image.asset(
+                                                  'images/SignInAddIcon.png',
+                                                  height: 24.h,
+                                                  width: 24.w,
+                                                ),
+                                              ],
+                                            ),
+                                  ),
                                 ),
-                                SizedBox(height: 20.h),
+                                SizedBox(height: 25.h),
 
-                                // 📌 Enhanced Bottom Section with Card
+                                // Enhanced Bottom Section with Card
                                 Container(
-                                  padding: EdgeInsets.all(15.r),
+                                  padding: EdgeInsets.all(20.r),
                                   decoration: BoxDecoration(
                                     color: Colors.white,
                                     borderRadius: BorderRadius.circular(15.r),
@@ -431,9 +683,10 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                   ),
                                   child: Column(
                                     children: [
-                                      // Already have an account section
+                                      // Enhanced Already have an account section
                                       Row(
-                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.center,
                                         children: [
                                           Text(
                                             "Already have an account?",
@@ -448,29 +701,36 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                               Navigator.push(
                                                 context,
                                                 MaterialPageRoute(
-                                                  builder: (context) => const SignInPage(),
+                                                  builder:
+                                                      (context) =>
+                                                          const SignInPage(),
                                                 ),
                                               );
                                             },
                                             child: Text(
                                               "Sign In",
-                                              style: GoogleFonts.plusJakartaSans(
-                                                color: const Color(0xFF264D73),
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 15.sp,
-                                                decoration: TextDecoration.underline,
-                                              ),
+                                              style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    color: const Color(
+                                                      0xFF0F67FE,
+                                                    ),
+                                                    fontWeight: FontWeight.bold,
+                                                    fontSize: 15.sp,
+                                                    decoration:
+                                                        TextDecoration
+                                                            .underline,
+                                                  ),
                                             ),
                                           ),
                                         ],
                                       ),
-                                      SizedBox(height: 15.h),
-                                      
-                                      // Divider
+                                      SizedBox(height: 20.h),
+
+                                      // Enhanced Divider
                                       Divider(color: Colors.grey.shade300),
-                                      SizedBox(height: 15.h),
-                                      
-                                      // Terms & Conditions with icons
+                                      SizedBox(height: 20.h),
+
+                                      // Enhanced Terms & Conditions with icons
                                       Text(
                                         "By signing up, you agree to our",
                                         style: GoogleFonts.plusJakartaSans(
@@ -479,45 +739,64 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                         ),
                                         textAlign: TextAlign.center,
                                       ),
-                                      SizedBox(height: 10.h),
-                                      
-                                      // Privacy Policy button
+                                      SizedBox(height: 15.h),
+
+                                      // Enhanced Privacy Policy button
                                       InkWell(
                                         onTap: () {
-                                          Navigator.pushNamed(context, '/privacy');
+                                          Navigator.pushNamed(
+                                            context,
+                                            '/privacy',
+                                          );
                                         },
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
                                         child: Container(
                                           padding: EdgeInsets.symmetric(
-                                            vertical: 8.h,
-                                            horizontal: 15.w,
+                                            vertical: 10.h,
+                                            horizontal: 20.w,
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFF5F7FA),
-                                            borderRadius: BorderRadius.circular(8.r),
+                                            borderRadius: BorderRadius.circular(
+                                              10.r,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.03,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
                                                 Icons.privacy_tip_outlined,
-                                                size: 18.sp,
+                                                size: 20.sp,
                                                 color: Colors.red,
                                               ),
-                                              SizedBox(width: 8.w),
+                                              SizedBox(width: 10.w),
                                               Text(
                                                 "Privacy Policy",
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14.sp,
-                                                ),
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14.sp,
+                                                    ),
                                               ),
                                             ],
                                           ),
                                         ),
                                       ),
-                                      SizedBox(height: 10.h),
-                                      
+                                      SizedBox(height: 15.h),
+
                                       Text(
                                         "and",
                                         style: GoogleFonts.plusJakartaSans(
@@ -525,38 +804,57 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                           fontSize: 14.sp,
                                         ),
                                       ),
-                                      SizedBox(height: 10.h),
-                                      
-                                      // Terms & Conditions button
+                                      SizedBox(height: 15.h),
+
+                                      // Enhanced Terms & Conditions button
                                       InkWell(
                                         onTap: () {
-                                          Navigator.pushNamed(context, '/terms');
+                                          Navigator.pushNamed(
+                                            context,
+                                            '/terms',
+                                          );
                                         },
+                                        borderRadius: BorderRadius.circular(
+                                          10.r,
+                                        ),
                                         child: Container(
                                           padding: EdgeInsets.symmetric(
-                                            vertical: 8.h,
-                                            horizontal: 15.w,
+                                            vertical: 10.h,
+                                            horizontal: 20.w,
                                           ),
                                           decoration: BoxDecoration(
                                             color: const Color(0xFFF5F7FA),
-                                            borderRadius: BorderRadius.circular(8.r),
+                                            borderRadius: BorderRadius.circular(
+                                              10.r,
+                                            ),
+                                            boxShadow: [
+                                              BoxShadow(
+                                                color: Colors.black.withOpacity(
+                                                  0.03,
+                                                ),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
                                               Icon(
                                                 Icons.description_outlined,
-                                                size: 18.sp,
+                                                size: 20.sp,
                                                 color: Colors.red,
                                               ),
-                                              SizedBox(width: 8.w),
+                                              SizedBox(width: 10.w),
                                               Text(
                                                 "Terms & Conditions",
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  color: Colors.red,
-                                                  fontWeight: FontWeight.bold,
-                                                  fontSize: 14.sp,
-                                                ),
+                                                style:
+                                                    GoogleFonts.plusJakartaSans(
+                                                      color: Colors.red,
+                                                      fontWeight:
+                                                          FontWeight.bold,
+                                                      fontSize: 14.sp,
+                                                    ),
                                               ),
                                             ],
                                           ),
@@ -565,7 +863,6 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                     ],
                                   ),
                                 ),
-                                SizedBox(height: 10.h),
                               ],
                             ),
                           ),
