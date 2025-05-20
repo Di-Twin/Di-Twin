@@ -1,8 +1,12 @@
 import 'dart:io';
+import 'package:client/data/providers/user_profile_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:client/data/API/user_profile_data.dart';
+// Add import for AvatarData at the top of the file
+import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 
 class PersonalInformationScreen extends StatefulWidget {
   const PersonalInformationScreen({super.key});
@@ -16,20 +20,24 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
   DateTime selectedDate = DateTime.now();
   String dateDisplay = 'DD/MM/YYYY';
   File? _profileImage;
+  bool isLoading = true;
+  bool isSaving = false;
+  String? errorMessage;
+  
+  // User data
+  UserData? userData;
+  
+  // User provider instance
+  final UserProvider _userProvider = UserProvider();
 
+  // Location controller (new)
+  final TextEditingController locationController = TextEditingController();
+  
   // Controllers for editable fields
-  final TextEditingController firstNameController = TextEditingController(
-    text: 'Karishma',
-  );
-  final TextEditingController lastNameController = TextEditingController(
-    text: 'SS',
-  );
-  final TextEditingController emailController = TextEditingController(
-    text: 'karishma@test.com',
-  );
-  final TextEditingController phoneController = TextEditingController(
-    text: '+911234567890',
-  );
+  final TextEditingController firstNameController = TextEditingController();
+  final TextEditingController lastNameController = TextEditingController();
+  final TextEditingController emailController = TextEditingController();
+  final TextEditingController phoneController = TextEditingController();
 
   // Track which fields are in edit mode
   Map<String, bool> editModeMap = {
@@ -37,9 +45,30 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
     'lastName': false,
     'email': false,
     'dob': false,
+    'location': false,
   };
 
-  // Method to pick image from gallery or camera
+  // Track if any field has been modified
+  bool get isAnyFieldModified {
+    if (userData == null) return false;
+    
+    return firstNameController.text != userData!.firstName ||
+           lastNameController.text != userData!.lastName ||
+           (userData!.dob != null && selectedDate != userData!.dob) ||
+           locationController.text != (userData!.location ?? '');
+  }
+
+  // Add a method to update the AvatarData when profile image changes
+  void _updateAvatarData() {
+    if (_profileImage != null) {
+      AvatarData.uploadedImage = _profileImage;
+      AvatarData.isCustomImage = true;
+      AvatarData.saveAvatarData();
+      print('✅ Updated avatar data with custom image');
+    }
+  }
+
+  // Modify the _pickImage method to update AvatarData
   Future<void> _pickImage(ImageSource source) async {
     final pickedFile = await ImagePicker().pickImage(source: source);
 
@@ -47,6 +76,62 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
       setState(() {
         _profileImage = File(pickedFile.path);
       });
+      
+      // Update AvatarData with the new image
+      _updateAvatarData();
+    }
+  }
+
+  // In initState, add code to load the avatar from AvatarData
+  @override
+  void initState() {
+    super.initState();
+    _fetchUserData();
+    
+    // Load avatar from AvatarData
+    if (AvatarData.isCustomImage && AvatarData.uploadedImage != null) {
+      setState(() {
+        _profileImage = AvatarData.uploadedImage;
+      });
+      print('✅ Loaded avatar from AvatarData');
+    }
+  }
+
+  // Fetch user data from API
+  Future<void> _fetchUserData() async {
+    setState(() {
+      isLoading = true;
+      errorMessage = null;
+    });
+
+    try {
+      final userResponse = await _userProvider.getUser();
+      
+      setState(() {
+        userData = userResponse.data;
+        isLoading = false;
+        
+        // Update controllers with fetched data
+        firstNameController.text = userData?.firstName ?? '';
+        lastNameController.text = userData?.lastName ?? '';
+        emailController.text = userData?.email ?? '';
+        phoneController.text = userData?.mobileNumber ?? '';
+        locationController.text = userData?.location ?? '';
+        
+        // Update date if available
+        if (userData?.dob != null) {
+          selectedDate = userData!.dob!;
+          dateDisplay = '${selectedDate.day.toString().padLeft(2, '0')}/'
+                        '${selectedDate.month.toString().padLeft(2, '0')}/'
+                        '${selectedDate.year}';
+        }
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+        errorMessage = 'Failed to load user data: $e';
+      });
+      debugPrint('Error loading user data: $e');
     }
   }
 
@@ -348,6 +433,66 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
     });
   }
 
+  // Method to update user data
+  Future<void> _saveUserData() async {
+    // Check if any data has been modified
+    if (!isAnyFieldModified) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No changes to save'),
+          backgroundColor: Colors.grey,
+        ),
+      );
+      return;
+    }
+    
+    setState(() {
+      isSaving = true;
+    });
+    
+    try {
+      final updatedUser = await _userProvider.updateUser(
+        firstName: firstNameController.text,
+        lastName: lastNameController.text,
+        dob: selectedDate,
+        location: locationController.text.isNotEmpty ? locationController.text : null,
+        // We're not modifying the user plan in this interface
+      );
+      
+      setState(() {
+        userData = updatedUser.data;
+        isSaving = false;
+      });
+      
+      // Reset all edit modes
+      setState(() {
+        editModeMap.forEach((key, value) {
+          editModeMap[key] = false;
+        });
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Profile updated successfully'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      setState(() {
+        isSaving = false;
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update profile: ${e.toString()}'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      
+      debugPrint('Error updating profile: $e');
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -411,6 +556,8 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                       clipBehavior: Clip.none,
                       alignment: Alignment.center,
                       children: [
+                        // In the build method, replace the profile image container with AvatarData if no _profileImage
+                        // Find the Container with the profile image and modify it:
                         Container(
                           width: 120,
                           height: 120,
@@ -424,24 +571,20 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                                 offset: const Offset(0, 5),
                               ),
                             ],
-                            image:
-                                _profileImage != null
-                                    ? DecorationImage(
-                                      image: FileImage(_profileImage!),
-                                      fit: BoxFit.cover,
-                                    )
-                                    : null,
-                          ),
-                          child:
-                              _profileImage == null
-                                  ? const Center(
-                                    child: Icon(
-                                      Icons.person,
-                                      size: 60,
-                                      color: Colors.grey,
-                                    ),
+                            image: _profileImage != null
+                                ? DecorationImage(
+                                    image: FileImage(_profileImage!),
+                                    fit: BoxFit.cover,
                                   )
-                                  : null,
+                                : null,
+                          ),
+                          child: _profileImage == null
+                              ? AvatarData.getCurrentAvatarWidget(
+                                  width: 120,
+                                  height: 120,
+                                  borderRadius: 24,
+                                )
+                              : null,
                         ),
                         Positioned(
                           bottom: -5,
@@ -475,94 +618,153 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                 Expanded(
                   child: Padding(
                     padding: const EdgeInsets.only(top: 30),
-                    child: SingleChildScrollView(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildSectionTitle('First Name'),
-                          _buildEditableField(
-                            icon: Icons.person_outline,
-                            controller: firstNameController,
-                            isEditing: editModeMap['firstName']!,
-                            onEditPressed: () => _toggleEditMode('firstName'),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildSectionTitle('Last Name'),
-                          _buildEditableField(
-                            icon: Icons.person_outline,
-                            controller: lastNameController,
-                            isEditing: editModeMap['lastName']!,
-                            onEditPressed: () => _toggleEditMode('lastName'),
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildSectionTitle('Email Address'),
-                          _buildEditableField(
-                            icon: Icons.alternate_email,
-                            controller: emailController,
-                            isEditing: editModeMap['email']!,
-                            onEditPressed: () => _toggleEditMode('email'),
-                            keyboardType: TextInputType.emailAddress,
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildSectionTitle('Phone Number'),
-                          _buildInfoField(
-                            icon: Icons.phone_iphone,
-                            value: phoneController.text,
-                            editable: false,
-                            isGrayed: true,
-                          ),
-                          const SizedBox(height: 20),
-
-                          _buildSectionTitle('Date of Birth'),
-                          _buildInfoField(
-                            icon: Icons.calendar_today,
-                            value: dateDisplay,
-                            editable: true,
-                            onTap: _showDatePicker,
-                          ),
-
-                          const SizedBox(height: 40),
-
-                          // Save button
-                          SizedBox(
-                            width: double.infinity,
-                            height: 56,
-                            child: ElevatedButton(
-                              onPressed: () {
-                                // Implement save logic here
-                              },
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: Colors.blue,
-                                foregroundColor: Colors.white,
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                elevation: 0,
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Text(
-                                    'Save Changes',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
+                    child: isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(),
+                          )
+                        : errorMessage != null
+                            ? Center(
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Text(
+                                      'Error loading data',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.red,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.check),
-                                ],
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      errorMessage!,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        color: Colors.black87,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    const SizedBox(height: 16),
+                                    ElevatedButton(
+                                      onPressed: _fetchUserData,
+                                      child: const Text('Retry'),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : SingleChildScrollView(
+                                padding: const EdgeInsets.symmetric(horizontal: 16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    _buildSectionTitle('First Name'),
+                                    _buildEditableField(
+                                      icon: Icons.person_outline,
+                                      controller: firstNameController,
+                                      isEditing: editModeMap['firstName']!,
+                                      onEditPressed: () => _toggleEditMode('firstName'),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    _buildSectionTitle('Last Name'),
+                                    _buildEditableField(
+                                      icon: Icons.person_outline,
+                                      controller: lastNameController,
+                                      isEditing: editModeMap['lastName']!,
+                                      onEditPressed: () => _toggleEditMode('lastName'),
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    _buildSectionTitle('Email Address'),
+                                    _buildInfoField(
+                                      icon: Icons.alternate_email,
+                                      value: emailController.text,
+                                      editable: false, // Email is non-editable
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    _buildSectionTitle('Phone Number'),
+                                    _buildInfoField(
+                                      icon: Icons.phone_iphone,
+                                      value: phoneController.text,
+                                      editable: false,
+                                      isGrayed: true,
+                                    ),
+                                    const SizedBox(height: 20),
+
+                                    _buildSectionTitle('Date of Birth'),
+                                    _buildInfoField(
+                                      icon: Icons.calendar_today,
+                                      value: dateDisplay,
+                                      editable: true,
+                                      onTap: _showDatePicker,
+                                    ),
+                                    
+                                    const SizedBox(height: 20),
+                                    _buildSectionTitle('Location'),
+                                    _buildEditableField(
+                                      icon: Icons.location_on_outlined,
+                                      controller: locationController,
+                                      isEditing: editModeMap['location']!,
+                                      onEditPressed: () => _toggleEditMode('location'),
+                                    ),
+
+                                    if (userData != null && userData!.userPlan != null) ...[
+                                      const SizedBox(height: 20),
+                                      _buildSectionTitle('Plan'),
+                                      _buildInfoField(
+                                        icon: Icons.workspace_premium,
+                                        value: userData!.userPlan!,
+                                        editable: false,
+                                      ),
+                                    ],
+
+                                    const SizedBox(height: 40),
+
+                                    // Save button
+                                    SizedBox(
+                                      width: double.infinity,
+                                      height: 56,
+                                      child: ElevatedButton(
+                                        onPressed: isSaving ? null : _saveUserData,
+                                        style: ElevatedButton.styleFrom(
+                                          backgroundColor: Colors.blue,
+                                          foregroundColor: Colors.white,
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(12),
+                                          ),
+                                          elevation: 0,
+                                          disabledBackgroundColor: Colors.blue.withOpacity(0.6),
+                                        ),
+                                        child: isSaving 
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2.0,
+                                              ),
+                                            )
+                                          : Row(
+                                              mainAxisAlignment: MainAxisAlignment.center,
+                                              children: [
+                                                Text(
+                                                  'Save Changes',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    fontSize: 18,
+                                                    fontWeight: FontWeight.bold,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 8),
+                                                const Icon(Icons.check),
+                                              ],
+                                            ),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 20),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ),
-                          const SizedBox(height: 20),
-                        ],
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -619,7 +821,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                   color:
                       isGrayed
                           ? Colors.grey
-                          : (value == 'DD/MM/YYYY'
+                          : (value == 'DD/MM/YYYY' || value == 'Not provided'
                               ? Colors.black45
                               : Colors.black87),
                   fontWeight: FontWeight.w500,
@@ -681,10 +883,14 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
                         autofocus: true,
                       )
                       : Text(
-                        controller.text,
+                        controller.text.isEmpty 
+                            ? 'Not provided'
+                            : controller.text,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
-                          color: Colors.black87,
+                          color: controller.text.isEmpty 
+                            ? Colors.black45
+                            : Colors.black87,
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -709,6 +915,7 @@ class _PersonalInformationScreenState extends State<PersonalInformationScreen> {
     lastNameController.dispose();
     emailController.dispose();
     phoneController.dispose();
+    locationController.dispose();
     super.dispose();
   }
 }

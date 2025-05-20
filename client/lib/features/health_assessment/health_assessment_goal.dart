@@ -15,7 +15,7 @@ class HealthAssessmentGoal extends ConsumerStatefulWidget {
 }
 
 class _HealthAssessmentGoalState extends ConsumerState<HealthAssessmentGoal> {
-  String? selectedGoal;
+  String? selectedGoal = 'lose_weight'; // Default selection
 
   final List<Map<String, dynamic>> healthGoals = [
     {
@@ -48,8 +48,16 @@ class _HealthAssessmentGoalState extends ConsumerState<HealthAssessmentGoal> {
   @override
   void initState() {
     super.initState();
-    // Initialize with "lose weight" selected
-    selectedGoal = 'lose_weight';
+    // Initialize the provider with the default goal text
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final defaultGoalText = healthGoals.firstWhere(
+        (goal) => goal['value'] == selectedGoal,
+        orElse: () => healthGoals[1], // Default to "lose weight" entry
+      )['text'];
+      
+      ref.read(onboardingProvider.notifier).updateGoal(defaultGoalText);
+      print("Default Goal Set: ${ref.read(onboardingProvider).goal}");
+    });
   }
 
   @override
@@ -260,9 +268,21 @@ class _HealthAssessmentGoalState extends ConsumerState<HealthAssessmentGoal> {
                   text: "Continue",
                   iconPath: 'images/SignInAddIcon.png',
                   onPressed: () {
-                    // Go to the next step (Gender selection)
+                    // Find the selected goal text
+                    final selectedGoalData = healthGoals.firstWhere(
+                      (goal) => goal['value'] == selectedGoal,
+                      orElse: () => healthGoals[1], // Default to "lose weight" entry
+                    );
+                    
+                    // Update the goal in the provider
+                    ref.read(onboardingProvider.notifier).updateGoal(selectedGoalData['text']);
+                    
+                    // Verify it was set
+                    print("Goal before navigation: ${ref.read(onboardingProvider).goal}");
+                    
+                    // Navigate to the next screen
                     Navigator.pushNamed(context, '/questions/gender');
-                  },
+                  }
                 ),
               ),
             ],

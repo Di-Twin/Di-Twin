@@ -4,177 +4,214 @@ import 'package:google_fonts/google_fonts.dart';
 
 class CustomActivityHeader extends StatelessWidget {
   final String title;
-  final String badgeText;
   final String score;
   final String subtitle;
   final String buttonImage;
-  final VoidCallback onButtonTap;
-  
-  // Added customizable properties with defaults
+  final String badgeText;
   final Color backgroundColor;
-  final String? backgroundImagePath;
-  final Color buttonColor;
-  final Color buttonShadowColor;
-  final double buttonShadowSpread;
-  final Color backButtonBorderColor;
-  final double backButtonBorderWidth;
-  final Color badgeBackgroundColor;
   final Color titleTextColor;
   final Color scoreTextColor;
   final Color subtitleTextColor;
+  final Color badgeBackgroundColor;
   final Color badgeTextColor;
+  final Color buttonColor;
+  final Color buttonShadowColor;
+  final Color backButtonBorderColor;
+  final double backButtonBorderWidth;
+  final String? backgroundImagePath;
+  final double headerHeight;
   final double bottomLeftRadius;
   final double bottomRightRadius;
+  final double buttonShadowSpread;
+  final VoidCallback onButtonTap;
+  final bool showMenu;
+  final bool showBadge;
 
   const CustomActivityHeader({
     super.key,
     required this.title,
-    required this.badgeText,
     required this.score,
     required this.subtitle,
     required this.buttonImage,
-    required this.onButtonTap,
-    
-    // All customizable properties with defaults
-    this.backgroundColor = const Color(0xFF242E49),
+    required this.badgeText,
+    required this.backgroundColor,
+    required this.titleTextColor,
+    required this.scoreTextColor,
+    required this.subtitleTextColor,
+    required this.badgeBackgroundColor,
+    required this.badgeTextColor,
+    required this.buttonColor,
+    required this.buttonShadowColor,
+    required this.backButtonBorderColor,
+    required this.backButtonBorderWidth,
     this.backgroundImagePath,
-    this.buttonColor = const Color(0xFF0F67FE),
-    this.buttonShadowColor = const Color(0xFF0F67FE),
-    this.buttonShadowSpread = 5.0,
-    this.backButtonBorderColor = Colors.white,
-    this.backButtonBorderWidth = 1.5,
-    this.badgeBackgroundColor = Colors.white,
-    this.titleTextColor = Colors.white,
-    this.scoreTextColor = Colors.white,
-    this.subtitleTextColor = Colors.white,
-    this.badgeTextColor = Colors.white,
-    this.bottomLeftRadius = 30.0,
-    this.bottomRightRadius = 30.0,
+    required this.headerHeight,
+    required this.bottomLeftRadius,
+    required this.bottomRightRadius,
+    required this.buttonShadowSpread,
+    required this.onButtonTap,
+    this.showMenu = false,
+    this.showBadge = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
+        // Calculate responsive sizes
+        final double actualHeaderHeight = headerHeight.h;
+        final double scoreFontSize = (actualHeaderHeight * 0.25).clamp(
+          60.0,
+          100.0,
+        );
+        final double subtitleFontSize = (actualHeaderHeight * 0.07).clamp(
+          18.0,
+          24.0,
+        );
+
         return Stack(
           clipBehavior: Clip.none, // Allows button to extend outside the header
           children: [
             Container(
-              height: constraints.maxHeight * 0.45,
+              height: constraints.maxHeight,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: backgroundColor,
-                image: backgroundImagePath != null
-                    ? DecorationImage(
-                        image: AssetImage(backgroundImagePath!),
-                        fit: BoxFit.cover,
-                      )
-                    : null,
+                image:
+                    backgroundImagePath != null
+                        ? DecorationImage(
+                          image: AssetImage(backgroundImagePath!),
+                          fit: BoxFit.cover,
+                        )
+                        : null,
                 borderRadius: BorderRadius.only(
                   bottomLeft: Radius.circular(bottomLeftRadius.r),
                   bottomRight: Radius.circular(bottomRightRadius.r),
                 ),
               ),
               child: SafeArea(
-                child: Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20.w),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 20.h),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  children: [
+                    // Updated navigation to match heart rate screen
+                    Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 16.w,
+                        vertical: 12.h,
+                      ),
+                      child: Row(
                         children: [
-                          Row(
-                            children: [
-                              // Back Button with customizable properties
-                              GestureDetector(
-                                onTap: () {
-                                  Navigator.of(context).pop(); // Navigate back to the previous screen
-                                },
-                                child: Container(
-                                  padding: EdgeInsets.all(6.w),
-                                  decoration: BoxDecoration(
-                                    color: Colors.transparent,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                    border: Border.all(
-                                      color: backButtonBorderColor,
-                                      width: backButtonBorderWidth.w,
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.chevron_left,
-                                    color: backButtonBorderColor,
-                                    size: 20.sp,
-                                  ),
+                          // Back button with heart rate screen styling
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).pop();
+                            },
+                            child: Container(
+                              width: 48.w,
+                              height: 48.h,
+                              decoration: BoxDecoration(
+                                border: Border.all(
+                                  color: backButtonBorderColor,
+                                  // width: backButtonBorderWidth,
                                 ),
+                                borderRadius: BorderRadius.circular(12.r),
                               ),
-
-                              SizedBox(width: 12.w),
-                              // Dynamic Title with customizable color
-                              Text(
-                                title,
-                                style: GoogleFonts.plusJakartaSans(
+                              child: Center(
+                                child: Icon(
+                                  Icons.chevron_left,
                                   color: titleTextColor,
-                                  fontSize: 18.sp,
-                                  fontWeight: FontWeight.bold,
+                                  size: 28.sp,
                                 ),
                               ),
-                            ],
+                            ),
                           ),
 
-                          // Dynamic Badge with customizable background
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 10.w,
-                              vertical: 6.h,
-                            ),
-                            decoration: BoxDecoration(
-                              color: badgeBackgroundColor.withOpacity(0.2),
-                              borderRadius: BorderRadius.circular(8.r),
-                            ),
-                            child: Text(
-                              badgeText,
-                              style: GoogleFonts.plusJakartaSans(
-                                color: badgeTextColor,
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                              ),
+                          SizedBox(width: 16.w),
+
+                          // Title with heart rate screen styling
+                          Text(
+                            title,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 20.sp,
+                              fontWeight: FontWeight.bold,
+                              color: titleTextColor,
                             ),
                           ),
+
+                          const Spacer(),
+
+                          // Menu icon (optional)
+                          if (showMenu)
+                            Icon(
+                              Icons.more_horiz,
+                              color: titleTextColor.withOpacity(0.7),
+                              size: 28.sp,
+                            ),
                         ],
                       ),
+                    ),
 
-                      SizedBox(height: 20.h),
-
-                      // Centered Score & Subtitle with customizable colors
-                      Center(
+                    // Expanded to push content to center with flexible sizing
+                    Expanded(
+                      child: Center(
                         child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            // Dynamic Score
+                            // Dynamic Score with responsive font size
                             Text(
                               score,
                               style: GoogleFonts.plusJakartaSans(
                                 color: scoreTextColor,
-                                fontSize: 100.sp,
+                                fontSize: scoreFontSize,
                                 fontWeight: FontWeight.w800,
+                                height: 1.0, // Reduce line height to save space
                               ),
+                              textAlign: TextAlign.center,
                             ),
 
-                            // Dynamic Subtitle
+                            // Dynamic Subtitle with responsive font size
                             Text(
                               subtitle,
                               style: GoogleFonts.plusJakartaSans(
                                 color: subtitleTextColor,
-                                fontSize: 24.sp,
+                                fontSize: subtitleFontSize,
                                 fontWeight: FontWeight.w600,
                               ),
+                              textAlign: TextAlign.center,
                             ),
+
+                            // Add badge below subtitle (if shown)
+                            if (showBadge)
+                              Padding(
+                                padding: EdgeInsets.only(top: 12.h),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 10.w,
+                                    vertical: 6.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: badgeBackgroundColor.withOpacity(
+                                      0.2,
+                                    ),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(
+                                    badgeText,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: badgeTextColor,
+                                      fontSize: 14.sp,
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+
+                    // Space for the floating button
+                    SizedBox(height: 40.h),
+                  ],
                 ),
               ),
             ),

@@ -1,18 +1,165 @@
+import 'dart:convert';
+
+import 'package:client/data/API/health_score_data.dart';
 import 'package:client/widgets/CustomSecondaryButton.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:client/data/providers/onboarding_provider.dart';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 
-class HealthAssessmentScore extends StatelessWidget {
-  final int score;
+class HealthAssessmentScore extends ConsumerStatefulWidget {
+  const HealthAssessmentScore({super.key});
 
-  const HealthAssessmentScore({super.key, required this.score});
+  @override
+  ConsumerState<HealthAssessmentScore> createState() =>
+      _HealthAssessmentScoreState();
+}
+
+class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
+  final HealthScoreService _healthScoreService = HealthScoreService();
+  bool _isLoading = true;
+  int _score = 0;
+  String _errorMessage = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchHealthScore();
+  }
+
+  // After the _fetchHealthScore() method, add a new method to save the health score to cache
+  Future<void> _saveHealthScoreToCache(int score) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('profile_health_score', score);
+      print('✅ Health score saved to cache: $score');
+    } catch (e) {
+      print('❌ Error saving health score to cache: $e');
+    }
+  }
+
+  // Modify the _fetchHealthScore method to save the score to cache
+  Future<void> _fetchHealthScore() async {
+    try {
+      final onboarding = ref.read(onboardingProvider);
+
+      final score = calculateScore(
+        age: onboarding.age,
+        weight: onboarding.weight_kg,
+        height: onboarding.height_cm,
+        gender: onboarding.gender,
+      );
+
+      // Save the score to cache
+      await _saveHealthScoreToCache(score);
+
+      // Update user profile with health score
+      await _updateUserHealthScore();
+
+      setState(() {
+        _score = score;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  Future<void> _updateUserHealthScore() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token');
+      final score = prefs.getInt('profile_health_score');
+
+      if (accessToken == null) {
+        throw Exception('Access token not found');
+      }
+
+      final url = Uri.parse(
+        'https://test-prod-f427.onrender.com/api/profiles',
+      ); // Replace with actual base URL
+
+      final response = await http.patch(
+        url,
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({'health_score': score}),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 204) {
+        print('✅ Health score updated successfully: ${response.body}');
+      } else {
+        print('❌ Failed to update health score: ${response.body}');
+      }
+    } catch (e) {
+      print('❌ Error updating health score: $e');
+    }
+  }
+
+  int calculateScore({
+    required int age,
+    required double weight,
+    required double height,
+    required String gender,
+  }) {
+    final bmiValue = weight / ((height / 100) * (height / 100));
+    final ageScore = (100 - age * 0.5).clamp(0, 100);
+    double bmiScore;
+
+    if (bmiValue < 18.5) {
+      bmiScore = 70 + (bmiValue - 18.5) * 6;
+    } else if (bmiValue <= 25) {
+      bmiScore = 100 - ((bmiValue - 21.75) * (bmiValue - 21.75) * 4);
+    } else {
+      bmiScore = 85 - ((bmiValue - 25) * 3);
+    }
+
+    final genderFactor = gender.toLowerCase() == 'female' ? 1.05 : 1.0;
+    double finalScore = (ageScore * 0.3 + bmiScore * 0.7) * genderFactor;
+    return finalScore.clamp(0, 100).round();
+  }
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (_errorMessage.isNotEmpty) {
+      return Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Error: $_errorMessage',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  color: Colors.red,
+                ),
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _fetchHealthScore,
+                child: const Text('Retry'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final Color primaryColor =
-        score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
+        _score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
     final Color backgroundColor =
-        score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
+        _score >= 40 ? const Color(0xFF0066FF) : const Color(0xFFFF4D67);
 
     return Scaffold(
       body: Container(
@@ -21,7 +168,7 @@ class HealthAssessmentScore extends StatelessWidget {
           image: const DecorationImage(
             image: AssetImage("images/texture.png"),
             fit: BoxFit.cover,
-            opacity: 15, // Adjusted opacity
+            opacity: 15,
           ),
         ),
         child: SafeArea(
@@ -77,11 +224,10 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
                             // Score Number
                             Center(
                               child: Text(
-                                score.toString(),
+                                _score.toString(),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 150,
                                   fontWeight: FontWeight.bold,
@@ -89,8 +235,7 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Middle Box (50% opacity) - positioned below the main box
+                            // Middle Box (50% opacity)
                             Positioned(
                               bottom: -15,
                               child: Container(
@@ -105,8 +250,7 @@ class HealthAssessmentScore extends StatelessWidget {
                                 ),
                               ),
                             ),
-
-                            // Smallest Box (15% opacity) - positioned at the bottom
+                            // Smallest Box (15% opacity)
                             Positioned(
                               bottom: -30,
                               child: Container(
@@ -129,7 +273,7 @@ class HealthAssessmentScore extends StatelessWidget {
                 ),
               ),
 
-              // **Text and Buttons**
+              // Text and Buttons
               const SizedBox(height: 24),
               Text(
                 "You're All Set Up.",
@@ -141,7 +285,7 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 8),
               Text(
-                "Your health score is $score.",
+                "Your health score is $_score.",
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -150,7 +294,7 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 16),
 
-              // **AI Suggestions**
+              // AI Suggestions
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -168,11 +312,11 @@ class HealthAssessmentScore extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // **Button**
+              // Button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: CustomSecondaryButton(
-                  text: "Let’s Get Healthy",
+                  text: "Let's Get Healthy",
                   iconPath: "images/SignInAddIcon.png",
                   width: 200,
                   height: 50,

@@ -45,10 +45,13 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<key>NSLocationWhenInUseUsageDescription</key>
-<string>We need your location to personalize your experience</string>
-<key>NSLocationAlwaysUsageDescription</key>
-<string>We need your location to personalize your experience</string>
-
+	<string>We need your location to personalize your experience</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>We need your location to personalize your experience</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>We need access to your health data to provide personalized health insights</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>We need permission to update your health data</string>
 	<true/>
 </dict>
 </plist>

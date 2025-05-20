@@ -1,33 +1,62 @@
+import 'package:client/data/API/user_profile_data.dart';
+import 'package:client/data/providers/user_profile_provider.dart';
 import 'package:client/widgets/settings/notification_settings_screen.dart';
 import 'package:client/widgets/settings/personal_informations_screen.dart';
-import 'package:client/widgets/settings/linked_devices_screen.dart';
-import 'package:client/widgets/settings/security_settings_screen.dart';
 import 'package:client/widgets/settings/about_us_screen.dart';
 import 'package:client/widgets/settings/contact_information_screen.dart';
 import 'package:client/widgets/settings/feedback_form_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+// Add import for AvatarData at the top of the file
+import 'package:client/features/health_assessment/health_assessment_avatar.dart';
+import 'package:client/features/auth/presentation/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class SettingsPage extends StatefulWidget {
+class SettingsPage extends ConsumerStatefulWidget {
   const SettingsPage({super.key});
 
   @override
-  State<SettingsPage> createState() => _SettingsPageState();
+  ConsumerState<SettingsPage> createState() => _SettingsPageState();
 }
 
-class _SettingsPageState extends State<SettingsPage> {
+class _SettingsPageState extends ConsumerState<SettingsPage> {
   bool isDarkMode = false;
   final TextEditingController _nameController = TextEditingController();
-  final String userName = 'Karishma';
+  UserData? userData;
+  bool isLoading = true;
 
   @override
-  void dispose() {
-    _nameController.dispose();
-    super.dispose();
+  void initState() {
+    super.initState();
+    _fetchUserData();
+  }
+
+  Future<void> _fetchUserData() async {
+    try {
+      final userProvider = UserProvider();
+      final userResponse = await userProvider.getUser();
+      setState(() {
+        userData = userResponse.data;
+        isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        isLoading = false;
+      });
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Failed to load user data: $e')));
+    }
   }
 
   void _showDeleteAccountDialog() {
     _nameController.clear();
+
+    // Use the dynamic user data for name verification
+    final userName = userData != null ? userData!.firstName : '';
+
+    // Rest of the method remains the same, but replace hardcoded 'Karishma' with userName
+    // ...
 
     showDialog(
       context: context,
@@ -252,6 +281,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 const SizedBox(height: 24),
 
                 // Enhanced Profile card
+                // Enhanced Profile card
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
@@ -269,101 +299,122 @@ class _SettingsPageState extends State<SettingsPage> {
                     ],
                   ),
                   padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      // Profile image with border
-                      Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.5),
-                            width: 2,
-                          ),
-                        ),
-                        child: Image.asset('images/DiTwinLogo.png'),
-                      ),
-                      const SizedBox(width: 20),
+                  child:
+                      isLoading
+                          ? const Center(
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                            ),
+                          )
+                          : Row(
+                            children: [
+                              // Profile image with border
+                              Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(
+                                    color: Colors.white.withOpacity(0.5),
+                                    width: 2,
+                                  ),
+                                ),
+                                child: AvatarData.getCurrentAvatarWidget(
+                                  width: 80,
+                                  height: 80,
+                                  borderRadius: 16,
+                                ),
+                              ),
+                              const SizedBox(width: 20),
 
-                      // Name and email with status indicator
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Text(
-                                  userName,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 24,
-                                    fontWeight: FontWeight.bold,
+                              // Name and email with status indicator
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          userData?.firstName ?? 'Loading...',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 24,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          width: 10,
+                                          height: 10,
+                                          decoration: const BoxDecoration(
+                                            color: Colors.greenAccent,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      userData?.email ?? 'Email not available',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        color: Colors.white.withOpacity(0.8),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white.withOpacity(0.2),
+                                        borderRadius: BorderRadius.circular(20),
+                                      ),
+                                      child: Text(
+                                        userData?.userPlan ?? 'Basic',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w500,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Edit button remains the same
+
+                              // Edit button with improved styling
+                              Container(
+                                width: 40,
+                                height: 40,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withOpacity(0.2),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: IconButton(
+                                  icon: const Icon(
+                                    Icons.edit,
                                     color: Colors.white,
+                                    size: 20,
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Container(
-                                  width: 10,
-                                  height: 10,
-                                  decoration: const BoxDecoration(
-                                    color: Colors.greenAccent,
-                                    shape: BoxShape.circle,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'test@gmail.com',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                color: Colors.white.withOpacity(0.8),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 4,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white.withOpacity(0.2),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: Text(
-                                'Premium Member',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white,
+                                  onPressed: () {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder:
+                                            (context) =>
+                                                const PersonalInformationScreen(),
+                                      ),
+                                    );
+                                  },
+                                  padding: EdgeInsets.zero,
                                 ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Edit button with improved styling
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.2),
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                        child: IconButton(
-                          icon: const Icon(
-                            Icons.edit,
-                            color: Colors.white,
-                            size: 20,
+                            ],
                           ),
-                          onPressed: () {},
-                          padding: EdgeInsets.zero,
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
                 const SizedBox(height: 24),
 
@@ -394,45 +445,44 @@ class _SettingsPageState extends State<SettingsPage> {
                     );
                   },
                 ),
-                _buildSettingItem(
-                  icon: Icons.watch_outlined,
-                  title: 'Linked Device',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const LinkedDeviceScreen(),
-                      ),
-                    );
-                  },
-                ),
-                _buildSettingItem(
-                  icon: Icons.lock_outline,
-                  title: 'Security',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const SecurityScreen(),
-                      ),
-                    );
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Help & Support
-                _buildSectionHeader('Help & Support'),
-                _buildToggleItem(
-                  icon: Icons.remove_red_eye_outlined,
-                  title: 'Dark Mode',
-                  value: isDarkMode,
-                  onChanged: (value) {
-                    setState(() {
-                      isDarkMode = value;
-                    });
-                  },
-                ),
-                const SizedBox(height: 24),
+                // _buildSettingItem(
+                //   icon: Icons.watch_outlined,
+                //   title: 'Linked Device',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const LinkedDeviceScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // _buildSettingItem(
+                //   icon: Icons.lock_outline,
+                //   title: 'Security',
+                //   onTap: () {
+                //     Navigator.push(
+                //       context,
+                //       MaterialPageRoute(
+                //         builder: (context) => const SecurityScreen(),
+                //       ),
+                //     );
+                //   },
+                // ),
+                // const SizedBox(height: 24),
+                // // Help & Support
+                // _buildSectionHeader('Help & Support'),
+                // _buildToggleItem(
+                //   icon: Icons.remove_red_eye_outlined,
+                //   title: 'Dark Mode',
+                //   value: isDarkMode,
+                //   onChanged: (value) {
+                //     setState(() {
+                //       isDarkMode = value;
+                //     });
+                //   },
+                // ),
+                // const SizedBox(height: 24),
 
                 // Help & Support (repeated in the original UI)
                 _buildSectionHeader('Help & Support'),
@@ -476,21 +526,103 @@ class _SettingsPageState extends State<SettingsPage> {
 
                 // Sign Out
                 _buildSectionHeader('Sign Out'),
-                _buildSettingItem(
-                  icon: Icons.logout,
-                  title: 'Sign Out',
-                  onTap: () {},
+                GestureDetector(
+                  onTap: () async {
+                    try {
+                      final authService = ref.read(
+                        authRemoteDataSourceProvider,
+                      );
+                      await authService.signOut();
+
+                      // Ensure context is still valid after async operation
+                      if (!mounted) return;
+
+                      // Navigate to signin page after successful logout
+                      Navigator.pushReplacementNamed(context, '/signin');
+
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Signed out successfully',
+                            style: GoogleFonts.plusJakartaSans(),
+                          ),
+                          backgroundColor: Colors.green,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    } catch (e) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            'Failed to sign out: ${e.toString()}',
+                            style: GoogleFonts.plusJakartaSans(),
+                          ),
+                          backgroundColor: Colors.red,
+                          behavior: SnackBarBehavior.floating,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      );
+                    }
+                  },
+                  child: Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFEDED),
+                      borderRadius: BorderRadius.circular(12),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.red.withOpacity(0.05),
+                          blurRadius: 10,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: ListTile(
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFF5757),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.logout, color: Colors.white),
+                      ),
+                      title: Text(
+                        'Sign Out',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFFF5757),
+                        ),
+                      ),
+                      trailing: const Icon(
+                        Icons.chevron_right,
+                        color: Color(0xFFFF5757),
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 24),
 
                 // Danger Zone
-                _buildSectionHeader('Danger Zone'),
-                _buildDangerItem(
-                  icon: Icons.delete_outline,
-                  title: 'Delete Account',
-                  onTap: _showDeleteAccountDialog,
-                ),
-                const SizedBox(height: 24),
+                // _buildSectionHeader('Danger Zone'),
+                // _buildDangerItem(
+                //   icon: Icons.delete_outline,
+                //   title: 'Delete Account',
+                //   onTap: _showDeleteAccountDialog,
+                // ),
+                // const SizedBox(height: 24),
               ],
             ),
           ),
@@ -522,7 +654,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget _buildSettingItem({
     required IconData icon,
     required String title,
-    required VoidCallback onTap,
+    required VoidCallback? onTap,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),

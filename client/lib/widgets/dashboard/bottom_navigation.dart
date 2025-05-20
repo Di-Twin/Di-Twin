@@ -1,6 +1,9 @@
-import 'package:client/features/dashboard/settings_page.dart';
-import 'package:flutter/material.dart';
+// Update the BottomNavigation class to handle the Fitbit connection drawer
 import 'package:client/features/dashboard/dashboard.dart';
+import 'package:client/features/dashboard/settings_page.dart';
+import 'package:client/features/food_management/presentation/pages/food_intelligence_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_today_page.dart';
+import 'package:flutter/material.dart';
 
 class BottomNavigation extends StatelessWidget {
   const BottomNavigation({super.key});
@@ -16,9 +19,9 @@ class BottomNavigation extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
           _buildNavItem(context, Icons.home_outlined, true, "home"),
-          _buildNavItem(context, Icons.bar_chart_outlined, false, ""),
+          _buildNavItem(context, Icons.bar_chart_outlined, false, "activity"),
           const SizedBox(width: 40), // Space for FAB
-          _buildNavItem(context, Icons.restaurant_menu_outlined, false, ""),
+          _buildNavItem(context, Icons.restaurant_menu_outlined, false, "food"),
           _buildNavItem(context, Icons.settings_outlined, false, "settings"),
         ],
       ),
@@ -44,6 +47,17 @@ class BottomNavigation extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (context) => const HomeScreen()),
           );
+        } else if (route == "food") {
+          // Navigate to Dashboard
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const FoodIntelligencePage(),
+            ),
+          );
+        } else if (route == "activity") {
+          // Navigate to Dashboard
+          Navigator.push(context, MaterialPageRoute(builder: (context) => const ActivityTodayPage()));
         }
       },
       child: Container(
@@ -61,45 +75,6 @@ class BottomNavigation extends StatelessWidget {
           size: 28,
         ),
       ),
-    );
-  }
-}
-
-/// **Floating Action Button (FAB)**
-class CustomFAB extends StatelessWidget {
-  const CustomFAB({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return FloatingActionButton(
-      backgroundColor: const Color(0xFF2563EB),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(16), // Rounded Square
-      ),
-      elevation: 6,
-      onPressed: () {},
-      child: const Icon(
-        Icons.camera_alt_outlined,
-        color: Colors.white,
-        size: 28,
-      ),
-    );
-  }
-}
-
-/// **Main Scaffold with FAB & Bottom Nav**
-class BottomNavBarScreen extends StatelessWidget {
-  const BottomNavBarScreen({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      bottomNavigationBar: const BottomNavigation(),
-      floatingActionButton: const CustomFAB(),
-      floatingActionButtonLocation:
-          FloatingActionButtonLocation
-              .centerDocked, // Ensures FAB is placed inside BottomAppBar
     );
   }
 }
