@@ -57,7 +57,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Successfully connected to Fitbit'),
             backgroundColor: Colors.green,
           ),
@@ -65,7 +65,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
       } else {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to connect to Fitbit'),
             backgroundColor: Colors.red,
           ),
@@ -91,9 +91,9 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
     });
     
     try {
-      final success = await _fitbitService.syncData();
+      final data = await _fitbitService.syncDailyData();
       
-      if (success) {
+      if (data['success'] == true) {
         final lastSyncTime = await _fitbitService.getLastSyncTime();
         
         setState(() {
@@ -102,7 +102,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Successfully synced Fitbit data'),
             backgroundColor: Colors.green,
           ),
@@ -111,7 +111,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to sync Fitbit data'),
+            content: Text(data['message'] ?? 'Failed to sync Fitbit data'),
             backgroundColor: Colors.red,
           ),
         );
@@ -120,6 +120,51 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Error syncing Fitbit data: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() {
+        _isSyncing = false;
+      });
+    }
+  }
+
+  Future<void> _initialSync() async {
+    setState(() {
+      _isSyncing = true;
+    });
+    
+    try {
+      final data = await _fitbitService.initialSync();
+      
+      if (data['success'] == true) {
+        final lastSyncTime = await _fitbitService.getLastSyncTime();
+        
+        setState(() {
+          _lastSyncTime = lastSyncTime;
+        });
+        
+        // Show success message
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Successfully performed initial sync'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // Show error message
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(data['message'] ?? 'Failed to perform initial sync'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error during initial sync: $e'),
           backgroundColor: Colors.red,
         ),
       );
@@ -146,7 +191,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
         
         // Show success message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Successfully disconnected from Fitbit'),
             backgroundColor: Colors.green,
           ),
@@ -154,7 +199,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
       } else {
         // Show error message
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
+          const SnackBar(
             content: Text('Failed to disconnect from Fitbit'),
             backgroundColor: Colors.red,
           ),
@@ -370,6 +415,59 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
               ),
             ),
           ),
+
+          // Initial sync button (for new connections)
+          if (_lastSyncTime == null) ...[
+            SizedBox(height: 8.h),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.r),
+              child: SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: _isSyncing ? null : _initialSync,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF0F67FE),
+                    side: const BorderSide(color: Color(0xFF0F67FE)),
+                    padding: EdgeInsets.symmetric(vertical: 12.h),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  child: _isSyncing
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            SizedBox(
+                              width: 16.w,
+                              height: 16.w,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  const Color(0xFF0F67FE),
+                                ),
+                              ),
+                            ),
+                            SizedBox(width: 8.w),
+                            Text(
+                              'Syncing...',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        )
+                      : Text(
+                          'Initial Sync (30 days)',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                ),
+              ),
+            ),
+          ],
           
           SizedBox(height: 16.h),
           
@@ -478,7 +576,7 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 16.r),
             child: Text(
-              'Connecting your Fitbit account will allow the app to automatically sync your activity, sleep, and heart rate data.',
+              'Connecting your Fitbit account will allow the app to automatically sync your activity, sleep, heart rate, and other health data.',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14.sp,
                 color: const Color(0xFF64748B),
@@ -528,7 +626,6 @@ class _FitbitConnectionDrawerState extends State<FitbitConnectionDrawer> {
                   onTap: () {
                     widget.onClose();
                     // Trigger manual entry on parent widget
-                    // This should be implemented in dashboard.dart
                   },
                   borderRadius: BorderRadius.circular(12.r),
                   child: Padding(
