@@ -5,6 +5,7 @@ import 'package:client/widgets/settings/personal_informations_screen.dart';
 import 'package:client/widgets/settings/about_us_screen.dart';
 import 'package:client/widgets/settings/contact_information_screen.dart';
 import 'package:client/widgets/settings/feedback_form_screen.dart';
+import 'package:client/widgets/settings/leaderboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 // Add import for AvatarData at the top of the file
@@ -428,6 +429,18 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                       context,
                       MaterialPageRoute(
                         builder: (context) => const PersonalInformationScreen(),
+                      ),
+                    );
+                  },
+                ),
+                _buildSettingItem(
+                  icon: Icons.leaderboard_outlined,
+                  title: 'Leaderboard',
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const LeaderboardPage(),
                       ),
                     );
                   },
