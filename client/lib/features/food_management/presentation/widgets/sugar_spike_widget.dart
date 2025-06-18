@@ -309,46 +309,46 @@ class _SugarSpikeWidgetState extends State<SugarSpikeWidget> {
           
           SizedBox(height: 16.h),
           
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: _isLoggingFood || _foodLogged 
-                ? null 
-                : () {
-                    // In a production app, you would get this from your auth provider
-                    // This is a simplified approach for demonstration
-                    try {
-                      // Get access token from secure storage or state management
-                      const String accessToken = 'your_access_token_here'; 
-                      _logFoodToDatabase(accessToken);
-                    } catch (e) {
-                      setState(() {
-                        _errorMessage = 'Authentication error: Please log in again';
-                      });
-                    }
-                  },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: _foodLogged ? Colors.green : widget.impactColor,
-                foregroundColor: Colors.white,
-                disabledBackgroundColor: _foodLogged 
-                    ? Colors.green.withOpacity(0.7)
-                    : widget.impactColor.withOpacity(0.5),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12.r),
-                ),
-                padding: EdgeInsets.symmetric(vertical: 12.h),
-              ),
-              child: _isLoggingFood
-                  ? const CircularProgressIndicator(color: Colors.white)
-                  : Text(
-                      _foodLogged ? 'Food Logged ✓' : 'Log This Food',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-            ),
-          ),
+          // SizedBox(
+          //   width: double.infinity,
+          //   child: ElevatedButton(
+          //     onPressed: _isLoggingFood || _foodLogged 
+          //       ? null 
+          //       : () {
+          //           // In a production app, you would get this from your auth provider
+          //           // This is a simplified approach for demonstration
+          //           try {
+          //             // Get access token from secure storage or state management
+          //             const String accessToken = 'your_access_token_here'; 
+          //             _logFoodToDatabase(accessToken);
+          //           } catch (e) {
+          //             setState(() {
+          //               _errorMessage = 'Authentication error: Please log in again';
+          //             });
+          //           }
+          //         },
+          //     style: ElevatedButton.styleFrom(
+          //       backgroundColor: _foodLogged ? Colors.green : widget.impactColor,
+          //       foregroundColor: Colors.white,
+          //       disabledBackgroundColor: _foodLogged 
+          //           ? Colors.green.withOpacity(0.7)
+          //           : widget.impactColor.withOpacity(0.5),
+          //       shape: RoundedRectangleBorder(
+          //         borderRadius: BorderRadius.circular(12.r),
+          //       ),
+          //       padding: EdgeInsets.symmetric(vertical: 12.h),
+          //     ),
+          //     child: _isLoggingFood
+          //         ? const CircularProgressIndicator(color: Colors.white)
+          //         : Text(
+          //             _foodLogged ? 'Food Logged ✓' : 'Log This Food',
+          //             style: GoogleFonts.plusJakartaSans(
+          //               fontSize: 16.sp,
+          //               fontWeight: FontWeight.w600,
+          //             ),
+          //           ),
+          //   ),
+          // ),
         ],
       ),
     );
