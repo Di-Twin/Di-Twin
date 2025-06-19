@@ -22,7 +22,7 @@ class FoodManagementProvider extends ChangeNotifier {
   );
 
   final String _baseUrl =
-      'https://test-prod-f427.onrender.com'; // Replace with your actual base URL
+      'https://test-prod-f427.onrender.com/api'; // Replace with your actual base URL
 
   /// Fetches the daily food score for a specific date
   Future<String> getDailyFoodScore(String date) async {
@@ -77,11 +77,11 @@ class FoodManagementProvider extends ChangeNotifier {
   ) async {
     try {
       // First try to get from cache
-      final cachedData = await _getFoodDataFromCache(date);
-      if (cachedData.isNotEmpty) {
-        print('Retrieved food data from cache for date: $date');
-        return cachedData;
-      }
+      // final cachedData = await _getFoodDataFromCache(date);
+      // if (cachedData.isNotEmpty) {
+      //   print('Retrieved food data from cache for date: $date');
+      //   return cachedData;
+      // }
 
       // If not in cache, try to get from API
       final token = await _getAccessToken();
@@ -399,19 +399,62 @@ class FoodManagementProvider extends ChangeNotifier {
   }
 
   // Add food item
-  Future<bool> addFoodItem(String mealType, Map<String, dynamic> foodData) async {
+  Future<bool> addFoodItem(
+    String mealType,
+    Map<String, dynamic> foodData,
+  ) async {
     try {
       final response = await _apiClient.post(
-        '/food/add',
-        body: {
-          'mealType': mealType,
-          'foodData': foodData,
-        },
+        '/food',
+        body: {'mealType': mealType, 'foodData': foodData},
       );
-      return response['success'] == true;
+
+      // Assuming the API returns a Map with a 'success' boolean
+      return response is Map && response['success'] == true;
     } catch (e) {
       print('Error adding food item: $e');
       return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> createFoodSession(Map<String, dynamic> foodSession) async {
+    try {
+      // Validate required fields
+      if (foodSession['date'] == null || foodSession['foodItems'] == null) {
+        return {
+          'success': false,
+          'message': 'Date and foodItems are required'
+        };
+      }
+
+      // Validate each food item
+      for (var item in foodSession['foodItems']) {
+        if (item['foodName'] == null || 
+            item['macronutrients'] == null ||
+            item['mealType'] == null) {
+          return {
+            'success': false,
+            'message': 'Each food item requires foodName, macronutrients, and mealType'
+          };
+        }
+      }
+
+      final response = await _apiClient.post(
+        '/api/food/',
+        body: foodSession,
+      );
+
+      return {
+        'success': response['success'] == true,
+        'message': response['message'] ?? 'Food session processed successfully',
+        'data': response['data'] ?? false,
+      };
+    } catch (e) {
+      debugPrint('Error creating food session: $e');
+      return {
+        'success': false,
+        'message': 'Failed to create food session: ${e.toString()}'
+      };
     }
   }
 
@@ -429,7 +472,8 @@ class FoodManagementProvider extends ChangeNotifier {
   /// Helper method to get access token
   Future<String?> _getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('access_token');
+    // final token = prefs.getString('access_token');
+    final token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMjI2ODExLCJleHAiOjE3NTAzMTMyMTF9.WPyZtTeVboyYUf_-gs4tsPNuLAKndQbQvT6X8qp4T8Q';
     if (token == null) {
       throw Exception('No access token found. Please log in.');
     }
@@ -472,10 +516,10 @@ class FoodManagementProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = 'food_data_$date';
-      
+
       // Convert food data to JSON string
       final jsonData = json.encode(foodData);
-      
+
       // Save to SharedPreferences
       await prefs.setString(key, jsonData);
       print('Food data saved to cache for date: $date');
@@ -488,132 +532,148 @@ class FoodManagementProvider extends ChangeNotifier {
   Future<Map<String, List<Map<String, dynamic>>>> _getFoodDataFromCache(
     String date,
   ) async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'food_data_$date';
-    
-    print('Getting food data from cache for date: $date, key: $key');
-    
-    // Get JSON string from SharedPreferences
-    final jsonData = prefs.getString(key);
-    
-    if (jsonData != null) {
-      print('Found cached data for date: $date');
-      
-      // Parse JSON string to Map
-      final Map<String, dynamic> decodedData = Map<String, dynamic>.from(json.decode(jsonData));
-      
-      // Convert to the expected format
-      Map<String, List<Map<String, dynamic>>> result = {
-        'breakfast': [],
-        'lunch': [],
-        'dinner': [],
-        'snacks': [],
-        'custom': [],
-      };
-      
-      decodedData.forEach((mealType, foodList) {
-        if (result.containsKey(mealType)) {
-          result[mealType]!.addAll((foodList as List).map((e) => Map<String, dynamic>.from(e)).toList());
-        }
-      });
-      
-      print('Returning ${result.entries.fold(0, (sum, entry) => sum + entry.value.length)} food items from cache');
-      return result;
-    } else {
-      print('No cached data found for date: $date');
-    }
-  } catch (e) {
-    print('Error getting food data from cache: $e');
-  }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'food_data_$date';
 
-  // Return empty structure if no data found or error occurred
-  print('Returning empty food data structure');
-  return {
-    'breakfast': [],
-    'lunch': [],
-    'dinner': [],
-    'snacks': [],
-    'custom': [],
-  };
+      print('Getting food data from cache for date: $date, key: $key');
+
+      // Get JSON string from SharedPreferences
+      final jsonData = prefs.getString(key);
+
+      if (jsonData != null) {
+        print('Found cached data for date: $date');
+
+        // Parse JSON string to Map
+        final Map<String, dynamic> decodedData = Map<String, dynamic>.from(
+          json.decode(jsonData),
+        );
+
+        // Convert to the expected format
+        Map<String, List<Map<String, dynamic>>> result = {
+          'breakfast': [],
+          'lunch': [],
+          'dinner': [],
+          'snacks': [],
+          'custom': [],
+        };
+
+        decodedData.forEach((mealType, foodList) {
+          if (result.containsKey(mealType)) {
+            result[mealType]!.addAll(
+              (foodList as List)
+                  .map((e) => Map<String, dynamic>.from(e))
+                  .toList(),
+            );
+          }
+        });
+
+        print(
+          'Returning ${result.entries.fold(0, (sum, entry) => sum + entry.value.length)} food items from cache',
+        );
+        return result;
+      } else {
+        print('No cached data found for date: $date');
+      }
+    } catch (e) {
+      print('Error getting food data from cache: $e');
+    }
+
+    // Return empty structure if no data found or error occurred
+    print('Returning empty food data structure');
+    return {
+      'breakfast': [],
+      'lunch': [],
+      'dinner': [],
+      'snacks': [],
+      'custom': [],
+    };
   }
 
   /// Add a food item to cache
   Future<void> _addFoodItemToCache(Map<String, dynamic> foodData) async {
-  try {
-    final date = foodData['date'] as String? ?? 
-        DateTime.now().toString().split(' ')[0]; // Use today's date if not provided
-    
-    print('Adding food to cache for date: $date');
-    
-    final mealType = foodData['mealType'] as String? ?? 'snacks';
-    
-    // Get existing food data for the date
-    final existingData = await _getFoodDataFromCache(date);
-    
-    // Create a standardized food item
-    final processedFood = {
-      'name': foodData['foodName'],
-      'calories': foodData['calories'] ?? 0,
-      'protein': foodData['protein'] ?? 0,
-      'carbs': foodData['carbs'] ?? 0,
-      'fat': foodData['fat'] ?? 0,
-      'time': foodData['time'] ?? _formatTime(DateTime.now()),
-      'timeValue': foodData['timeValue'] ?? 
-          (DateTime.now().hour + (DateTime.now().minute / 60)),
-      'colorValue': _getColorValueForMealType(mealType),
-      'iconName': _getIconNameForMealType(mealType),
-      'image': foodData['image'] ?? _getDefaultImageForMealType(mealType),
-      'weight': foodData['weight'] ?? '100g',
-      'date': date,
-    };
-    
-    print('Processed food item: $processedFood');
-    
-    // Add the new food item to the appropriate meal type
-    if (existingData.containsKey(mealType)) {
-      existingData[mealType]!.add(processedFood);
+    try {
+      final date =
+          foodData['date'] as String? ??
+          DateTime.now().toString().split(
+            ' ',
+          )[0]; // Use today's date if not provided
+
+      print('Adding food to cache for date: $date');
+
+      final mealType = foodData['mealType'] as String? ?? 'snacks';
+
+      // Get existing food data for the date
+      final existingData = await _getFoodDataFromCache(date);
+
+      // Create a standardized food item
+      final processedFood = {
+        'name': foodData['foodName'],
+        'calories': foodData['calories'] ?? 0,
+        'protein': foodData['protein'] ?? 0,
+        'carbs': foodData['carbs'] ?? 0,
+        'fat': foodData['fat'] ?? 0,
+        'time': foodData['time'] ?? _formatTime(DateTime.now()),
+        'timeValue':
+            foodData['timeValue'] ??
+            (DateTime.now().hour + (DateTime.now().minute / 60)),
+        'colorValue': _getColorValueForMealType(mealType),
+        'iconName': _getIconNameForMealType(mealType),
+        'image': foodData['image'] ?? _getDefaultImageForMealType(mealType),
+        'weight': foodData['weight'] ?? '100g',
+        'date': date,
+      };
+
+      print('Processed food item: $processedFood');
+
+      // Add the new food item to the appropriate meal type
+      if (existingData.containsKey(mealType)) {
+        existingData[mealType]!.add(processedFood);
+      }
+
+      // Save the updated data back to cache
+      await _saveFoodDataToCache(date, existingData);
+
+      // Update top nutrients cache
+      await _updateTopNutrientsCache();
+
+      print('Food item added to cache for date: $date, meal type: $mealType');
+    } catch (e) {
+      print('Error adding food item to cache: $e');
     }
-    
-    // Save the updated data back to cache
-    await _saveFoodDataToCache(date, existingData);
-    
-    // Update top nutrients cache
-    await _updateTopNutrientsCache();
-    
-    print('Food item added to cache for date: $date, meal type: $mealType');
-  } catch (e) {
-    print('Error adding food item to cache: $e');
-  }
   }
 
   /// Delete a food item from cache
   Future<void> _deleteFoodItemFromCache(Map<String, dynamic> foodData) async {
     try {
-      final date = foodData['date'] is DateTime 
-          ? DateFormat('yyyy-MM-dd').format(foodData['date'] as DateTime)
-          : foodData['date'] as String;
-      
+      final date =
+          foodData['date'] is DateTime
+              ? DateFormat('yyyy-MM-dd').format(foodData['date'] as DateTime)
+              : foodData['date'] as String;
+
       final mealType = foodData['mealType'] as String? ?? 'snacks';
       final foodName = foodData['name'] ?? foodData['foodName'];
       final foodTime = foodData['time'];
-      
+
       // Get existing food data for the date
       final existingData = await _getFoodDataFromCache(date);
-      
+
       // Remove the food item from the appropriate meal type
       if (existingData.containsKey(mealType)) {
-        existingData[mealType]!.removeWhere((item) => 
-          item['name'] == foodName && item['time'] == foodTime);
+        existingData[mealType]!.removeWhere(
+          (item) => item['name'] == foodName && item['time'] == foodTime,
+        );
       }
-      
+
       // Save the updated data back to cache
       await _saveFoodDataToCache(date, existingData);
-      
+
       // Update top nutrients cache
       await _updateTopNutrientsCache();
-      
-      print('Food item deleted from cache for date: $date, meal type: $mealType');
+
+      print(
+        'Food item deleted from cache for date: $date, meal type: $mealType',
+      );
     } catch (e) {
       print('Error deleting food item from cache: $e');
     }
@@ -624,16 +684,18 @@ class FoodManagementProvider extends ChangeNotifier {
     try {
       final prefs = await SharedPreferences.getInstance();
       final key = 'top_nutrients';
-      
+
       // Get JSON string from SharedPreferences
       final jsonData = prefs.getString(key);
-      
+
       if (jsonData != null) {
         // Parse JSON string to List
         final List<dynamic> decodedData = json.decode(jsonData);
-        return decodedData.map((item) => Map<String, dynamic>.from(item)).toList();
+        return decodedData
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
       }
-      
+
       // If no cached data, calculate and cache it
       return await _updateTopNutrientsCache();
     } catch (e) {
@@ -647,14 +709,15 @@ class FoodManagementProvider extends ChangeNotifier {
     try {
       // Get today's date
       final today = DateTime.now();
-      final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-      
+      final formattedDate =
+          "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+
       // Get food data for today
       final foodData = await _getFoodDataFromCache(formattedDate);
-      
+
       // Calculate total nutrients
       final totalNutrients = calculateTotalNutrients(foodData);
-      
+
       // Create top nutrients list with serializable values
       final List<Map<String, dynamic>> topNutrients = [
         {
@@ -679,12 +742,12 @@ class FoodManagementProvider extends ChangeNotifier {
           'iconName': 'opacity',
         },
       ];
-      
+
       // Save to SharedPreferences
       final prefs = await SharedPreferences.getInstance();
       final key = 'top_nutrients';
       await prefs.setString(key, json.encode(topNutrients));
-      
+
       return topNutrients;
     } catch (e) {
       print('Error updating top nutrients cache: $e');
@@ -735,8 +798,9 @@ class FoodManagementProvider extends ChangeNotifier {
       'grain': Icons.grain,
       'opacity': Icons.opacity,
     };
-    
-    return iconMap[iconName] ?? Icons.help_outline; // Default to help_outline if icon name not found
+
+    return iconMap[iconName] ??
+        Icons.help_outline; // Default to help_outline if icon name not found
   }
 
   /// Convert color value to Color
@@ -750,9 +814,9 @@ class FoodManagementProvider extends ChangeNotifier {
       id: data['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
       name: data['name'] ?? 'Unknown Food',
       calories: (data['calories'] as num?)?.toInt() ?? 0,
-      protein: (data['protein'] as num?)?.toInt() ?? 0,
-      carbs: (data['carbs'] as num?)?.toInt() ?? 0,
-      fat: (data['fat'] as num?)?.toInt() ?? 0,
+      protein: (data['protein'] as num?)?.toDouble() ?? 0,
+      carbs: (data['carbs'] as num?)?.toDouble() ?? 0,
+      fat: (data['fat'] as num?)?.toDouble() ?? 0,
       time: data['time'] ?? _formatTime(DateTime.now()),
       mealType: data['mealType'] ?? 'snacks',
       weight: data['weight'] ?? '100g',

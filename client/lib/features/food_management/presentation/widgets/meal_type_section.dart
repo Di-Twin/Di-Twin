@@ -269,18 +269,18 @@ class MealTypeSection extends StatelessWidget {
   }
 
   Widget _buildNutritionInfo(dynamic food) {
-    int protein = 0;
-    int carbs = 0;
-    int fat = 0;
+    double protein = 0;
+    double carbs = 0;
+    double fat = 0;
     
     if (food is FoodItem) {
       protein = food.protein;
       carbs = food.carbs;
       fat = food.fat;
     } else if (food is Map<String, dynamic>) {
-      protein = (food['protein'] as num?)?.toInt() ?? 0;
-      carbs = (food['carbs'] as num?)?.toInt() ?? 0;
-      fat = (food['fat'] as num?)?.toInt() ?? 0;
+      protein = (food['protein'] as num?)?.toDouble() ?? 0;
+      carbs = (food['carbs'] as num?)?.toDouble() ?? 0;
+      fat = (food['fat'] as num?)?.toDouble() ?? 0;
     }
     
     return Row(

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -45,6 +46,9 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   late Animation<double> _scoreScaleAnimation;
   late Animation<double> _scoreOpacityAnimation;
   late Animation<double> _scoreRotationAnimation;
+
+  bool _isLoadingFoodData = false;
+  String? _loadingError;
 
   // Sample data for nutrition tracking
   final Map<int, bool> _nutritionRegularity = {
@@ -153,10 +157,10 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
     Future.delayed(Duration(milliseconds: 300), () {
       _scoreAnimationController.forward();
     });
-    
+
     // Load food data
     _loadFoodData();
-    
+
     // Add listener for navigation events
     WidgetsBinding.instance.addPostFrameCallback((_) {
       // This will be called after the widget is built
@@ -180,36 +184,89 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   }
 
   void _handleDateSelection(DateTime selectedDate) {
+    print('Date selected: ${DateFormat('yyyy-MM-dd').format(selectedDate)}');
+
     setState(() {
       _selectedDate = selectedDate;
       _expandedFoodIndex = null; // Reset expanded food when date changes
     });
-  
-    // Reload food data for the selected date
-    _loadFoodData();
+
+    // Add a small delay to ensure state is updated before loading data
+    Future.delayed(Duration(milliseconds: 100), () {
+      _loadFoodData();
+    });
   }
 
   List<Map<String, dynamic>> _getFilteredFoods() {
-    if (_selectedDate == null) {
-      // Show last 5 days foods by default
-      return _foodHistory.where((food) {
-        if (food['date'] == null) return false;
+    print('=== FILTERING DEBUG ===');
+    print(
+      'Selected date: ${_selectedDate != null ? DateFormat('yyyy-MM-dd').format(_selectedDate!) : 'null'}',
+    );
+    print('Total food history items: ${_foodHistory.length}');
 
-        final foodDate = food['date'] as DateTime;
-        return _last5Days.any(
-          (date) =>
-              DateFormat('yyyy-MM-dd').format(date) ==
-              DateFormat('yyyy-MM-dd').format(foodDate),
-        );
-      }).toList();
+    // Print all food dates for debugging
+    for (int i = 0; i < _foodHistory.length; i++) {
+      final food = _foodHistory[i];
+      final foodDateStr =
+          food['date'] != null
+              ? DateFormat('yyyy-MM-dd').format(food['date'] as DateTime)
+              : 'null';
+      print('Food $i: ${food['name']} - Date: $foodDateStr');
     }
 
-    return _foodHistory.where((food) {
-      if (food['date'] == null) return false;
+    if (_selectedDate == null) {
+      // Show last 5 days foods by default
+      final filtered =
+          _foodHistory.where((food) {
+            if (food['date'] == null) return false;
 
-      return DateFormat('yyyy-MM-dd').format(food['date'] as DateTime) ==
-          DateFormat('yyyy-MM-dd').format(_selectedDate!);
-    }).toList();
+            final foodDate = food['date'] as DateTime;
+            final isInLast5Days = _last5Days.any(
+              (date) =>
+                  DateFormat('yyyy-MM-dd').format(date) ==
+                  DateFormat('yyyy-MM-dd').format(foodDate),
+            );
+
+            if (isInLast5Days) {
+              print('✓ Food ${food['name']} matches last 5 days filter');
+            }
+
+            return isInLast5Days;
+          }).toList();
+
+      print('Filtered foods (last 5 days): ${filtered.length}');
+      return filtered;
+    }
+
+    final selectedDateStr = DateFormat('yyyy-MM-dd').format(_selectedDate!);
+    final filtered =
+        _foodHistory.where((food) {
+          if (food['date'] == null) {
+            print('✗ Food ${food['name']} has null date');
+            return false;
+          }
+
+          final foodDateStr = DateFormat(
+            'yyyy-MM-dd',
+          ).format(food['date'] as DateTime);
+          final matches = foodDateStr == selectedDateStr;
+
+          if (matches) {
+            print(
+              '✓ Food ${food['name']} matches selected date $selectedDateStr',
+            );
+          } else {
+            print(
+              '✗ Food ${food['name']} date $foodDateStr != $selectedDateStr',
+            );
+          }
+
+          return matches;
+        }).toList();
+
+    print('Filtered foods for $selectedDateStr: ${filtered.length}');
+    print('=== END FILTERING DEBUG ===');
+    return filtered;
   }
 
   // Get foods categorized by meal type
@@ -296,9 +353,15 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
                 DateTime oldMonth = _selectedMonth;
 
                 if (newMonth.isBefore(oldMonth)) {
-                  _slideDirection = const Offset(-1.0, 0.0); // Right slide (newer to older)
+                  _slideDirection = const Offset(
+                    -1.0,
+                    0.0,
+                  ); // Right slide (newer to older)
                 } else if (newMonth.isAfter(oldMonth)) {
-                  _slideDirection = const Offset(1.0, 0.0); // Left slide (older to newer)
+                  _slideDirection = const Offset(
+                    1.0,
+                    0.0,
+                  ); // Left slide (older to newer)
                 } else {
                   // Same month, no animation needed
                   this.setState(() {
@@ -387,7 +450,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   void _showFoodEditDrawer(dynamic foodData) {
     // Cast the dynamic to Map<String, dynamic>
     final food = foodData as Map<String, dynamic>;
-    
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -428,7 +491,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   dynamic _showDeleteConfirmation(dynamic foodData) {
     // Cast the dynamic to Map<String, dynamic>
     final food = foodData as Map<String, dynamic>;
-    
+
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -461,7 +524,7 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
         );
       },
     );
-    
+
     // Return null to match the expected return type
     return null;
   }
@@ -556,7 +619,9 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
                                   ),
                                   SizedBox(width: 4),
                                   Text(
-                                    DateFormat('MMM d, yyyy').format(_selectedDate ?? _today),
+                                    DateFormat(
+                                      'MMM d, yyyy',
+                                    ).format(_selectedDate ?? _today),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: isSmallScreen ? 12 : 16,
                                       fontWeight: FontWeight.w600,
@@ -639,6 +704,51 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
 
   // Build categorized food sections
   Widget _buildCategorizedFoodSections(bool isSmallScreen) {
+    if (_isLoadingFoodData) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            CircularProgressIndicator(color: Color(0xFF4CAF50)),
+            SizedBox(height: 16),
+            Text(
+              'Loading food data...',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey.shade600,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (_loadingError != null) {
+      return Container(
+        padding: EdgeInsets.symmetric(vertical: 32),
+        alignment: Alignment.center,
+        child: Column(
+          children: [
+            Icon(Icons.error, size: 48, color: Colors.red.shade400),
+            SizedBox(height: 16),
+            Text(
+              _loadingError!,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: Colors.red.shade600,
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadFoodData, child: Text('Retry')),
+          ],
+        ),
+      );
+    }
+
     final categorizedFoods = _getCategorizedFoods();
     final filteredFoods = _getFilteredFoods();
 
@@ -651,12 +761,15 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
             Icon(Icons.restaurant, size: 48, color: Colors.grey.shade400),
             SizedBox(height: 16),
             Text(
-              'No food entries found',
+              _selectedDate != null
+                  ? 'No food entries for ${DateFormat('MMM d, yyyy').format(_selectedDate!)}'
+                  : 'No food entries found',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
                 color: Colors.grey.shade600,
               ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -667,6 +780,21 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // Add debug info in development
+        // if (kDebugMode)
+        //   Container(
+        //     padding: EdgeInsets.all(8),
+        //     margin: EdgeInsets.only(bottom: 16),
+        //     decoration: BoxDecoration(
+        //       color: Colors.blue.shade50,
+        //       borderRadius: BorderRadius.circular(8),
+        //     ),
+        //     child: Text(
+        //       'Total: ${filteredFoods.length} foods for ${_selectedDate != null ? DateFormat('yyyy-MM-dd').format(_selectedDate!) : 'last 5 days'}',
+        //       style: TextStyle(fontSize: 12, color: Colors.blue.shade700),
+        //     ),
+        //   ),
+
         // Breakfast section
         MealTypeSection(
           title: 'Breakfast',
@@ -741,65 +869,100 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
   // Add this method to load food data
   Future<void> _loadFoodData() async {
     try {
-      // Show loading state if needed
       setState(() {
-        // You could add a loading indicator here
+        _isLoadingFoodData = true;
+        _loadingError = null;
       });
-      
+
       // Get date in YYYY-MM-DD format
       final selectedDate = _selectedDate ?? DateTime.now();
       final formattedDate = DateFormat('yyyy-MM-dd').format(selectedDate);
-      
+
       print('Loading food data for date: $formattedDate');
-      
+
       // Fetch food data from provider
       final foodData = await _foodProvider.getDailyFoodData(formattedDate);
-      
+
       print('Received food data: $foodData');
-      
+
       // Convert the data structure to match our UI needs
       List<Map<String, dynamic>> newFoodHistory = [];
-      
+
       // Process each meal type
       foodData.forEach((mealType, foods) {
-        for (var food in foods) {
-          // Convert string date to DateTime object for UI compatibility
-          DateTime foodDate;
-          if (food['date'] is String) {
-            try {
-              foodDate = DateTime.parse(food['date']);
-            } catch (e) {
-              foodDate = selectedDate;
+        if (foods is List) {
+          for (var food in foods) {
+            // Ensure we have valid food data
+            if (food is Map<String, dynamic> && food['name'] != null) {
+              // IMPORTANT FIX: Use the selected date instead of the API date
+              // This fixes the date mismatch issue
+              DateTime foodDate = selectedDate; // Use the requested date
+
+              // Only use API date if it matches the selected date
+              if (food['date'] is String) {
+                try {
+                  DateTime apiDate = DateTime.parse(food['date']);
+                  String apiDateStr = DateFormat('yyyy-MM-dd').format(apiDate);
+                  if (apiDateStr == formattedDate) {
+                    foodDate = apiDate; // Use API date only if it matches
+                  }
+                  print(
+                    'API date: $apiDateStr, Selected date: $formattedDate, Match: ${apiDateStr == formattedDate}',
+                  );
+                } catch (e) {
+                  print('Error parsing API date: $e');
+                  foodDate = selectedDate; // Fallback to selected date
+                }
+              } else if (food['date'] is DateTime) {
+                DateTime apiDate = food['date'];
+                String apiDateStr = DateFormat('yyyy-MM-dd').format(apiDate);
+                if (apiDateStr == formattedDate) {
+                  foodDate = apiDate;
+                }
+              }
+
+              newFoodHistory.add({
+                'name': food['name'] ?? 'Unknown Food',
+                'calories': (food['calories'] ?? 0).toDouble(),
+                'image': food['image'] ?? 'images/default.png',
+                'color': food['colorValue'] ?? food['color'] ?? 0xFF4CAF50,
+                'date': foodDate, // This will now match the selected date
+                'time': food['time'] ?? '00:00',
+                'weight': food['weight'] ?? '100g',
+                'mealType': mealType,
+                'protein': (food['protein'] ?? 0).toDouble(),
+                'carbs': (food['carbs'] ?? 0).toDouble(),
+                'fat': (food['fat'] ?? 0).toDouble(),
+              });
+
+              print(
+                'Added food: ${food['name']} with date: ${DateFormat('yyyy-MM-dd').format(foodDate)}',
+              );
             }
-          } else {
-            foodDate = selectedDate;
           }
-          
-          newFoodHistory.add({
-            'name': food['name'],
-            'calories': food['calories'],
-            'image': food['image'],
-            'color': food['color'],
-            'date': foodDate,
-            'time': food['time'],
-            'weight': food['weight'],
-            'mealType': mealType,
-            'protein': food['protein'],
-            'carbs': food['carbs'],
-            'fat': food['fat'],
-          });
         }
       });
-      
+
       print('Processed food history: ${newFoodHistory.length} items');
-      
+
       // Update state with new food data
       setState(() {
         _foodHistory = newFoodHistory;
+        _isLoadingFoodData = false;
+      });
+
+      // Force a rebuild of the categorized sections
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
       });
     } catch (e) {
       print('Error loading food data: $e');
-      // Show error message if needed
+      setState(() {
+        _loadingError = 'Failed to load food data: $e';
+        _isLoadingFoodData = false;
+      });
     }
   }
 

@@ -42,6 +42,7 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
   // Selected date
   DateTime _selectedDate = DateTime.now();
+  final List<String> _mealPeriods = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
 
   // Popular food suggestions
   List<Map<String, dynamic>> _popularFoodsOld = [];
@@ -71,11 +72,12 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
   String _scoreError = '';
 
   // Page controllers for meal periods and content
-  final PageController _pageController = PageController();
-  final PageController _mealContentController = PageController();
+  late PageController _pageController = PageController();
+  late PageController _mealContentController = PageController();
 
   // Selected meal period index
   int _selectedMealPeriodIndex = 0;
+  late PageController _mealContentPageController;
 
   GetFoodItemsUseCase? _getFoodItemsUseCase;
   String _accessToken = '';
@@ -91,10 +93,16 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
       // Get access token - in a real app, you would get this from secure storage
       final token = await _getAccessToken();
 
-      developer.log('User Profile API - Token available: ${token.isNotEmpty}', name: 'UserProfileAPI');
-      
+      developer.log(
+        'User Profile API - Token available: ${token.isNotEmpty}',
+        name: 'UserProfileAPI',
+      );
+
       if (token.isEmpty) {
-        developer.log('User Profile API - No access token available', name: 'UserProfileAPI');
+        developer.log(
+          'User Profile API - No access token available',
+          name: 'UserProfileAPI',
+        );
         setState(() {
           _isLoadingUserProfile = false;
           _userJoinDate = DateTime.now(); // Default fallback
@@ -104,9 +112,15 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
       // Make API request to get user profile
       final url = Uri.parse('https://test-prod-f427.onrender.com/api/users');
-      developer.log('User Profile API - Request URL: $url', name: 'UserProfileAPI');
-      developer.log('User Profile API - Request Headers: Content-Type: application/json, Authorization: Bearer ${token.substring(0, 5)}...', name: 'UserProfileAPI');
-      
+      developer.log(
+        'User Profile API - Request URL: $url',
+        name: 'UserProfileAPI',
+      );
+      developer.log(
+        'User Profile API - Request Headers: Content-Type: application/json, Authorization: Bearer ${token.substring(0, 5)}...',
+        name: 'UserProfileAPI',
+      );
+
       final response = await http.get(
         url,
         headers: {
@@ -115,18 +129,30 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
         },
       );
 
-      developer.log('User Profile API - Response Status: ${response.statusCode}', name: 'UserProfileAPI');
-      
+      developer.log(
+        'User Profile API - Response Status: ${response.statusCode}',
+        name: 'UserProfileAPI',
+      );
+
       if (response.statusCode == 401) {
-        developer.log('User Profile API - 401 Unauthorized Error', name: 'UserProfileAPI');
-        developer.log('User Profile API - Response Body: ${response.body}', name: 'UserProfileAPI');
-        developer.log('User Profile API - Token used: ${token.substring(0, 5)}...', name: 'UserProfileAPI');
-        
+        developer.log(
+          'User Profile API - 401 Unauthorized Error',
+          name: 'UserProfileAPI',
+        );
+        developer.log(
+          'User Profile API - Response Body: ${response.body}',
+          name: 'UserProfileAPI',
+        );
+        developer.log(
+          'User Profile API - Token used: ${token.substring(0, 5)}...',
+          name: 'UserProfileAPI',
+        );
+
         setState(() {
           _isLoadingUserProfile = false;
           _userJoinDate = DateTime.now(); // Default fallback
         });
-        
+
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -138,18 +164,21 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                   // Show more details in a dialog
                   showDialog(
                     context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Authentication Error'),
-                      content: SingleChildScrollView(
-                        child: Text('Failed to authenticate with the server.\n\nStatus: ${response.statusCode}\nResponse: ${response.body}'),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Close'),
+                    builder:
+                        (context) => AlertDialog(
+                          title: Text('Authentication Error'),
+                          content: SingleChildScrollView(
+                            child: Text(
+                              'Failed to authenticate with the server.\n\nStatus: ${response.statusCode}\nResponse: ${response.body}',
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: Text('Close'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
                   );
                 },
               ),
@@ -161,8 +190,11 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        developer.log('User Profile API - Success: ${data['success']}', name: 'UserProfileAPI');
-        
+        developer.log(
+          'User Profile API - Success: ${data['success']}',
+          name: 'UserProfileAPI',
+        );
+
         if (data['success'] == true && data['data'] != null) {
           // Parse the created_at date
           final createdAtString = data['data']['created_at'];
@@ -171,25 +203,40 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
               _userJoinDate = DateTime.parse(createdAtString);
               _isLoadingUserProfile = false;
             });
-            developer.log('User Profile API - User join date: $_userJoinDate', name: 'UserProfileAPI');
+            developer.log(
+              'User Profile API - User join date: $_userJoinDate',
+              name: 'UserProfileAPI',
+            );
           } else {
-            developer.log('User Profile API - No created_at date found', name: 'UserProfileAPI');
+            developer.log(
+              'User Profile API - No created_at date found',
+              name: 'UserProfileAPI',
+            );
             setState(() {
               _userJoinDate = DateTime.now(); // Default fallback
               _isLoadingUserProfile = false;
             });
           }
         } else {
-          developer.log('User Profile API - Invalid response format: ${response.body}', name: 'UserProfileAPI');
+          developer.log(
+            'User Profile API - Invalid response format: ${response.body}',
+            name: 'UserProfileAPI',
+          );
           setState(() {
             _userJoinDate = DateTime.now(); // Default fallback
             _isLoadingUserProfile = false;
           });
         }
       } else {
-        developer.log('User Profile API - Failed with status: ${response.statusCode}', name: 'UserProfileAPI');
-        developer.log('User Profile API - Response Body: ${response.body}', name: 'UserProfileAPI');
-        
+        developer.log(
+          'User Profile API - Failed with status: ${response.statusCode}',
+          name: 'UserProfileAPI',
+        );
+        developer.log(
+          'User Profile API - Response Body: ${response.body}',
+          name: 'UserProfileAPI',
+        );
+
         setState(() {
           _userJoinDate = DateTime.now(); // Default fallback
           _isLoadingUserProfile = false;
@@ -197,8 +244,11 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
       }
     } catch (e, stackTrace) {
       developer.log('User Profile API - Error: $e', name: 'UserProfileAPI');
-      developer.log('User Profile API - Stack trace: $stackTrace', name: 'UserProfileAPI');
-      
+      developer.log(
+        'User Profile API - Stack trace: $stackTrace',
+        name: 'UserProfileAPI',
+      );
+
       setState(() {
         _userJoinDate = DateTime.now(); // Default fallback
         _isLoadingUserProfile = false;
@@ -206,15 +256,44 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     }
   }
 
+  int _getCurrentMealPeriodIndex() {
+    final now = DateTime.now();
+    final hour = now.hour;
+
+    if (hour >= 5 && hour < 11) {
+      return 0; // Breakfast
+    } else if (hour >= 11 && hour < 15) {
+      return 1; // Lunch
+    } else if (hour >= 15 && hour < 18) {
+      return 2; // Snack
+    } else if (hour >= 18 || hour < 5) {
+      // Changed to include late night/early morning as Dinner
+      return 3; // Dinner
+    } else {
+      return 0; // Default to Breakfast
+    }
+  }
+
   // Update the initState method to call _fetchUserProfile
   @override
   void initState() {
     super.initState();
+    _selectedMealPeriodIndex = _getCurrentMealPeriodIndex();
+
+    _mealContentController = PageController(
+      initialPage: _selectedMealPeriodIndex,
+    );
+    _pageController = PageController(initialPage: _selectedMealPeriodIndex);
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _mealContentController.jumpToPage(_selectedMealPeriodIndex);
+      _pageController.jumpToPage(_selectedMealPeriodIndex);
+    });
 
     // Create two separate API clients for the different services
     _foodRemoteDataSource = FoodRemoteDataSourceImpl(
       apiClient: ApiClient(
-        baseUrl: 'https://food-service-prod.onrender.com/api',
+        baseUrl: 'https://test-prod-f427.onrender.com/api',
         httpClient: http.Client(),
       ),
       client: http.Client(),
@@ -230,7 +309,7 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     );
     _getFoodItemsUseCase = GetFoodItemsUseCase(foodRepository);
 
-    _loadPopularFoods();
+    // _loadPopularFoods();
     _loadData();
 
     // Get access token from auth provider if available
@@ -242,26 +321,21 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
             setState(() {
               _accessToken = token;
             });
-            _loadFoodItemsFromAPI();
+            // _loadFoodItemsFromAPI();
           }
         });
 
         // Fetch user profile to get join date
         _fetchUserProfile();
 
-        // Set initial meal period based on current time
-        final currentHour = DateTime.now().hour;
-        if (currentHour >= 6 && currentHour < 12) {
-          _selectedMealPeriodIndex = 0; // Morning
-        } else if (currentHour >= 12 && currentHour < 18) {
-          _selectedMealPeriodIndex = 1; // Afternoon
-        } else {
-          _selectedMealPeriodIndex = 2; // Evening
+        if (_pageController.hasClients) {
+          _pageController.jumpToPage(_selectedMealPeriodIndex);
+        }
+        if (_mealContentController.hasClients) {
+          _mealContentController.jumpToPage(_selectedMealPeriodIndex);
         }
 
-        // Jump to the correct page based on current time
-        _pageController.jumpToPage(_selectedMealPeriodIndex);
-        _mealContentController.jumpToPage(_selectedMealPeriodIndex);
+        _loadData();
 
         // Ensure the meal content is visible by scrolling to it
         Future.delayed(Duration(milliseconds: 300), () {
@@ -274,8 +348,8 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
           }
         });
 
-        _loadDailyFoodData(forceRefresh: true);
-        _loadDailyFoodScore();
+        // _loadDailyFoodData(forceRefresh: true);
+        // _loadDailyFoodScore();
       } catch (e) {
         print('Error in initialization: $e');
       }
@@ -287,20 +361,47 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     try {
       // In a real app, you would retrieve this from secure storage or shared preferences
       final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('access_token') ?? '';
-      
-      developer.log('Token retrieval - Token length: ${token.length}', name: 'TokenManager');
+      final token =
+          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMjI2ODExLCJleHAiOjE3NTAzMTMyMTF9.WPyZtTeVboyYUf_-gs4tsPNuLAKndQbQvT6X8qp4T8Q";
+
+      developer.log(
+        'Token retrieval - Token length: ${token.length}',
+        name: 'TokenManager',
+      );
       if (token.isNotEmpty) {
-        developer.log('Token retrieval - Token prefix: ${token.substring(0, Math.min(5, token.length))}...', name: 'TokenManager');
+        developer.log(
+          'Token retrieval - Token prefix: ${token.substring(0, Math.min(5, token.length))}...',
+          name: 'TokenManager',
+        );
       } else {
         developer.log('Token retrieval - No token found', name: 'TokenManager');
       }
-      
+
       return token;
     } catch (e, stackTrace) {
       developer.log('Token retrieval - Error: $e', name: 'TokenManager');
-      developer.log('Token retrieval - Stack trace: $stackTrace', name: 'TokenManager');
+      developer.log(
+        'Token retrieval - Stack trace: $stackTrace',
+        name: 'TokenManager',
+      );
       return '';
+    }
+  }
+
+  String _convertToLocalTimeAndFormat(String utcTimeString) {
+    try {
+      // Parse the UTC time
+      DateTime utcTime = DateTime.parse(utcTimeString);
+
+      // Convert to local time (automatically handles device timezone)
+      DateTime localTime = utcTime.toLocal();
+
+      // Format to HH:mm
+      return DateFormat('HH:mm').format(localTime);
+    } catch (e) {
+      print('Error converting time: $e');
+      // Return current time as fallback
+      return DateFormat('HH:mm').format(DateTime.now());
     }
   }
 
@@ -316,46 +417,52 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
       // Load food score
       try {
         final response = await http.get(
-          Uri.parse('https://food-service-prod.onrender.com/api/food/score/daily/$today'),
-          headers: {'Content-Type': 'application/json'},
+          Uri.parse(
+            'https://test-prod-f427.onrender.com/api/food/score/daily/$today',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${await _getAccessToken()}',
+          },
         );
 
         if (response.statusCode == 200) {
           final data = json.decode(response.body);
-          if (data['success'] == true && data['data'] != null) {
+
+          final foodScore = data['data']?['food_score'];
+          if (data['success'] == true && foodScore != null) {
+            final roundedScore = (foodScore as num).round();
             setState(() {
-              _foodScore = data['data']['food_score'].toString();
+              _foodScore = roundedScore.toString();
             });
           } else {
             setState(() {
-              _foodScore = '0'; // Show 0 instead of default score
+              _foodScore = '0';
             });
           }
         } else {
           setState(() {
-            _foodScore = '0'; // Show 0 instead of default score
+            _foodScore = '0';
           });
         }
       } catch (e) {
         print('Error loading food score: $e');
         setState(() {
-          _foodScore = '0'; // Show 0 instead of default score
+          _foodScore = '0';
         });
       }
 
-      // Load popular foods
-      try {
-        await _loadFoodItemsFromAPI();
-      } catch (e) {
-        print('Error loading popular foods: $e');
-        // Don't set any default foods
-      }
 
       // Load daily food data
       try {
         final response = await http.get(
-          Uri.parse('https://food-service-prod.onrender.com/api/food/daily/$today'),
-          headers: {'Content-Type': 'application/json'},
+          Uri.parse(
+            'https://test-prod-f427.onrender.com/api/food/daily/$today',
+          ),
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ${await _getAccessToken()}',
+          },
         );
 
         if (response.statusCode == 200) {
@@ -376,18 +483,30 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
               meals.forEach((mealType, foodList) {
                 if (result.containsKey(mealType)) {
                   for (var foodItem in foodList) {
-                    DateTime foodTime = DateTime.parse(foodItem['time']);
+                    String formattedTime = _convertToLocalTimeAndFormat(
+                      foodItem['time'],
+                    );
 
                     FoodItem processedFood = FoodItemModel(
                       id: foodItem['id'] ?? '',
-                      name: foodItem['foodName'],
-                      calories: foodItem['calories'] is int
-                          ? foodItem['calories']
-                          : (foodItem['calories'] as num).toInt(),
-                      protein: foodItem['protein'] ?? 0,
-                      carbs: foodItem['carbs'] ?? 0,
-                      fat: foodItem['fat'] ?? 0,
-                      time: DateFormat('HH:mm').format(foodTime),
+                      name: foodItem['foodName'] ?? '',
+                      calories:
+                          (foodItem['calories'] ?? 0) is num
+                              ? (foodItem['calories'] as num).toInt()
+                              : 0,
+                      protein:
+                          (foodItem['protein'] ?? 0) is num
+                              ? (foodItem['protein'] as num).toDouble()
+                              : 0.0,
+                      carbs:
+                          (foodItem['carbs'] ?? 0) is num
+                              ? (foodItem['carbs'] as num).toDouble()
+                              : 0.0,
+                      fat:
+                          (foodItem['fats'] ?? 0) is num
+                              ? (foodItem['fats'] as num).toDouble()
+                              : 0.0,
+                      time: formattedTime,
                       weight: foodItem['weight'] ?? '100g',
                       mealType: mealType,
                       date: today,
@@ -399,7 +518,7 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                 }
               });
             }
-            
+
             setState(() {
               _dailyFoodData = result;
             });
@@ -432,317 +551,6 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     }
   }
 
-  Future<void> _loadDailyFoodData({bool forceRefresh = false}) async {
-    try {
-      if (!mounted) return;
-      
-      final dailyFoodProvider = Provider.of<DailyFoodProvider>(
-        context,
-        listen: false,
-      );
-      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-      await dailyFoodProvider.getDailyFood(
-        date: dateStr,
-        forceRefresh: forceRefresh,
-      );
-    } catch (e) {
-      print('Error loading daily food data: $e');
-      // Handle error gracefully
-    }
-  }
-
-  Future<void> _loadDailyFoodScore() async {
-    setState(() {
-      _isLoadingScore = true;
-      _scoreError = '';
-    });
-
-    try {
-      // Format today's date
-      final today = DateFormat('yyyy-MM-dd').format(_selectedDate);
-
-      // Use the correct API endpoint
-      final response = await http.get(
-        Uri.parse(
-          'https://food-service-prod.onrender.com/api/food/score/daily/$today',
-        ),
-        headers: {'Content-Type': 'application/json'},
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true && data['data'] != null) {
-          setState(() {
-            _foodScore = data['data']['food_score'].toString();
-            _isLoadingScore = false;
-          });
-        } else {
-          setState(() {
-            _isLoadingScore = false;
-            _scoreError = data['message'] ?? 'Failed to load score';
-            _foodScore = '0'; // Show 0 instead of default score
-          });
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text('Failed to load food score: ${data['message'] ?? 'Unknown error'}'),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
-      } else {
-        setState(() {
-          _isLoadingScore = false;
-          _scoreError = 'Server error: ${response.statusCode}';
-          _foodScore = '0'; // Show 0 instead of default score
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Server error: ${response.statusCode}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      print('Error loading food score: $e');
-      if (mounted) {
-        setState(() {
-          _isLoadingScore = false;
-          _scoreError = 'Failed to load score';
-          _foodScore = '0'; // Show 0 instead of default score
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Failed to connect to the server. Please check your internet connection.'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  }
-
-  // Add a new method to load food items from the API
-  // Update the _loadFoodItemsFromAPI method to use direct HTTP request
-  Future<void> _loadFoodItemsFromAPI() async {
-    setState(() {
-      _isLoadingFoodItems = true;
-    });
-
-    try {
-      // Use direct HTTP request to the correct endpoint
-      final url = Uri.parse('https://food-service-prod.onrender.com/api/food/items');
-      developer.log('Food API - Request URL: $url', name: 'FoodAPI');
-      
-      // Get token for debugging purposes
-      final token = await _getAccessToken();
-      developer.log('Food API - Token available: ${token.isNotEmpty}', name: 'FoodAPI');
-      
-      // Prepare headers
-      final headers = {'Content-Type': 'application/json'};
-      if (token.isNotEmpty) {
-        headers['Authorization'] = 'Bearer $token';
-        developer.log('Food API - Using authorization header', name: 'FoodAPI');
-      }
-      
-      developer.log('Food API - Request Headers: $headers', name: 'FoodAPI');
-      
-      final response = await http.get(
-        url,
-        headers: headers,
-      );
-
-      developer.log('Food API - Response Status: ${response.statusCode}', name: 'FoodAPI');
-      
-      if (response.statusCode == 401) {
-        developer.log('Food API - 401 Unauthorized Error', name: 'FoodAPI');
-        developer.log('Food API - Response Body: ${response.body}', name: 'FoodAPI');
-        
-        setState(() {
-          _isLoadingFoodItems = false;
-          _popularFoodsOld = [];
-          _popularFoods = [];
-        });
-        
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Authentication error: Unable to fetch food items'),
-              backgroundColor: Colors.red,
-              action: SnackBarAction(
-                label: 'Details',
-                onPressed: () {
-                  // Show more details in a dialog
-                  showDialog(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text('Authentication Error'),
-                      content: SingleChildScrollView(
-                        child: Text('Failed to authenticate with the food service.\n\nStatus: ${response.statusCode}\nResponse: ${response.body}'),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: Text('Close'),
-                        ),
-                      ],
-                    ),
-                  );
-                },
-              ),
-            ),
-          );
-        }
-        return;
-      }
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        developer.log('Food API - Success: ${data['success']}', name: 'FoodAPI');
-        
-        if (data['success'] == true && data['data'] != null) {
-          final List<dynamic> items = data['data'];
-          developer.log('Food API - Items count: ${items.length}', name: 'FoodAPI');
-          
-          final foodItems = items.map((item) => FoodItemModel.fromJson(item)).toList();
-
-          setState(() {
-            _popularFoods = foodItems;
-            _isLoadingFoodItems = false;
-
-            // Convert to the format expected by AddFoodBottomSheet
-            _popularFoodsOld = foodItems
-                .map(
-                  (item) => {
-                    'id': item.id,
-                    'name': item.name,
-                    'calories': item.calories,
-                    'weight': item.weight,
-                    'protein': item.protein,
-                    'carbs': item.carbs,
-                    'fat': item.fat,
-                    'color': item.color,
-                  },
-                )
-                .toList();
-        });
-      } else {
-        developer.log('Food API - Invalid response format: ${response.body}', name: 'FoodAPI');
-        setState(() {
-          _isLoadingFoodItems = false;
-          _popularFoodsOld = [];
-          _popularFoods = [];
-        });
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Failed to load food items: ${data['message'] ?? 'Unknown error'}'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-      }
-    } else {
-      developer.log('Food API - Failed with status: ${response.statusCode}', name: 'FoodAPI');
-      developer.log('Food API - Response Body: ${response.body}', name: 'FoodAPI');
-      
-      setState(() {
-        _isLoadingFoodItems = false;
-        _popularFoodsOld = [];
-        _popularFoods = [];
-      });
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Server error: ${response.statusCode}'),
-            backgroundColor: Colors.red,
-          ),
-        );
-      }
-    }
-  } catch (e, stackTrace) {
-    developer.log('Food API - Error: $e', name: 'FoodAPI');
-    developer.log('Food API - Stack trace: $stackTrace', name: 'FoodAPI');
-    
-    setState(() {
-      _isLoadingFoodItems = false;
-      _popularFoodsOld = [];
-      _popularFoods = [];
-    });
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to connect to the server. Please check your internet connection.'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-}
-
-  // Update _loadPopularFoods method to use the new API endpoint if token is available
-  Future<void> _loadPopularFoods() async {
-    await _loadFoodItemsFromAPI();
-  }
-
-  // Fallback popular foods data
-  List<Map<String, dynamic>> _getDefaultPopularFoods() {
-    return [
-      {
-        'id': '1',
-        'name': 'Grilled Chicken',
-        'calories': 165,
-        'weight': '100g',
-        'protein': 31,
-        'carbs': 0,
-        'fat': 3.6,
-        'color': Colors.orange,
-      },
-      {
-        'id': '2',
-        'name': 'Salmon',
-        'calories': 206,
-        'weight': '100g',
-        'protein': 22,
-        'carbs': 0,
-        'fat': 13,
-        'color': Colors.pink,
-      },
-      {
-        'id': '3',
-        'name': 'Greek Yogurt',
-        'calories': 59,
-        'weight': '100g',
-        'protein': 10,
-        'carbs': 3.6,
-        'fat': 0.4,
-        'color': Colors.blue,
-      },
-      {
-        'id': '4',
-        'name': 'Avocado',
-        'calories': 160,
-        'weight': '100g',
-        'protein': 2,
-        'carbs': 8.5,
-        'fat': 14.7,
-        'color': Colors.green,
-      },
-      {
-        'id': '5',
-        'name': 'Quinoa',
-        'calories': 120,
-        'weight': '100g',
-        'protein': 4.4,
-        'carbs': 21.3,
-        'fat': 1.9,
-        'color': Colors.amber,
-      },
-    ];
-  }
-
   @override
   void dispose() {
     _pageController.dispose();
@@ -766,15 +574,25 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
   void _showAddFoodBottomSheet({String? mealType}) {
     // Get the proper meal title based on the meal type
     String mealTitle = 'Meal';
+    String actualMealType = mealType ?? 'breakfast'; // Default fallback
+
     if (mealType == 'breakfast') {
       mealTitle = 'Breakfast';
+      actualMealType = 'breakfast';
     } else if (mealType == 'lunch') {
       mealTitle = 'Lunch';
+      actualMealType = 'lunch';
     } else if (mealType == 'dinner') {
       mealTitle = 'Dinner';
+      actualMealType = 'dinner';
     } else if (mealType == 'snacks') {
       mealTitle = 'Snacks';
+      actualMealType = 'snacks';
     }
+
+    print(
+      'Calling AddFoodBottomSheet with mealType: $actualMealType',
+    ); // Debug print
 
     showModalBottomSheet(
       context: context,
@@ -782,9 +600,8 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
       backgroundColor: Colors.transparent,
       builder:
           (context) => AddFoodBottomSheet(
-            mealType: mealType ?? 'breakfast',
+            mealType: actualMealType, // Make sure this is correct
             mealTitle: mealTitle,
-            popularFoods: _popularFoodsOld,
             onFoodAdded: (FoodItem food) {
               // Refresh the data after adding food
               _loadData();
@@ -798,21 +615,14 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => FoodManagementStatsScreen(
-          userJoinDate: _userJoinDate ?? DateTime(2025, 4, 1),
-        ),
+        builder:
+            (context) => FoodManagementStatsScreen(
+              userJoinDate: _userJoinDate ?? DateTime(2025, 4, 1),
+            ),
       ),
     );
   }
 
-  // Change date and reload data
-  void _changeDate(DateTime newDate) {
-    setState(() {
-      _selectedDate = newDate;
-    });
-    _loadDailyFoodData(forceRefresh: true);
-    _loadDailyFoodScore();
-  }
 
   // Replace the build method's header section with a more colorful version
   @override
@@ -918,13 +728,13 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                     ),
 
                     // Meal Period Carousel
-                    _buildMealPeriodCarousel(),
+                    // _buildMealPeriodCarousel(),
 
                     // Meal Content
                     SizedBox(
                       height:
                           MediaQuery.of(context).size.height -
-                          500.h, // Adjust this value as needed
+                          450.h, // Adjust this value as needed
                       child: _buildMealContent(),
                     ),
                   ],
@@ -933,81 +743,11 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     );
   }
 
-  // Build meal period carousel
-  Widget _buildMealPeriodCarousel() {
-    return Container(
-      height: 60.h,
-      margin: EdgeInsets.only(bottom: 8.h),
-      child: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            _selectedMealPeriodIndex = index;
-          });
-        },
-        children: [
-          _buildMealPeriodTab('Morning', 0),
-          _buildMealPeriodTab('Afternoon', 1),
-          _buildMealPeriodTab('Evening', 2),
-        ],
-      ),
-    );
-  }
-
-  // Build meal period tab
-  Widget _buildMealPeriodTab(String title, int index) {
-    final isSelected = _selectedMealPeriodIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        _pageController.animateToPage(
-          index,
-          duration: Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-        );
-      },
-      child: AnimatedContainer(
-        duration: Duration(milliseconds: 200),
-        margin: EdgeInsets.symmetric(horizontal: 8.w),
-        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
-        decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF0F67FE) : Colors.white,
-          borderRadius: BorderRadius.circular(16.r),
-          boxShadow:
-              isSelected
-                  ? [
-                    BoxShadow(
-                      color: Color(0xFF0F67FE).withOpacity(0.3),
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ]
-                  : [
-                    BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
-                      blurRadius: 4,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
-        ),
-        child: Center(
-          child: Text(
-            title,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 16.sp,
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-              color: isSelected ? Colors.white : Color(0xFF64748B),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   // Build meal content based on selected period
   Widget _buildMealContent() {
-    return PageView(
+    return PageView.builder(
       controller: _mealContentController,
+      itemCount: _mealPeriods.length,
       onPageChanged: (index) {
         setState(() {
           _selectedMealPeriodIndex = index;
@@ -1018,18 +758,17 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
           );
         });
       },
-      children: [
-        _buildMealPeriodContent('Morning'),
-        _buildMealPeriodContent('Afternoon'),
-        _buildMealPeriodContent('Evening'),
-      ],
+      itemBuilder: (context, index) {
+        final period = _mealPeriods[index];
+        return _buildMealPeriodContent(period);
+      },
     );
   }
 
-  // Build content for a specific meal period
   Widget _buildMealPeriodContent(String period) {
-    // Get meals for this period
-    final meals = _getMealsForPeriod(period);
+    // Get meals for this period - Updated logic
+    final mealType = _getMealTypeForPeriod(period);
+    final meals = _dailyFoodData[mealType] ?? [];
     final bool isEmpty = meals.isEmpty;
 
     return RefreshIndicator(
@@ -1044,18 +783,9 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                 : Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Main meal section
-                    _buildMainMealSection(period, meals),
-
+                    // Main meal section - Updated to pass individual meals
+                    _buildMainMealSectionUpdated(period, meals),
                     SizedBox(height: 24.h),
-
-                    // Snacks section
-                    _buildSnacksSection(period),
-
-                    SizedBox(height: 24.h),
-
-                    // Popular foods section
-                    _buildPopularFoodsSection(),
                   ],
                 ),
       ),
@@ -1113,13 +843,15 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
   }
 
   // Build main meal section
-  Widget _buildMainMealSection(
-    String period,
-    Map<String, List<FoodItem>> meals,
-  ) {
+  Widget _buildMainMealSectionUpdated(String period, List<FoodItem> meals) {
     final mealType = _getMealTypeForPeriod(period);
-    final mealTitle = _getMealTitleForPeriod(period);
-    final mealItems = meals[mealType] ?? [];
+    final mealTitle = period;
+
+    // Calculate total calories for this meal type
+    int totalCalories = meals.fold(
+      0,
+      (sum, item) => sum + item.calories.toInt(),
+    );
 
     return Container(
       decoration: BoxDecoration(
@@ -1172,13 +904,26 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                       ),
                     ),
                     SizedBox(width: 12.w),
-                    Text(
-                      _getMealTitleForPeriod(period),
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 20.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          mealTitle,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 20.sp,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                        Text(
+                          '${meals.length} item${meals.length != 1 ? 's' : ''}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white.withOpacity(0.8),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -1203,15 +948,15 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
                       Icon(
                         Icons.local_fire_department,
                         size: 16.sp,
-                        color: Color(0xFF0F67FE),
+                        color: Color(0xFF000000),
                       ),
                       SizedBox(width: 4.w),
                       Text(
-                        '${_calculateCaloriesForPeriod(period)} cal',
+                        '$totalCalories cal',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14.sp,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF0F67FE),
+                          color: Color(0xFF000000),
                         ),
                       ),
                     ],
@@ -1221,199 +966,187 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
             ),
           ),
 
-          // Meal items
-          if (mealItems.isEmpty)
-            Padding(
-              padding: EdgeInsets.all(24.w),
-              child: Center(
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.restaurant,
-                      size: 48.sp,
-                      color: Colors.grey[300],
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'No ${_getMealTitleForPeriod(period).toLowerCase()} logged yet',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Text(
-                      'Add your meal to track your nutrition',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.sp,
-                        color: Colors.grey[500],
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+          // Meal items list
+          ListView.separated(
+            physics: NeverScrollableScrollPhysics(),
+            shrinkWrap: true,
+            padding: EdgeInsets.symmetric(vertical: 8.h),
+            itemCount: meals.length,
+            separatorBuilder:
+                (context, index) => Divider(
+                  height: 1,
+                  thickness: 1,
+                  indent: 16.w,
+                  endIndent: 16.w,
+                  color: Colors.grey.withOpacity(0.1),
                 ),
-              ),
-            )
-          else
-            ListView.separated(
-              physics: NeverScrollableScrollPhysics(),
-              shrinkWrap: true,
-              padding: EdgeInsets.symmetric(vertical: 8.h),
-              itemCount: mealItems.length,
-              separatorBuilder:
-                  (context, index) => Divider(
-                    height: 1,
-                    thickness: 1,
-                    indent: 16.w,
-                    endIndent: 16.w,
-                    color: Colors.grey.withOpacity(0.1),
-                  ),
-              itemBuilder: (context, index) {
-                final item = mealItems[index];
+            itemBuilder: (context, index) {
+              final item = meals[index];
 
-                return InkWell(
-                  onTap: () {
-                    _showFoodDetailBottomSheet(
-                      item,
-                      _getMealTitleForPeriod(period),
-                      _getPeriodColor(period),
-                    );
-                  },
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(
-                      horizontal: 16.w,
-                      vertical: 16.h,
-                    ),
-                    child: Row(
-                      children: [
-                        // Food icon
-                        Container(
-                          width: 56.w,
-                          height: 56.w,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                _getPeriodColor(period).withOpacity(0.7),
-                                _getPeriodColor(period),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: _getPeriodColor(period).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: Offset(0, 4),
-                              ),
+              return InkWell(
+                onTap: () {
+                  _showFoodDetailBottomSheet(
+                    item,
+                    mealTitle,
+                    _getPeriodColor(period),
+                  );
+                },
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: 16.w,
+                    vertical: 16.h,
+                  ),
+                  child: Row(
+                    children: [
+                      // Food icon
+                      Container(
+                        width: 56.w,
+                        height: 56.w,
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              _getPeriodColor(period).withOpacity(0.7),
+                              _getPeriodColor(period),
                             ],
                           ),
-                          child: Icon(
-                            _getFoodIcon(item.name),
-                            color: Colors.white,
-                            size: 28.sp,
-                          ),
+                          borderRadius: BorderRadius.circular(16.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: _getPeriodColor(period).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 4),
+                            ),
+                          ],
                         ),
-                        SizedBox(width: 16.w),
+                        child: Icon(
+                          _getFoodIcon(item.name),
+                          color: Colors.white,
+                          size: 28.sp,
+                        ),
+                      ),
+                      SizedBox(width: 16.w),
 
-                        // Food details
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                item.name,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: Color(0xFF1E293B),
-                                ),
+                      // Food details
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item.name,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Color(0xFF1E293B),
                               ),
-                              SizedBox(height: 6.h),
-                              Row(
-                                children: [
-                                  // Time
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                      horizontal: 8.w,
-                                      vertical: 4.h,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[100],
-                                      borderRadius: BorderRadius.circular(8.r),
-                                    ),
-                                    child: Text(
-                                      item.time,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
-                                        color: Colors.grey[700],
-                                      ),
-                                    ),
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            SizedBox(height: 6.h),
+                            Row(
+                              children: [
+                                // Time
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 4.h,
                                   ),
-                                  SizedBox(width: 8.w),
-                                  // Dot separator
-                                  Container(
-                                    width: 4.w,
-                                    height: 4.h,
-                                    decoration: BoxDecoration(
-                                      color: Colors.grey[400],
-                                      shape: BoxShape.circle,
-                                    ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.grey[100],
+                                    borderRadius: BorderRadius.circular(8.r),
                                   ),
-                                  SizedBox(width: 8.w),
-                                  // Macros summary
-                                  Text(
-                                    'P: ${item.protein.toInt()}g • C: ${item.carbs.toInt()}g • F: ${item.fat.toInt()}g',
+                                  child: Text(
+                                    item.time,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12.sp,
                                       fontWeight: FontWeight.w500,
-                                      color: Colors.grey[600],
+                                      color: Colors.grey[700],
                                     ),
                                   ),
-                                ],
+                                ),
+                                SizedBox(width: 8.w),
+                                // Weight
+                                Container(
+                                  padding: EdgeInsets.symmetric(
+                                    horizontal: 8.w,
+                                    vertical: 4.h,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: _getPeriodColor(
+                                      period,
+                                    ).withOpacity(0.1),
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Text(
+                                    item.weight,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: _getPeriodColor(period),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 4.h),
+                            // Macros summary
+                            Text(
+                              'P: ${item.protein.toInt()}g  •  C: ${item.carbs.toInt()}g  •  F: ${item.fat.toInt()}g',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey[600],
                               ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
+                      ),
 
-                        // Calories
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12.w,
-                            vertical: 8.h,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [Color(0xFF0F67FE), Color(0xFF2E86FB)],
-                            ),
-                            borderRadius: BorderRadius.circular(16.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0xFF0F67FE).withOpacity(0.3),
-                                blurRadius: 8,
-                                offset: Offset(0, 3),
-                              ),
+                      // Calories
+                      Container(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 12.w,
+                          vertical: 8.h,
+                        ),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color.fromARGB(255, 255, 255, 255),
+                              Color.fromARGB(255, 255, 255, 255),
                             ],
                           ),
-                          child: Text(
-                            '${item.calories} cal',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Color.fromARGB(
+                                255,
+                                0,
+                                0,
+                                0,
+                              ).withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: Offset(0, 3),
                             ),
+                          ],
+                        ),
+                        child: Text(
+                          '${item.calories} cal',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.black,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                );
-              },
-            ),
+                ),
+              );
+            },
+          ),
 
           // Add food button
           Padding(
@@ -1675,139 +1408,6 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     );
   }
 
-  // Build popular foods section
-  Widget _buildPopularFoodsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'Popular Foods',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 20.sp,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF1E293B),
-              ),
-            ),
-            Row(
-              children: [
-                if (_accessToken.isNotEmpty)
-                  IconButton(
-                    onPressed: _loadFoodItemsFromAPI,
-                    icon:
-                        _isLoadingFoodItems
-                            ? SizedBox(
-                              width: 18.w,
-                              height: 18.h,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF0F67FE),
-                              ),
-                            )
-                            : Icon(
-                              Icons.refresh,
-                              color: Color(0xFF0F67FE),
-                              size: 22.sp,
-                            ),
-                  ),
-                TextButton(
-                  onPressed: () => _showAddFoodBottomSheet(),
-                  child: Text(
-                    'View All',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14.sp,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF0F67FE),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        SizedBox(height: 16.h),
-        SizedBox(
-          height: 140.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: _popularFoods.length,
-            itemBuilder: (context, index) {
-              final food = _popularFoods[index];
-              return Padding(
-                padding: EdgeInsets.only(right: 16.w),
-                child: GestureDetector(
-                  onTap: () => _showAddFoodBottomSheet(),
-                  child: Container(
-                    width: 120.w,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [food.color.withOpacity(0.8), food.color],
-                      ),
-                      borderRadius: BorderRadius.circular(16.r),
-                      boxShadow: [
-                        BoxShadow(
-                          color: food.color.withOpacity(0.3),
-                          blurRadius: 10,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
-                    ),
-                    padding: EdgeInsets.all(16.w),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          _getFoodIcon(food.name),
-                          color: Colors.white,
-                          size: 36.sp,
-                        ),
-                        SizedBox(height: 12.h),
-                        Text(
-                          food.name,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
-                          ),
-                          maxLines: 2,
-                          textAlign: TextAlign.center,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        SizedBox(height: 4.h),
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 8.w,
-                            vertical: 4.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.3),
-                            borderRadius: BorderRadius.circular(8.r),
-                          ),
-                          child: Text(
-                            '${food.calories} cal',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
   // Get meals for a specific period
   Map<String, List<FoodItem>> _getMealsForPeriod(String period) {
     Map<String, List<FoodItem>> result = {};
@@ -1848,34 +1448,68 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
   // Get meal type for a period
   String _getMealTypeForPeriod(String period) {
-    if (period == 'Morning') return 'breakfast';
-    if (period == 'Afternoon') return 'lunch';
-    if (period == 'Evening') return 'dinner';
-    return 'breakfast';
+  switch (period) {
+    case 'Breakfast':
+      return 'breakfast';
+    case 'Lunch':
+      return 'lunch';
+    case 'Snack': // Make sure this case is handled
+      return 'snacks';
+    case 'Dinner':
+      return 'dinner';
+    default:
+      print('Unknown period: $period'); // Debug print
+      return 'breakfast'; // Default fallback
   }
+}
+
 
   // Get meal title for a period
   String _getMealTitleForPeriod(String period) {
-    if (period == 'Morning') return 'Breakfast';
-    if (period == 'Afternoon') return 'Lunch';
-    if (period == 'Evening') return 'Dinner';
-    return 'Meal';
+    switch (period) {
+      case 'Breakfast':
+        return 'Breakfast';
+      case 'Lunch':
+        return 'Lunch';
+      case 'Snacks':
+        return 'Snacks';
+      case 'Dinner':
+        return 'Dinner';
+      default:
+        return 'Meal';
+    }
   }
 
   // Get period color
   Color _getPeriodColor(String period) {
-    if (period == 'Morning') return Color(0xFFFF9500);
-    if (period == 'Afternoon') return Color(0xFF0A84FF);
-    if (period == 'Evening') return Color(0xFF5E5CE6);
-    return Color(0xFF9E9E9E);
+    switch (period) {
+      case 'Breakfast':
+        return Color(0xFFFFC107); // Amber
+      case 'Lunch':
+        return Color(0xFF0A84FF); // Blue
+      case 'Snack':
+        return Color(0xFF4CAF50); // Green
+      case 'Dinner':
+        return Color(0xFF5E5CE6); // Indigo
+      default:
+        return Color(0xFF9E9E9E); // Grey
+    }
   }
 
   // Get period icon
   IconData _getPeriodIcon(String period) {
-    if (period == 'Morning') return Icons.free_breakfast;
-    if (period == 'Afternoon') return Icons.lunch_dining;
-    if (period == 'Evening') return Icons.dinner_dining;
-    return Icons.restaurant;
+    switch (period) {
+      case 'Breakfast':
+        return Icons.free_breakfast;
+      case 'Lunch':
+        return Icons.lunch_dining;
+      case 'Snacks':
+        return Icons.cookie; // or use Icons.fastfood;
+      case 'Dinner':
+        return Icons.dinner_dining;
+      default:
+        return Icons.restaurant;
+    }
   }
 
   // Calculate calories for a specific period

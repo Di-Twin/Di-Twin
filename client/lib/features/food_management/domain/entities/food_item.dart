@@ -9,9 +9,9 @@ class FoodItem extends Equatable {
   final String date;
   final String time;
   final String mealType;
-  final int protein;
-  final int carbs;
-  final int fat;
+  final double protein;
+  final double carbs;
+  final double fat;
   final Color color;
 
   const FoodItem({
