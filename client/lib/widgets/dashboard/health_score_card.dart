@@ -92,11 +92,12 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
       final List<Map<String, dynamic>> apiScores = [];
 
       // Get the health score
-      final healthScore = response.data.healthScore ?? 0;
+      final healthScore = (response.data.healthScore ?? 0).toInt();
 
       // Save the health score to cache
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('health_score', healthScore);
+
       print('✅ Health score saved to cache: $healthScore');
 
       // Always add health score
@@ -110,28 +111,28 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
 
       // Add other scores...
       apiScores.add({
-        'score': response.data.metabolicScore ?? 0,
+        'score': (response.data.metabolicScore ?? 0).toInt(),
         'title': 'Metabolic Score',
         'description': 'Your metabolic health is good but can be improved.',
         'backgroundColor': const Color(0xFFEAB308), // Yellow
       });
 
       apiScores.add({
-        'score': response.data.sleepScore ?? 0,
+        'score': (response.data.sleepScore ?? 0).toInt(),
         'title': 'Sleep Score',
         'description': 'You have an excellent sleep routine!',
         'backgroundColor': const Color(0xFF22C55E), // Green
       });
 
       apiScores.add({
-        'score': response.data.foodScore ?? 0,
+        'score': (response.data.foodScore ?? 0).toInt(),
         'title': 'Food Score',
         'description': 'Your nutrition intake is well-balanced.',
         'backgroundColor': const Color(0xFF3B82F6), // Blue
       });
 
       apiScores.add({
-        'score': response.data.activityScore ?? 0,
+        'score': (response.data.activityScore ?? 0).toInt(),
         'title': 'Activity Score',
         'description': 'You are moderately active, aim for more movement.',
         'backgroundColor': const Color(0xFFF43F5E), // Red

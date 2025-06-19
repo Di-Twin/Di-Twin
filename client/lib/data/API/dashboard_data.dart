@@ -1,9 +1,9 @@
 class HealthMetricsScores {
-  final int? activityScore;
-  final int? sleepScore;
-  final int? healthScore;
-  final int? foodScore;
-  final int? metabolicScore;
+  final double? activityScore;
+  final double? sleepScore;
+  final double? healthScore;
+  final double? foodScore;
+  final double? metabolicScore;
 
   HealthMetricsScores({
     this.activityScore,
@@ -15,11 +15,11 @@ class HealthMetricsScores {
 
   factory HealthMetricsScores.fromJson(Map<String, dynamic> json) {
     return HealthMetricsScores(
-      activityScore: json['activity_score'],
-      sleepScore: json['sleep_score'],
-      healthScore: json['health_score'],
-      foodScore: json['food_score'],
-      metabolicScore: json['metabolic_score'],
+      activityScore: json['activity_score']?.toDouble(),
+      sleepScore: json['sleep_score'] ?.toDouble(),
+      healthScore: json['health_score'] ?.toDouble(),
+      foodScore: json['food_score'] ?.toDouble(),
+      metabolicScore: json['metabolic_score'] ?.toDouble(),
     );
   }
 }

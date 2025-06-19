@@ -51,8 +51,8 @@ class _MonthlyScoreCardState extends State<MonthlyScoreCard> {
       });
 
       final prefs = await SharedPreferences.getInstance();
-      // final token = prefs.getString('access_token');
-      final token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMjI2ODExLCJleHAiOjE3NTAzMTMyMTF9.WPyZtTeVboyYUf_-gs4tsPNuLAKndQbQvT6X8qp4T8Q';
+      final token = prefs.getString('access_token');
+      // final token = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMzI3MzU2LCJleHAiOjE3NTA0MTM3NTZ9.QAdTh8zdceJpFzEGF8jX3Ly0dYB60CuKb7mEwAPgykM';
       final now = DateTime.now();
 
       if (token == null) {
