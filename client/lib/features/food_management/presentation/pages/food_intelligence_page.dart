@@ -361,9 +361,9 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
     try {
       // In a real app, you would retrieve this from secure storage or shared preferences
       final prefs = await SharedPreferences.getInstance();
-      final token =
-          "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMjI2ODExLCJleHAiOjE3NTAzMTMyMTF9.WPyZtTeVboyYUf_-gs4tsPNuLAKndQbQvT6X8qp4T8Q";
-
+      // final token =
+      //     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlODE0NDQ3NS0yY2E1LTQ3YTQtOTUwOS1mMDhjYWZlNWYwZjUiLCJtb2JpbGUiOiIrOTE5ODc2NTQzMjEwIiwiaWF0IjoxNzUwMzI3MzU2LCJleHAiOjE3NTA0MTM3NTZ9.QAdTh8zdceJpFzEGF8jX3Ly0dYB60CuKb7mEwAPgykM";
+      final token = prefs.getString('access_token') ?? '';
       developer.log(
         'Token retrieval - Token length: ${token.length}',
         name: 'TokenManager',
