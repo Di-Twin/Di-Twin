@@ -41,15 +41,15 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
   late final FoodRemoteDataSource _foodRemoteDataSource;
 
   // Selected date
-  DateTime _selectedDate = DateTime.now();
+  final DateTime _selectedDate = DateTime.now();
   final List<String> _mealPeriods = ['Breakfast', 'Lunch', 'Snack', 'Dinner'];
 
   // Popular food suggestions
-  List<Map<String, dynamic>> _popularFoodsOld = [];
+  final List<Map<String, dynamic>> _popularFoodsOld = [];
 
   bool _isLoading = true;
   String _foodScore = '0';
-  List<FoodItem> _popularFoods = [];
+  final List<FoodItem> _popularFoods = [];
   Map<String, List<FoodItem>> _dailyFoodData = {
     'breakfast': [],
     'lunch': [],
@@ -68,8 +68,8 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
   };
 
   // Food score placeholder
-  bool _isLoadingScore = false;
-  String _scoreError = '';
+  final bool _isLoadingScore = false;
+  final String _scoreError = '';
 
   // Page controllers for meal periods and content
   late PageController _pageController = PageController();
@@ -81,7 +81,7 @@ class _FoodIntelligencePageState extends State<FoodIntelligencePage> {
 
   GetFoodItemsUseCase? _getFoodItemsUseCase;
   String _accessToken = '';
-  bool _isLoadingFoodItems = false;
+  final bool _isLoadingFoodItems = false;
 
   // Add this method to fetch user profile after the existing initState method
   Future<void> _fetchUserProfile() async {

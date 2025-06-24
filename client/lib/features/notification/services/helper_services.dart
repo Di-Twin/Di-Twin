@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'api_services.dart';
 import 'firebase_services.dart';
-import '../managers/notification_manager.dart';
-import 'socket_services.dart';
 
 class NotificationHelperService {
   static final NotificationHelperService _instance = NotificationHelperService._internal();

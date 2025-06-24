@@ -11,8 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:url_launcher/url_launcher.dart';
-import 'package:flutter/services.dart'; // Import for Clipboard
+// Import for Clipboard
 import 'package:provider/provider.dart';
 // Import notification services
 import '../notification/services/socket_services.dart';

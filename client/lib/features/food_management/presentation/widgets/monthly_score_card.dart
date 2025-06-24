@@ -154,7 +154,7 @@ class _MonthlyScoreCardState extends State<MonthlyScoreCard> {
     }
 
     final scoreText = Text(
-      '${_monthlyScore?.toStringAsFixed(0) ?? '--'}',
+      _monthlyScore?.toStringAsFixed(0) ?? '--',
       style: GoogleFonts.plusJakartaSans(
         fontSize: widget.isSmallScreen ? 18 : 24, // Reduced font size
         fontWeight: FontWeight.bold,

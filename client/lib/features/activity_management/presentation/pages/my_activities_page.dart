@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
@@ -7,7 +6,6 @@ import 'package:client/widgets/CustomDrawer.dart';
 import 'package:client/data/providers/activity_provider.dart';
 import 'package:client/features/activity_management/domain/entities/activity_history.dart';
 import 'package:client/features/activity_management/presentation/widgets/monthly_score_card.dart';
-import 'package:client/features/activity_management/presentation/widgets/ai_suggestion_card.dart';
 import 'package:client/features/activity_management/presentation/widgets/activity_item.dart';
 import 'package:client/features/activity_management/presentation/widgets/month_year_picker.dart';
 import 'package:client/features/activity_management/presentation/widgets/suggestion_details_sheet.dart';

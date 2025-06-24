@@ -10,7 +10,7 @@ class ApiService {
   final String baseUrl = 'https://test-prod-f427.onrender.com/api';
   
   // Default headers with authentication
-  Map<String, String> _headers = {
+  final Map<String, String> _headers = {
     'Content-Type': 'application/json',
   };
   
