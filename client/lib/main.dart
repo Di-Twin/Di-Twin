@@ -25,6 +25,9 @@ import 'package:client/features/dashboard/dashboard.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'features/notification/services/socket_services.dart';
 import 'features/notification/managers/notification_manager.dart';
+// Import cache and sync services
+import 'package:client/services/cache_service.dart';
+import 'package:client/services/background_sync_service.dart';
 
 // Import app_links
 import 'package:app_links/app_links.dart';
@@ -46,6 +49,7 @@ import 'package:client/features/food_management/presentation/providers/food_scor
 import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 import 'package:client/core/network/network_checker.dart';
+import 'dart:developer' as developer;
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -73,27 +77,27 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp();
-  print('✅ Firebase Initialized');
+  developer.log('✅ Firebase Initialized', name: 'Main');
 
   // Set background message handler for FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Initialize notification manager
-  print('🚀 Init notification service...');
+  developer.log('🚀 Initializing notification service...', name: 'Main');
   try {
     await NotificationManager.initialize();
-    print('✅ Notification manager initialized');
+    developer.log('✅ Notification manager initialized', name: 'Main');
 
     // Set notification tap handler
     NotificationManager.onNotificationTap = (payload) {
       if (payload != null) {
-        print('Notification tapped: $payload');
+        developer.log('Notification tapped: $payload', name: 'Main');
         // Navigate to appropriate screen based on payload
         // You can use navigatorKey.currentState?.pushNamed() here
       }
     };
   } catch (e) {
-    print('❌ Error initializing notification manager: $e');
+    developer.log('❌ Error initializing notification manager: $e', name: 'Main');
   }
 
   // Reset feedback session flag on app start
@@ -107,22 +111,24 @@ void main() async {
   );
 
   // Test API connection
-  print('🔍 Testing API connection...');
+  developer.log('🔍 Testing API connection...', name: 'Main');
   try {
     final isConnected = await NetworkChecker.isApiServerReachable(
       'https://test-prod-f427.onrender.com/api',
     );
-    print(
+    developer.log(
       '🔍 API connection test result: ${isConnected ? 'SUCCESS' : 'FAILED'}',
+      name: 'Main',
     );
 
     if (!isConnected) {
-      print(
+      developer.log(
         '⚠️ Warning: API server appears to be unreachable. The app may not function correctly.',
+        name: 'Main',
       );
     }
   } catch (e) {
-    print('🔍 API connection test error: $e');
+    developer.log('🔍 API connection test error: $e', name: 'Main');
   }
 
   // Create network info
@@ -171,6 +177,15 @@ void main() async {
     getFoodScoreUseCase: getFoodScoreUseCase,
   );
 
+  // Initialize cache service
+  developer.log('🗄️ Initializing cache service...', name: 'Main');
+  try {
+    final cacheInfo = await CacheService.getCacheInfo();
+    developer.log('✅ Cache service initialized. Info: $cacheInfo', name: 'Main');
+  } catch (e) {
+    developer.log('❌ Error initializing cache service: $e', name: 'Main');
+  }
+
   runApp(
     provider.MultiProvider(
       providers: [
@@ -197,7 +212,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   // Create an instance of AppLinks
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
@@ -206,7 +221,31 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initAppLinks();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        developer.log('📱 App resumed, starting background sync', name: 'Main');
+        // Start background sync when app resumes
+        BackgroundSyncService.instance.startBackgroundSync();
+        break;
+      case AppLifecycleState.paused:
+        developer.log('📱 App paused', name: 'Main');
+        break;
+      case AppLifecycleState.detached:
+        developer.log('📱 App detached, stopping background sync', name: 'Main');
+        // Stop background sync when app is detached
+        BackgroundSyncService.instance.stopBackgroundSync();
+        break;
+      default:
+        break;
+    }
   }
 
   // Check if feedback form should be shown (every 3 days)
@@ -231,7 +270,9 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
+    BackgroundSyncService.instance.stopBackgroundSync();
     super.dispose();
   }
 
@@ -245,7 +286,7 @@ class _MyAppState extends State<MyApp> {
         _handleIncomingLink(uri);
       },
       onError: (Object error) {
-        print('Error in app link stream: $error');
+        developer.log('❌ Error in app link stream: $error', name: 'Main');
       },
     );
 
@@ -253,23 +294,23 @@ class _MyAppState extends State<MyApp> {
     try {
       final appLink = await _appLinks.getInitialLink();
       if (appLink != null) {
-        print('Initial app link: $appLink');
+        developer.log('🔗 Initial app link: $appLink', name: 'Main');
         _handleIncomingLink(appLink);
       }
     } catch (e) {
-      print('Error getting initial app link: $e');
+      developer.log('❌ Error getting initial app link: $e', name: 'Main');
     }
   }
 
   // Handle incoming links
   void _handleIncomingLink(Uri uri) {
-    print('Received app link: $uri');
+    developer.log('🔗 Received app link: $uri', name: 'Main');
 
     if (uri.scheme == 'dtwin' && uri.host == 'fitbit-auth') {
       // Extract the authorization code
       final code = uri.queryParameters['code'];
       if (code != null) {
-        print('Received Fitbit authorization code: $code');
+        developer.log('✅ Received Fitbit authorization code: $code', name: 'Main');
 
         // Show a success message
         WidgetsBinding.instance.addPostFrameCallback((_) {

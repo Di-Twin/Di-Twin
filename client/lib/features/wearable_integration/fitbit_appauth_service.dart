@@ -112,11 +112,43 @@ class FitbitAppAuthService {
       final isAuth = await isAuthenticated();
       if (isAuth) {
         await _updateLastSyncTime();
+
+        // Mark connection as completed
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('fitbit_connection_completed', true);
+        await prefs.setBool('watch_connected', true);
+        await prefs.setString('watch_type', 'Fitbit');
+
         return true;
       }
       return false;
     } catch (e) {
       debugPrint('Error processing callback: $e');
+      return false;
+    }
+  }
+
+  /// Check connection status after OAuth redirect
+  Future<bool> checkConnectionAfterRedirect() async {
+    try {
+      // Wait a bit for the backend to process the callback
+      await Future.delayed(const Duration(seconds: 3));
+
+      final isAuth = await isAuthenticated();
+      if (isAuth) {
+        await _updateLastSyncTime();
+
+        // Mark connection as completed
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setBool('fitbit_connection_completed', true);
+        await prefs.setBool('watch_connected', true);
+        await prefs.setString('watch_type', 'Fitbit');
+
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('Error checking connection after redirect: $e');
       return false;
     }
   }
@@ -243,76 +275,6 @@ class FitbitAppAuthService {
     }
   }
 
-  /// Sync initial data for specific type (30 days)
-  Future<Map<String, dynamic>> syncInitialDataType(String dataType) async {
-    try {
-      final headers = await _buildHeaders();
-      String endpoint;
-
-      switch (dataType.toLowerCase()) {
-        case 'activity':
-          endpoint = '$_baseApiUrl/fitbit/activity/initial';
-          break;
-        case 'sleep':
-          endpoint = '$_baseApiUrl/fitbit/sleep/initial';
-          break;
-        case 'steps':
-          endpoint = '$_baseApiUrl/fitbit/steps/initial';
-          break;
-        case 'distance':
-          endpoint = '$_baseApiUrl/fitbit/distance/initial';
-          break;
-        case 'heartrate':
-        case 'heart-rate':
-          endpoint = '$_baseApiUrl/fitbit/heart-rate/initial';
-          break;
-        case 'spo2':
-          endpoint = '$_baseApiUrl/fitbit/spo2/initial';
-          break;
-        case 'hrv':
-          endpoint = '$_baseApiUrl/fitbit/hrv/initial';
-          break;
-        case 'cardio':
-        case 'cardio-score':
-          endpoint = '$_baseApiUrl/fitbit/cardio-score/initial';
-          break;
-        case 'breathing':
-        case 'breathing-rate':
-          endpoint = '$_baseApiUrl/fitbit/breathing-rate/initial';
-          break;
-        case 'temperature':
-        case 'skin-temperature':
-          endpoint = '$_baseApiUrl/fitbit/skin-temperature/initial';
-          break;
-        case 'activity-summary':
-          endpoint = '$_baseApiUrl/fitbit/activity-summary/initial';
-          break;
-        default:
-          throw Exception('Unknown data type: $dataType');
-      }
-
-      final response = await http.get(
-        Uri.parse(endpoint),
-        headers: headers,
-      );
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-        if (data['success'] == true) {
-          await _updateLastSyncTime();
-          return data;
-        } else {
-          throw Exception(data['message'] ?? 'Initial sync failed for $dataType');
-        }
-      } else {
-        throw Exception('Failed to sync initial $dataType: ${response.statusCode}');
-      }
-    } catch (e) {
-      debugPrint('Error syncing initial $dataType: $e');
-      rethrow;
-    }
-  }
-
   /// Save manual activity data
   Future<Map<String, dynamic>> saveManualActivityData(Map<String, dynamic> activityData) async {
     try {
@@ -391,9 +353,9 @@ class FitbitAppAuthService {
       await prefs.remove(_storageKeyFitbitUserId);
       await prefs.remove(_storageKeyLastSync);
       await prefs.setBool(_storageKeyConnectionStatus, false);
-
-      // Note: The backend doesn't have a specific disconnect endpoint
-      // The user would need to revoke access through Fitbit's website
+      await prefs.setBool('fitbit_connection_completed', false);
+      await prefs.setBool('watch_connected', false);
+      await prefs.remove('watch_type');
 
       return true;
     } catch (e) {
@@ -459,32 +421,6 @@ class FitbitAppAuthService {
       debugPrint('Error getting health data summary: $e');
       return null;
     }
-  }
-
-  /// Batch sync multiple data types
-  Future<Map<String, dynamic>> batchSync(List<String> dataTypes) async {
-    final results = <String, dynamic>{};
-    final errors = <String, String>{};
-
-    for (final dataType in dataTypes) {
-      try {
-        final result = await syncDataType(dataType);
-        results[dataType] = result;
-      } catch (e) {
-        errors[dataType] = e.toString();
-      }
-
-      // Add small delay to avoid rate limiting
-      await Future.delayed(const Duration(milliseconds: 500));
-    }
-
-    return {
-      'success': errors.isEmpty,
-      'results': results,
-      'errors': errors,
-      'syncedCount': results.length,
-      'errorCount': errors.length,
-    };
   }
 
   /// Get sync status for UI display

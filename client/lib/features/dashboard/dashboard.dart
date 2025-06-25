@@ -11,17 +11,20 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-// Import for Clipboard
 import 'package:provider/provider.dart';
 // Import notification services
 import '../notification/services/socket_services.dart';
 import '../notification/services/helper_services.dart';
+// Import cache and sync services
+import 'package:client/services/cache_service.dart';
+import 'package:client/services/background_sync_service.dart';
 
 // Import the FitbitCallbackNotification from main.dart
 import 'package:client/main.dart';
 // Add the import for the FitbitConnectionDrawer at the top of the file
 import 'package:client/features/wearable_integration/fitbit_appauth_service.dart';
 import 'package:client/widgets/dashboard/fitbit_connection_drawer.dart';
+import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -30,7 +33,7 @@ class HomeScreen extends StatefulWidget {
   _HomeScreenState createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   Health? health;
   Map<String, dynamic> healthData = {
     // Initialize with zeros for all metrics
@@ -49,6 +52,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   bool _isConnectingFitbit = false;
   bool _isLoadingData = false; // Track loading state
   bool _isWatchDrawerShowing = false;
+  bool _isCheckingConnection = false;
+  bool _hasLoadedCachedData = false;
+  bool _isRefreshing = false;
   final FitbitAppAuthService _fitbitService = FitbitAppAuthService();
 
   // Manual entry data
@@ -69,6 +75,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void initState() {
     super.initState();
     health = Health();
+    WidgetsBinding.instance.addObserver(this);
 
     // Initialize animation controller
     _animationController = AnimationController(
@@ -81,49 +88,332 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       curve: Curves.easeOutQuart,
     );
 
-    // Load any saved manual entry data
-    _loadManualEntryData();
+    // Load cached data immediately for instant rendering
+    _loadCachedDataFirst();
 
-    // Check if watch is already connected
-    _checkWatchConnection().then((_) {
-      // Check if connection was completed before
-      _checkConnectionCompleted().then((completed) {
-        if (!completed && !_isWatchDrawerShowing) {
-          // Show the watch connection drawer after a short delay
-          Future.delayed(const Duration(milliseconds: 500), () {
-            if (!mounted) return;
-            _showWatchConnectionDrawer();
-          });
-        } else if (_isWatchConnected) {
-          // Watch is connected, fetch health data
-          _fetchFitbitData();
-        }
-      });
-    });
+    // Then perform full initialization
+    _initializeApp();
+  }
 
-    // Check if there's a pending Fitbit callback URI
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (pendingFitbitUri != null) {
-        // Process the Fitbit OAuth callback directly
-        _processFitbitCallback(pendingFitbitUri!);
-        pendingFitbitUri = null; // Clear the pending URI
+  /// Load cached data first for instant rendering
+  Future<void> _loadCachedDataFirst() async {
+    developer.log('🚀 Loading cached data for instant rendering', name: 'Dashboard');
+
+    try {
+      // Load cached health data
+      final cachedHealthData = await CacheService.getHealthData();
+      if (cachedHealthData != null) {
+        setState(() {
+          healthData = Map<String, dynamic>.from(cachedHealthData);
+          _hasLoadedCachedData = true;
+        });
+        developer.log('✅ Cached health data loaded', name: 'Dashboard');
       }
 
-      // Initialize notification services
+      // Load cached health score
+      final cachedHealthScore = await CacheService.getHealthScore();
+      if (cachedHealthScore != null) {
+        setState(() {
+          healthScore = cachedHealthScore;
+        });
+        developer.log('✅ Cached health score loaded: $cachedHealthScore', name: 'Dashboard');
+      }
+
+      // Load manual entry data
+      await _loadManualEntryData();
+
+      // Check watch connection status
+      await _checkWatchConnection();
+
+      // If we have cached data, show it immediately
+      if (_hasLoadedCachedData) {
+        developer.log('✅ Dashboard rendered with cached data', name: 'Dashboard');
+      }
+    } catch (e) {
+      developer.log('❌ Error loading cached data: $e', name: 'Dashboard');
+    }
+  }
+
+  /// Initialize app with fresh data
+  Future<void> _initializeApp() async {
+    developer.log('🔄 Initializing app with fresh data', name: 'Dashboard');
+
+    // Start background sync service
+    BackgroundSyncService.instance.startBackgroundSync();
+
+    // Check if we need to refresh data
+    final needsRefresh = await CacheService.needsRefresh();
+
+    if (needsRefresh || !_hasLoadedCachedData) {
+      // Fetch fresh data in background
+      _fetchFreshDataInBackground();
+    }
+
+    // Check connection status and show drawer if needed
+    final completed = await _checkConnectionCompleted();
+    if (!completed && !_isWatchDrawerShowing) {
+      Future.delayed(const Duration(milliseconds: 1000), () {
+        if (!mounted) return;
+        _showWatchConnectionDrawer();
+      });
+    } else if (_isWatchConnected) {
+      // Watch is connected, sync data if needed
+      if (needsRefresh) {
+        _syncConnectedDeviceData();
+      }
+    }
+
+    // Check for OAuth return
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (pendingFitbitUri != null) {
+        _processFitbitCallback(pendingFitbitUri!);
+        pendingFitbitUri = null;
+      } else {
+        _checkForRecentOAuthReturn();
+      }
+
       _initializeNotificationServices();
     });
+  }
+
+  /// Fetch fresh data in background without blocking UI
+  Future<void> _fetchFreshDataInBackground() async {
+    developer.log('🔄 Fetching fresh data in background', name: 'Dashboard');
+
+    try {
+      // Don't show loading if we already have cached data
+      if (!_hasLoadedCachedData) {
+        setState(() {
+          _isLoadingData = true;
+        });
+      }
+
+      // Force background sync
+      await BackgroundSyncService.instance.forceSyncNow();
+
+      // Reload data from cache (now updated)
+      await _reloadDataFromCache();
+
+    } catch (e) {
+      developer.log('❌ Error fetching fresh data: $e', name: 'Dashboard');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoadingData = false;
+        });
+      }
+    }
+  }
+
+  /// Reload data from cache after background sync
+  Future<void> _reloadDataFromCache() async {
+    try {
+      // Reload health data
+      final cachedHealthData = await CacheService.getHealthData();
+      if (cachedHealthData != null) {
+        setState(() {
+          healthData = Map<String, dynamic>.from(cachedHealthData);
+        });
+      }
+
+      // Reload health score
+      final cachedHealthScore = await CacheService.getHealthScore();
+      if (cachedHealthScore != null) {
+        setState(() {
+          healthScore = cachedHealthScore;
+        });
+      }
+
+      developer.log('✅ Data reloaded from updated cache', name: 'Dashboard');
+    } catch (e) {
+      developer.log('❌ Error reloading data from cache: $e', name: 'Dashboard');
+    }
+  }
+
+  /// Handle app lifecycle changes
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        developer.log('📱 App resumed, checking for data refresh', name: 'Dashboard');
+        _handleAppResume();
+        break;
+      case AppLifecycleState.paused:
+        developer.log('📱 App paused', name: 'Dashboard');
+        break;
+      case AppLifecycleState.detached:
+        BackgroundSyncService.instance.stopBackgroundSync();
+        break;
+      default:
+        break;
+    }
+  }
+
+  /// Handle app resume
+  Future<void> _handleAppResume() async {
+    // Check if data needs refresh
+    final needsRefresh = await CacheService.needsRefresh();
+
+    if (needsRefresh) {
+      developer.log('🔄 Data needs refresh, syncing...', name: 'Dashboard');
+      _fetchFreshDataInBackground();
+    }
+
+    // Check for OAuth return
+    _checkForRecentOAuthReturn();
+  }
+
+  /// Pull to refresh functionality
+  Future<void> _handleRefresh() async {
+    if (_isRefreshing) return;
+
+    setState(() {
+      _isRefreshing = true;
+    });
+
+    try {
+      developer.log('🔄 Manual refresh triggered', name: 'Dashboard');
+
+      // Force sync
+      await BackgroundSyncService.instance.forceSyncNow();
+
+      // Reload from cache
+      await _reloadDataFromCache();
+
+      // Sync device data if connected
+      if (_isWatchConnected) {
+        await _syncConnectedDeviceData();
+      }
+
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 16),
+                SizedBox(width: 8),
+                Text('Data refreshed successfully'),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    } catch (e) {
+      developer.log('❌ Manual refresh failed: $e', name: 'Dashboard');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to refresh data'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isRefreshing = false;
+        });
+      }
+    }
+  }
+
+  /// Sync connected device data
+  Future<void> _syncConnectedDeviceData() async {
+    if (_connectedWatchType == 'Fitbit') {
+      await _fetchFitbitData();
+    } else if (_connectedWatchType == 'Manual') {
+      _updateHealthDataFromManualEntry();
+    }
+  }
+
+  /// Check if user just returned from OAuth
+  Future<void> _checkForRecentOAuthReturn() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastOAuthAttempt = prefs.getInt('last_oauth_attempt');
+
+      if (lastOAuthAttempt != null) {
+        final timeDiff = DateTime.now().millisecondsSinceEpoch - lastOAuthAttempt;
+
+        if (timeDiff < 300000) { // 5 minutes
+          setState(() {
+            _isCheckingConnection = true;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                    ),
+                  ),
+                  SizedBox(width: 12),
+                  Text('Checking Fitbit connection...'),
+                ],
+              ),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 3),
+            ),
+          );
+
+          final isConnected = await _fitbitService.checkConnectionAfterRedirect();
+
+          if (isConnected) {
+            await _setWatchConnected('Fitbit');
+
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Row(
+                  children: [
+                    Icon(Icons.check_circle, color: Colors.white),
+                    SizedBox(width: 8),
+                    Text('Successfully connected to Fitbit!'),
+                  ],
+                ),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+
+            _fetchFitbitData();
+          }
+
+          await prefs.remove('last_oauth_attempt');
+
+          setState(() {
+            _isCheckingConnection = false;
+          });
+        }
+      }
+    } catch (e) {
+      developer.log('❌ Error checking for recent OAuth return: $e', name: 'Dashboard');
+      setState(() {
+        _isCheckingConnection = false;
+      });
+    }
   }
 
   // Initialize notification services
   Future<void> _initializeNotificationServices() async {
     try {
-      // Get access token and user ID from shared preferences
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token');
       final userId = prefs.getString('user_id');
 
       if (accessToken != null && userId != null) {
-        // Initialize socket service
         final socketService = Provider.of<SocketService>(context, listen: false);
         if (!socketService.isConnected) {
           socketService.initSocket(
@@ -132,24 +422,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           );
         }
 
-        // Initialize notification helper service
         await NotificationHelperService().initialize(
           accessToken: accessToken,
           userId: userId,
         );
 
-        print('✅ Notification services initialized with user credentials');
-      } else {
-        print('⚠️ Cannot initialize notification services: Missing user credentials');
+        developer.log('✅ Notification services initialized', name: 'Dashboard');
       }
     } catch (e) {
-      print('❌ Error initializing notification services: $e');
+      developer.log('❌ Error initializing notification services: $e', name: 'Dashboard');
     }
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
+    BackgroundSyncService.instance.stopBackgroundSync();
     super.dispose();
   }
 
@@ -167,11 +456,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _connectedWatchType = prefs.getString('watch_type') ?? '';
     });
 
-    // If Fitbit is connected, check authentication status
     if (_connectedWatchType == 'Fitbit') {
       final isAuth = await _fitbitService.isAuthenticated();
       if (!isAuth) {
-        // Connection lost, reset status
         setState(() {
           _isWatchConnected = false;
           _connectedWatchType = '';
@@ -181,7 +468,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       }
     }
 
-    // If manual entry is selected, update health data with manual values
     if (_connectedWatchType == 'Manual') {
       _updateHealthDataFromManualEntry();
     }
@@ -195,10 +481,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'STEPS': '${_manualEntryData['steps']} steps',
         'ACTIVE_ENERGY_BURNED': '${_manualEntryData['calories']} kcal',
         'SLEEP_ASLEEP': '${(_manualEntryData['sleepHours'] * 60).toInt()} min',
-        'BLOOD_PRESSURE_SYSTOLIC': '0 mmHg', // Not in manual entry
-        'BLOOD_PRESSURE_DIASTOLIC': '0 mmHg', // Not in manual entry
+        'BLOOD_PRESSURE_SYSTOLIC': '0 mmHg',
+        'BLOOD_PRESSURE_DIASTOLIC': '0 mmHg',
       };
     });
+
+    // Cache the manual entry data
+    CacheService.saveHealthData(healthData);
   }
 
   /// **Set watch as connected**
@@ -213,12 +502,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       _connectedWatchType = watchType;
     });
 
-    // If manual entry is selected, update health data with manual values
-    // and don't fetch any additional data
     if (watchType == 'Manual') {
       _updateHealthDataFromManualEntry();
     } else if (watchType == 'Fitbit') {
-      // Fetch Fitbit data
       _fetchFitbitData();
     }
   }
@@ -235,17 +521,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       };
     });
 
-    // If manual entry is selected, update health data with manual values
-    // and don't fetch any additional data
     if (_connectedWatchType == 'Manual') {
       _updateHealthDataFromManualEntry();
-
-      // Log when the data was last updated
-      final lastUpdated = prefs.getInt('manual_entry_last_updated');
-      if (lastUpdated != null) {
-        final lastUpdateTime = DateTime.fromMillisecondsSinceEpoch(lastUpdated);
-        print("📅 Manual entry data last updated: $lastUpdateTime");
-      }
     }
   }
 
@@ -253,19 +530,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _saveManualEntryData() async {
     final prefs = await SharedPreferences.getInstance();
 
-    // Save all manual entry data to cache
     await prefs.setInt('manual_steps', _manualEntryData['steps']);
     await prefs.setInt('manual_heart_rate', _manualEntryData['heartRate']);
     await prefs.setInt('manual_calories', _manualEntryData['calories']);
     await prefs.setDouble('manual_sleep_hours', _manualEntryData['sleepHours']);
-
-    // Also save the last update timestamp
     await prefs.setInt('manual_entry_last_updated', DateTime.now().millisecondsSinceEpoch);
 
-    // Update health data with manual values
     _updateHealthDataFromManualEntry();
 
-    // Save to backend
     try {
       await _fitbitService.saveManualActivityData({
         'steps': _manualEntryData['steps'],
@@ -279,28 +551,26 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         'date': DateTime.now().toIso8601String().split('T')[0],
       });
 
-      print("✅ Manual entry data saved to backend and cache");
+      developer.log("✅ Manual entry data saved", name: 'Dashboard');
     } catch (e) {
-      print("⚠️ Failed to save to backend, data saved to cache only: $e");
+      developer.log("⚠️ Failed to save to backend: $e", name: 'Dashboard');
     }
   }
 
   /// **Show Watch Connection Drawer**
   void _showWatchConnectionDrawer() {
-    // Check if a drawer is already showing to prevent duplicate drawers
     if (_isWatchDrawerShowing) return;
 
     setState(() {
       _isWatchDrawerShowing = true;
     });
 
-    // Use the FitbitConnectionDrawer from widgets/dashboard/fitbit_connection_drawer.dart
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      isDismissible: true, // Allow dismissing by tapping outside
-      enableDrag: true, // Allow dismissing by dragging
+      isDismissible: true,
+      enableDrag: true,
       builder: (context) {
         return DraggableScrollableSheet(
           initialChildSize: 0.85,
@@ -310,14 +580,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             return FitbitConnectionDrawer(
               scrollController: scrollController,
               onFitbitConnect: () async {
-                // Close the drawer first
                 Navigator.pop(context);
-
-                // Show loading and initiate Fitbit OAuth
                 await _initiateFitbitOAuth();
               },
               onManualEntry: () {
-                // Set default values for manual entry
                 _manualEntryData = {
                   'steps': 0,
                   'heartRate': 0,
@@ -325,16 +591,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   'sleepHours': 0,
                 };
 
-                // Save to shared preferences (cache)
                 _saveManualEntryData();
-
-                // Set as connected with manual entry
                 _setWatchConnected('Manual');
-
-                // Close drawer
                 Navigator.pop(context);
 
-                // Show success message
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text('Manual tracking enabled'),
@@ -351,7 +611,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         );
       },
     ).then((_) {
-      // Reset the flag when the drawer is closed
       setState(() {
         _isWatchDrawerShowing = false;
       });
@@ -362,37 +621,45 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _fetchFitbitData() async {
     if (_connectedWatchType != 'Fitbit') return;
 
-    setState(() {
-      _isLoadingData = true;
-    });
+    // Don't show loading if we have cached data
+    if (!_hasLoadedCachedData) {
+      setState(() {
+        _isLoadingData = true;
+      });
+    }
 
     try {
-      // Check if initial sync is needed
+      // Check cached Fitbit data first
+      final cachedFitbitData = await CacheService.getFitbitData();
+      if (cachedFitbitData != null) {
+        _updateHealthDataFromFitbit(cachedFitbitData);
+        developer.log('✅ Using cached Fitbit data', name: 'Dashboard');
+      }
+
+      // Sync fresh data in background
       final hasInitialSync = await _fitbitService.hasCompletedInitialSync();
 
       if (!hasInitialSync) {
-        // Perform initial sync (30 days)
         await _fitbitService.initialSync();
         await _fitbitService.markInitialSyncCompleted();
       } else {
-        // Perform daily sync
         await _fitbitService.syncDailyData();
       }
 
-      // Get health data summary
       final healthSummary = await _fitbitService.getHealthDataSummary();
 
       if (healthSummary != null && healthSummary['data'] != null) {
         _updateHealthDataFromFitbit(healthSummary['data']);
+        // Cache the fresh data
+        await CacheService.saveFitbitData(healthSummary['data']);
       }
 
     } catch (e) {
-      print('❌ Error fetching Fitbit data: $e');
-      // Show error message
+      developer.log('❌ Error fetching Fitbit data: $e', name: 'Dashboard');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to sync Fitbit data: ${e.toString()}'),
+            content: Text('Failed to sync Fitbit data'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -408,9 +675,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   /// **Update health data from Fitbit response**
   void _updateHealthDataFromFitbit(Map<String, dynamic> fitbitData) {
     setState(() {
-      // Parse Fitbit data and update healthData
-      // This is a simplified example - adjust based on actual API response structure
-
       if (fitbitData['summary'] != null) {
         final summary = fitbitData['summary'];
         healthData['STEPS'] = '${summary['steps'] ?? 0} steps';
@@ -429,12 +693,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         }
       }
     });
+
+    // Cache the updated health data
+    CacheService.saveHealthData(healthData);
   }
 
   /// Process Fitbit OAuth callback
   Future<void> _processFitbitCallback(Uri uri) async {
     try {
-      // Show loading indicator
       showDialog(
         context: context,
         barrierDismissible: false,
@@ -450,24 +716,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isConnectingFitbit = true;
       });
 
-      // Extract code and state from URI
       final code = uri.queryParameters['code'];
       final state = uri.queryParameters['state'];
 
       if (code != null && state != null) {
-        // Process the callback
         final success = await _fitbitService.processCallback(code, state);
 
-        // Close loading overlay
         if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
           Navigator.of(context, rootNavigator: true).pop();
         }
 
         if (success) {
-          // Set watch as connected
           await _setWatchConnected('Fitbit');
 
-          // Show success message
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(
@@ -477,7 +738,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             );
           }
 
-          // Fetch health data
           _fetchFitbitData();
         } else {
           throw Exception('Failed to complete Fitbit authentication');
@@ -486,19 +746,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         throw Exception('Invalid callback parameters');
       }
     } catch (e) {
-      // Reset loading state
       setState(() {
         _isConnectingFitbit = false;
       });
 
-      // Close loading overlay if it's still showing
       if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
-      print('Error completing Fitbit connection: $e');
+      developer.log('❌ Error completing Fitbit connection: $e', name: 'Dashboard');
 
-      // Show error message using a dialog
       if (mounted) {
         showDialog(
           context: context,
@@ -525,7 +782,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   /// **Initiate Fitbit OAuth**
   Future<void> _initiateFitbitOAuth() async {
-    // Show loading overlay
     if (mounted) {
       showDialog(
         context: context,
@@ -544,22 +800,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         _isConnectingFitbit = true;
       });
 
-      // Use the backend service for authentication
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt('last_oauth_attempt', DateTime.now().millisecondsSinceEpoch);
+
       final success = await _fitbitService.authenticate(context);
 
-      // Close loading overlay
       if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
       if (success) {
-        // Show message that user should complete OAuth in browser
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Please complete the authorization in your browser'),
+              content: Text('Please complete the authorization in your browser. The app will automatically detect when you return.'),
               backgroundColor: Colors.blue,
-              duration: Duration(seconds: 5),
+              duration: Duration(seconds: 8),
             ),
           );
         }
@@ -567,19 +823,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         throw Exception('Failed to initiate Fitbit OAuth');
       }
     } catch (e) {
-      // Reset loading state
       setState(() {
         _isConnectingFitbit = false;
       });
 
-      // Close loading overlay if it's still showing
       if (mounted && Navigator.of(context, rootNavigator: true).canPop()) {
         Navigator.of(context, rootNavigator: true).pop();
       }
 
-      print('Error connecting to Fitbit: $e');
+      developer.log('❌ Error connecting to Fitbit: $e', name: 'Dashboard');
 
-      // Show error message using a dialog
       if (mounted) {
         showDialog(
           context: context,
@@ -604,10 +857,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
   }
 
-  // Rest of the existing methods remain the same...
   /// **Show Manual Entry Drawer**
   void _showManualEntryDrawer() {
-    // Create controllers for text fields
     final stepsController = TextEditingController(
       text: _manualEntryData['steps'].toString(),
     );
@@ -629,7 +880,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       enableDrag: false,
       builder: (context) {
         return WillPopScope(
-          onWillPop: () async => false, // Prevent back button from closing
+          onWillPop: () async => false,
           child: StatefulBuilder(
             builder: (context, setModalState) {
               return Container(
@@ -652,7 +903,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Handle bar
                     Center(
                       child: Container(
                         margin: EdgeInsets.only(top: 8.h),
@@ -665,7 +915,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Header
                     Padding(
                       padding: EdgeInsets.all(16.r),
                       child: Column(
@@ -692,14 +941,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Form fields
                     Expanded(
                       child: SingleChildScrollView(
                         padding: EdgeInsets.symmetric(horizontal: 16.r),
                         physics: BouncingScrollPhysics(),
                         child: Column(
                           children: [
-                            // Steps
                             _buildManualEntryField(
                               icon: Icons.directions_walk,
                               label: 'Steps',
@@ -709,7 +956,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             SizedBox(height: 12.h),
 
-                            // Heart Rate
                             _buildManualEntryField(
                               icon: Icons.favorite,
                               label: 'Heart Rate (BPM)',
@@ -719,7 +965,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             SizedBox(height: 12.h),
 
-                            // Calories
                             _buildManualEntryField(
                               icon: Icons.local_fire_department,
                               label: 'Calories Burned',
@@ -729,7 +974,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             ),
                             SizedBox(height: 12.h),
 
-                            // Sleep Hours
                             _buildManualEntryField(
                               icon: Icons.nightlight_round,
                               label: 'Sleep Hours',
@@ -744,7 +988,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                       ),
                     ),
 
-                    // Save button
                     Padding(
                       padding: EdgeInsets.all(16.r),
                       child: SizedBox(
@@ -752,7 +995,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         height: 48.h,
                         child: ElevatedButton(
                           onPressed: () {
-                            // Update manual entry data
                             setState(() {
                               _manualEntryData = {
                                 'steps':
@@ -769,19 +1011,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               };
                             });
 
-                            // Save to shared preferences (cache)
                             _saveManualEntryData();
-
-                            // Set as connected with manual entry
                             _setWatchConnected('Manual');
-
-                            // Close drawer
                             Navigator.pop(context);
 
-                            // Show success message using the global ScaffoldMessenger
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('Manual data saved to cache'),
+                                content: Text('Manual data saved successfully'),
                                 backgroundColor: Colors.green,
                                 behavior: SnackBarBehavior.floating,
                               ),
@@ -841,7 +1077,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         padding: EdgeInsets.all(12.r),
         child: Row(
           children: [
-            // Icon container
             Container(
               width: 36.w,
               height: 36.w,
@@ -854,7 +1089,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
             SizedBox(width: 12.w),
 
-            // Text field
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -895,29 +1129,66 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // Listen for Fitbit callback notifications
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFF0F2F5),
-      body: NestedScrollView(
-        headerSliverBuilder: (context, innerBoxIsScrolled) {
-          return [SliverToBoxAdapter(child: SafeArea(child: AppHeader()))];
-        },
-        body:
-        _isLoadingData
-            ? _buildLoadingState()
-            : ListView(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0),
-          children: [
-            const SizedBox(height: 20),
-            HealthScoreCard(),
-            const SizedBox(height: 20),
-            const HealthMetricsSection(),
-            const SizedBox(height: 20),
-            const FitnessTrackerSection(),
-            const SizedBox(height: 20),
-          ],
+      body: RefreshIndicator(
+        onRefresh: _handleRefresh,
+        color: Color(0xFF0F67FE),
+        child: NestedScrollView(
+          headerSliverBuilder: (context, innerBoxIsScrolled) {
+            return [
+              SliverToBoxAdapter(
+                child: SafeArea(
+                  child: Column(
+                    children: [
+                      AppHeader(),
+                      // Show sync status indicator
+                      if (BackgroundSyncService.instance.isSyncing)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 12,
+                                height: 12,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 1.5,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F67FE)),
+                                ),
+                              ),
+                              SizedBox(width: 8),
+                              Text(
+                                'Syncing data...',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12.sp,
+                                  color: Color(0xFF64748B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ];
+          },
+          body: _isLoadingData && !_hasLoadedCachedData || _isCheckingConnection
+              ? _buildLoadingState()
+              : ListView(
+            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            children: [
+              const SizedBox(height: 20),
+              HealthScoreCard(),
+              const SizedBox(height: 20),
+              const HealthMetricsSection(),
+              const SizedBox(height: 20),
+              const FitnessTrackerSection(),
+              const SizedBox(height: 20),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const BottomNavigation(),
@@ -950,7 +1221,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           SizedBox(height: 16.h),
           Text(
-            'Loading health data...',
+            _isCheckingConnection
+                ? 'Checking Fitbit connection...'
+                : 'Loading health data...',
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16.sp,
               fontWeight: FontWeight.w500,

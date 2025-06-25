@@ -366,7 +366,7 @@ class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
       
       return schedules;
     } catch (e) {
-      throw CacheException();
+      throw CacheException(message: '');
     }
   }
 
@@ -380,7 +380,7 @@ class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
         return MedicationScheduleModel(date: date, timeSlots: []);
       }
     } catch (e) {
-      throw CacheException();
+      throw CacheException(message: '');
     }
   }
 
@@ -402,7 +402,7 @@ class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
       
       return updated;
     } catch (e) {
-      throw CacheException();
+      throw CacheException(message: '');
     }
   }
 
@@ -439,7 +439,7 @@ class MedicationLocalDataSourceImpl implements MedicationLocalDataSource {
       
       return true;
     } catch (e) {
-      throw CacheException();
+      throw CacheException(message: '');
     }
   }
   

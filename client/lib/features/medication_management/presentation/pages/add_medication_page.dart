@@ -31,7 +31,7 @@ class _AddMedicationPageState extends State<AddMedicationPage> {
                 controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Medication Name'),
                 validator: (value) {
-                  if (value == null || value.isEmpty()) {
+                  if (value == null || value.isEmpty) {
                     return 'Please enter a medication name';
                   }
                   return null;
@@ -42,7 +42,7 @@ class _AddMedicationPageState extends State<AddMedicationPage> {
                 decoration: const InputDecoration(labelText: 'Dosage'),
                 keyboardType: TextInputType.number,
                 validator: (value) {
-                  if (value == null || value.isEmpty()) {
+                  if (value == null || value.isEmpty) {
                     return 'Please enter a dosage';
                   }
                   return null;
@@ -52,7 +52,7 @@ class _AddMedicationPageState extends State<AddMedicationPage> {
                 controller: _frequencyController,
                 decoration: const InputDecoration(labelText: 'Frequency'),
                 validator: (value) {
-                  if (value == null || value.isEmpty()) {
+                  if (value == null || value.isEmpty) {
                     return 'Please enter the frequency';
                   }
                   return null;

@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/providers/food_management_provider.dart';
+import 'package:client/features/food_management/presentation/providers/food_management_provider.dart';
 
 class NutrientCircle extends StatelessWidget {
   final Map<String, dynamic> nutrient;
