@@ -12,7 +12,9 @@ import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
+import 'package:client/features/welcome/auth_guard.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:google_fonts/google_fonts.dart';
@@ -56,9 +58,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     // Initialize Firebase if not already initialized
     await Firebase.initializeApp();
-    
+
     print('Handling a background message: ${message.messageId}');
-    
+
     // Process the notification
     NotificationManager.processFirebaseMessage(message);
   } catch (e) {
@@ -81,7 +83,7 @@ void main() async {
   try {
     await NotificationManager.initialize();
     print('✅ Notification manager initialized');
-    
+
     // Set notification tap handler
     NotificationManager.onNotificationTap = (payload) {
       if (payload != null) {
@@ -159,7 +161,7 @@ void main() async {
     networkInfo: networkInfo,
   );
 
-  // Create food score use cases  
+  // Create food score use cases
   final getDailyFoodScoreUseCase = GetDailyFoodScoreUseCase(foodRepository);
   final getFoodScoreUseCase = GetFoodScoreUseCase(foodRepository);
 
@@ -239,7 +241,7 @@ class _MyAppState extends State<MyApp> {
 
     // Handle app links when the app is already running
     _linkSubscription = _appLinks.uriLinkStream.listen(
-      (Uri uri) {
+          (Uri uri) {
         _handleIncomingLink(uri);
       },
       onError: (Object error) {
@@ -331,7 +333,7 @@ class _MyAppState extends State<MyApp> {
           splitScreenMode: true,
           builder: (context, child) {
             return MaterialApp(
-              navigatorKey: navigatorKey, // ✅ Ensuring navigation key is unique
+              navigatorKey: navigatorKey,
               debugShowCheckedModeBanner: false,
               title: 'DTwin',
               theme: ThemeData(
@@ -339,34 +341,67 @@ class _MyAppState extends State<MyApp> {
                 textTheme: GoogleFonts.plusJakartaSansTextTheme(),
               ),
               initialRoute: '/',
+              onGenerateRoute: (settings) {
+                // Handle back button prevention for dashboard
+                if (settings.name == '/dashboard') {
+                  return PageRouteBuilder(
+                    settings: settings,
+                    pageBuilder: (context, animation, secondaryAnimation) {
+                      return WillPopScope(
+                        onWillPop: () async {
+                          // Prevent back navigation from dashboard
+                          // Show exit confirmation dialog instead
+                          return await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Exit App'),
+                              content: const Text('Are you sure you want to exit the app?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(true);
+                                    SystemNavigator.pop(); // Exit the app
+                                  },
+                                  child: const Text('Exit'),
+                                ),
+                              ],
+                            ),
+                          ) ?? false;
+                        },
+                        child: AuthGuard(child: const HomeScreen()),
+                      );
+                    },
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                  );
+                }
+                return null;
+              },
               routes: {
                 '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInPage(),
                 '/signup': (context) => const SignUpPage(),
-                '/questions/goal': (context) => const HealthAssessmentGoal(),
-                '/questions/weight': (context) => const WeightInputPage(),
-                '/questions/height': (context) => const HeightInputPage(),
-                '/questions/age': (context) => const HealthAssessmentAge(),
-                '/loading':
-                    (context) => const HealthAssessmentLoading(
-                      loadingDuration: Duration(seconds: 5),
-                      nextScreen: HealthAssessmentScore(),
-                    ),
-                '/avatar': (context) => const HealthAssessmentAvatar(),
-                '/questions/gender':
-                    (context) => const HealthAssessmentGender(),
-                '/questions/allergy':
-                    (context) => const SymptomsSelectionPage(),
-                '/questions/medication':
-                    (context) => const HealthAssessmentMedication(),
-                '/dashboard': (context) => const HomeScreen(),
-                '/feedback': (context) => const FeedbackFormScreen(),
-                // Add notification test screen route
-                // '/notification-test':
-                //     (context) => const NotificationTestScreen(),
-
-                // '/': (context) => const MedicationsScreen(),
+                '/questions/goal': (context) => AuthGuard(child: const HealthAssessmentGoal()),
+                '/questions/weight': (context) => AuthGuard(child: const WeightInputPage()),
+                '/questions/height': (context) => AuthGuard(child: const HeightInputPage()),
+                '/questions/age': (context) => AuthGuard(child: const HealthAssessmentAge()),
+                '/loading': (context) => AuthGuard(
+                  child: const HealthAssessmentLoading(
+                    loadingDuration: Duration(seconds: 5),
+                    nextScreen: HealthAssessmentScore(),
+                  ),
+                ),
+                '/avatar': (context) => AuthGuard(child: const HealthAssessmentAvatar()),
+                '/questions/gender': (context) => AuthGuard(child: const HealthAssessmentGender()),
+                '/questions/allergy': (context) => AuthGuard(child: const SymptomsSelectionPage()),
+                '/questions/medication': (context) => AuthGuard(child: const HealthAssessmentMedication()),
+                '/feedback': (context) => AuthGuard(child: const FeedbackFormScreen()),
               },
             );
           },

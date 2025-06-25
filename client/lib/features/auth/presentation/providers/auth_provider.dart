@@ -11,6 +11,7 @@ import 'package:client/features/auth/domain/usecases/resend_otp_usecase.dart';
 import 'package:client/features/auth/domain/usecases/sign_in_user_usecase.dart';
 import 'package:client/features/auth/domain/usecases/sign_out_usecase.dart';
 import 'package:client/features/auth/domain/usecases/start_user_registration_usecase.dart';
+import 'package:client/features/auth/domain/usecases/validate_token_usecase.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/features/auth/domain/usecases/oauth_sign_in_usecase.dart';
 import 'package:client/features/auth/domain/usecases/forgot_password_usecase.dart';
@@ -34,6 +35,11 @@ final authRepositoryProvider = Provider<AuthRepository>((ref) {
 final checkAuthStatusUseCaseProvider = Provider<CheckAuthStatusUseCase>((ref) {
  final repository = ref.read(authRepositoryProvider);
  return CheckAuthStatusUseCase(repository);
+});
+
+final validateTokenUseCaseProvider = Provider<ValidateTokenUseCase>((ref) {
+ final repository = ref.read(authRepositoryProvider);
+ return ValidateTokenUseCase(repository);
 });
 
 final signOutUseCaseProvider = Provider<SignOutUseCase>((ref) {
@@ -129,10 +135,11 @@ final providerTypeProvider = StateProvider<String>((ref) => 'email'); // 'email'
 // Add a provider for the signup token to persist it across screens
 final signupTokenProvider = StateProvider<String?>((ref) => null);
 
-// Authentication state
+// Authentication state with token validation
 final isAuthenticatedProvider = FutureProvider<bool>((ref) async {
- final checkAuthStatusUseCase = ref.read(checkAuthStatusUseCaseProvider);
- return checkAuthStatusUseCase.execute();
+ final validateTokenUseCase = ref.read(validateTokenUseCaseProvider);
+ final result = await validateTokenUseCase.execute();
+ return result["isValid"] == true;
 });
 
 // Auth service provider for settings page

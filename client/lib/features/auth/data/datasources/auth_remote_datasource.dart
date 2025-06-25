@@ -12,7 +12,10 @@ import 'package:client/core/network/network_checker.dart';
 abstract class AuthRemoteDataSource {
   Future<bool> isLoggedIn();
   Future<Map<String, dynamic>> signOut();
-  
+
+  // Token validation
+  Future<Map<String, dynamic>> validateToken();
+
   // Email Authentication
   Future<Map<String, dynamic>> initiateEmailSignup({
     required String email,
@@ -26,7 +29,7 @@ abstract class AuthRemoteDataSource {
     required String email,
     required String password,
   });
-  
+
   // OAuth Authentication
   Future<Map<String, dynamic>> oauthSignIn({
     required String email,
@@ -35,7 +38,7 @@ abstract class AuthRemoteDataSource {
     required String lastName,
     String? mobileNumber,
   });
-  
+
   // Password Reset
   Future<Map<String, dynamic>> forgotPassword({required String email});
   Future<Map<String, dynamic>> resetPassword({
@@ -43,7 +46,7 @@ abstract class AuthRemoteDataSource {
     required String otp,
     required String password,
   });
-  
+
   // User Profile
   Future<Map<String, dynamic>> getUserProfile();
   Future<Map<String, dynamic>> updateUserProfile({
@@ -54,11 +57,11 @@ abstract class AuthRemoteDataSource {
     String? userPlan,
   });
   Future<Map<String, dynamic>> deleteUserAccount();
-  
+
   // Token Management
   Future<Map<String, dynamic>> refreshAccessToken();
   String? getAccessToken();
-  
+
   // Legacy Phone Authentication (for backward compatibility)
   Future<Map<String, dynamic>> startUserRegistration({required String phoneNumber});
   Future<Map<String, dynamic>> completeRegistration({
@@ -82,58 +85,122 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   Timer? _tokenRefreshTimer; // Timer for automatic token refresh
   String? _verificationId; // Store verification ID for OTP
   String? _resetToken; // Store token for password reset
-  
+
   // Base URL for API
   static const String baseUrl = "https://test-prod-f427.onrender.com/api";
 
   // Singleton pattern to ensure only one instance exists
   static final AuthRemoteDataSourceImpl _instance = AuthRemoteDataSourceImpl._internal();
-  
+
   factory AuthRemoteDataSourceImpl() {
     return _instance;
   }
-  
+
   AuthRemoteDataSourceImpl._internal() {
     _loadTokens(); // Load tokens on app startup
   }
 
   Map<String, dynamic> decodeJwt(String token) {
-  final parts = token.split('.');
-  if (parts.length != 3) {
-    throw Exception('Invalid JWT token');
+    try {
+      final parts = token.split('.');
+      if (parts.length != 3) {
+        throw Exception('Invalid JWT token format - expected 3 parts, got ${parts.length}');
+      }
+
+      final payload = parts[1];
+
+      // Add padding if needed for base64 decoding
+      String normalized = payload;
+      while (normalized.length % 4 != 0) {
+        normalized += '=';
+      }
+
+      final decoded = utf8.decode(base64Url.decode(normalized));
+      final payloadMap = json.decode(decoded);
+
+      if (payloadMap is! Map<String, dynamic>) {
+        throw Exception('Invalid JWT payload format');
+      }
+
+      return payloadMap;
+    } catch (e) {
+      print("❌ JWT decode error: $e");
+      throw Exception('Failed to decode JWT token: $e');
+    }
   }
 
-  final payload = parts[1];
-  final normalized = base64Url.normalize(payload);
-  final decoded = utf8.decode(base64Url.decode(normalized));
-
-  final payloadMap = json.decode(decoded);
-
-  if (payloadMap is! Map<String, dynamic>) {
-    throw Exception('Invalid payload');
-  }
-
-  return payloadMap;
-}
-  
   // Private helper methods
   Future<void> _saveTokens(String accessToken, String refreshToken) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString("access_token", accessToken);
-    await prefs.setString("refresh_token", refreshToken);
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString("access_token", accessToken);
+      await prefs.setString("refresh_token", refreshToken);
 
-    final decodedToken = decodeJwt(prefs.getString("access_token")!);
-    final userId = decodedToken["userId"];
-    await prefs.setString("user_id", userId);
+      // Try to decode JWT and extract user ID, but don't fail if it doesn't work
+      try {
+        final decodedToken = decodeJwt(accessToken);
+        if (decodedToken.containsKey("userId")) {
+          final userId = decodedToken["userId"].toString();
+          await prefs.setString("user_id", userId);
+          print("✅ User ID saved: $userId");
+        } else if (decodedToken.containsKey("sub")) {
+          // Some JWTs use 'sub' for user ID
+          final userId = decodedToken["sub"].toString();
+          await prefs.setString("user_id", userId);
+          print("✅ User ID saved from 'sub': $userId");
+        } else {
+          print("⚠️ No userId found in token payload");
+        }
+      } catch (e) {
+        print("⚠️ Could not decode JWT for user ID: $e");
+        // Continue without user ID - not critical for token storage
+      }
+
+      print("✅ Tokens saved successfully to SharedPreferences");
+      print("✅ Access Token: ${accessToken.substring(0, 20)}...");
+      print("✅ Refresh Token: ${refreshToken.substring(0, 20)}...");
+    } catch (e) {
+      print("❌ Error saving tokens: $e");
+      throw Exception("Failed to save authentication tokens: $e");
+    }
   }
 
   Future<void> _loadTokens() async {
-    final prefs = await SharedPreferences.getInstance();
-    _accessToken = prefs.getString("access_token");
-    _refreshToken = prefs.getString("refresh_token");
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _accessToken = prefs.getString("access_token");
+      _refreshToken = prefs.getString("refresh_token");
 
-    if (_refreshToken != null) {
-      _startTokenRefreshTimer(); // Start auto-refresh on app launch
+      if (_accessToken != null && _refreshToken != null) {
+        print("✅ Tokens loaded from SharedPreferences");
+        print("✅ Access Token: ${_accessToken!.substring(0, 20)}...");
+        print("✅ Refresh Token: ${_refreshToken!.substring(0, 20)}...");
+
+        _startTokenRefreshTimer(); // Start auto-refresh on app launch
+      } else if (_accessToken != null || _refreshToken != null) {
+        print("⚠️ Incomplete token data found - clearing all tokens");
+        await _clearStoredTokens();
+      } else {
+        print("ℹ️ No tokens found in storage");
+      }
+    } catch (e) {
+      print("❌ Error loading tokens: $e");
+      // Clear potentially corrupted tokens
+      await _clearStoredTokens();
+    }
+  }
+
+  Future<void> _clearStoredTokens() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove("access_token");
+      await prefs.remove("refresh_token");
+      await prefs.remove("user_id");
+      _accessToken = null;
+      _refreshToken = null;
+      print("🗑️ Stored tokens cleared");
+    } catch (e) {
+      print("❌ Error clearing stored tokens: $e");
     }
   }
 
@@ -148,7 +215,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
     print("🔁 Token refresh timer started (every 30 minutes)");
   }
-  
+
   Future<String> _getCityFromCoordinates(double lat, double lon) async {
     try {
       final url = Uri.parse(
@@ -208,7 +275,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       return "Location Error: ${e.toString()}";
     }
   }
-  
+
   Future<void> _sendOtp(String phoneNumber) async {
     print("Sending OTP to: $phoneNumber");
     try {
@@ -268,6 +335,58 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     }
   }
 
+  Future<bool> _verifyTokenStorage() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedAccessToken = prefs.getString("access_token");
+      final storedRefreshToken = prefs.getString("refresh_token");
+
+      bool isValid = storedAccessToken != null &&
+          storedRefreshToken != null &&
+          storedAccessToken == _accessToken &&
+          storedRefreshToken == _refreshToken;
+
+      if (isValid) {
+        print("✅ Token storage verification passed");
+      } else {
+        print("❌ Token storage verification failed");
+        print("Stored access token: ${storedAccessToken?.substring(0, 20)}...");
+        print("Memory access token: ${_accessToken?.substring(0, 20)}...");
+      }
+
+      return isValid;
+    } catch (e) {
+      print("❌ Token verification error: $e");
+      return false;
+    }
+  }
+
+  // Debug method to check current token status
+  Future<Map<String, dynamic>> debugTokenStatus() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final storedAccessToken = prefs.getString("access_token");
+      final storedRefreshToken = prefs.getString("refresh_token");
+      final storedUserId = prefs.getString("user_id");
+
+      return {
+        "memory_access_token_exists": _accessToken != null,
+        "memory_refresh_token_exists": _refreshToken != null,
+        "stored_access_token_exists": storedAccessToken != null,
+        "stored_refresh_token_exists": storedRefreshToken != null,
+        "stored_user_id_exists": storedUserId != null,
+        "tokens_match": _accessToken == storedAccessToken && _refreshToken == storedRefreshToken,
+        "access_token_preview": _accessToken?.substring(0, 20),
+        "stored_access_token_preview": storedAccessToken?.substring(0, 20),
+        "user_id": storedUserId,
+      };
+    } catch (e) {
+      return {
+        "error": e.toString(),
+      };
+    }
+  }
+
   @override
   Future<bool> isLoggedIn() async {
     await _loadTokens();
@@ -275,20 +394,159 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
   }
 
   @override
+  Future<Map<String, dynamic>> validateToken() async {
+    print("🔍 Starting token validation...");
+
+    // Check internet connection first
+    if (!await NetworkChecker.hasInternetConnection()) {
+      print("❌ No internet connection for token validation");
+      return {
+        "success": false,
+        "isValid": false,
+        "message": "No internet connection. Please check your network settings and try again.",
+        "error": "network_error"
+      };
+    }
+
+    // Load tokens from storage if not already loaded
+    await _loadTokens();
+
+    if (_accessToken == null) {
+      print("❌ No access token found");
+      return {
+        "success": false,
+        "isValid": false,
+        "message": "No access token found. Please log in.",
+        "error": "no_token"
+      };
+    }
+
+    try {
+      final String checkTokenUrl = "$baseUrl/check-token";
+      print("⚡ Validating token at: $checkTokenUrl");
+      print("⚡ Using token: ${_accessToken!.substring(0, 20)}...");
+
+      final response = await http.get(
+        Uri.parse(checkTokenUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken',
+        },
+      ).timeout(const Duration(seconds: 15));
+
+      print("⚡ Token validation response status: ${response.statusCode}");
+      print("⚡ Token validation response body: ${response.body}");
+
+      // Handle empty response body
+      if (response.body.isEmpty) {
+        print("❌ Empty response from token validation");
+        return {
+          "success": false,
+          "isValid": false,
+          "message": "Server returned empty response",
+          "error": "empty_response"
+        };
+      }
+
+      try {
+        final data = jsonDecode(response.body);
+
+        if (response.statusCode == 200) {
+          // Check if token is valid based on API response
+          bool isValid = data["message"] == "Token is valid";
+
+          if (isValid) {
+            print("✅ Token is valid");
+            return {
+              "success": true,
+              "isValid": true,
+              "message": "Token is valid",
+              "data": data
+            };
+          } else {
+            print("❌ Token is invalid according to server");
+            // Clear invalid tokens
+            await _clearStoredTokens();
+            return {
+              "success": true,
+              "isValid": false,
+              "message": "Token is invalid",
+              "error": "invalid_token"
+            };
+          }
+        } else if (response.statusCode == 401) {
+          print("❌ Token validation failed - 401 Unauthorized");
+
+          // Try to refresh the token first
+          print("🔄 Attempting to refresh token...");
+          final refreshResult = await refreshAccessToken();
+
+          if (refreshResult["success"] == true) {
+            print("✅ Token refreshed successfully, retrying validation...");
+            // Retry validation with new token
+            return await validateToken();
+          } else {
+            print("❌ Token refresh failed, clearing tokens");
+            await _clearStoredTokens();
+            return {
+              "success": true,
+              "isValid": false,
+              "message": "Token expired and refresh failed",
+              "error": "token_expired"
+            };
+          }
+        } else {
+          print("❌ Token validation failed with status: ${response.statusCode}");
+          return {
+            "success": false,
+            "isValid": false,
+            "message": "Token validation failed: ${data["message"] ?? "Unknown error"}",
+            "error": "validation_failed"
+          };
+        }
+      } catch (e) {
+        print("❌ Error parsing token validation response: $e");
+        return {
+          "success": false,
+          "isValid": false,
+          "message": "Error parsing server response",
+          "error": "parse_error"
+        };
+      }
+    } on SocketException catch (e) {
+      print("❌ Network error during token validation: $e");
+      return {
+        "success": false,
+        "isValid": false,
+        "message": "Unable to connect to server for token validation",
+        "error": "network_error"
+      };
+    } on TimeoutException catch (e) {
+      print("❌ Timeout during token validation: $e");
+      return {
+        "success": false,
+        "isValid": false,
+        "message": "Token validation request timed out",
+        "error": "timeout_error"
+      };
+    } catch (e) {
+      print("❌ Unexpected error during token validation: $e");
+      return {
+        "success": false,
+        "isValid": false,
+        "message": "Token validation failed: ${e.toString()}",
+        "error": "validation_error"
+      };
+    }
+  }
+
+  @override
   Future<Map<String, dynamic>> signOut() async {
     try {
-      _accessToken = null;
-      _refreshToken = null;
-      _resetToken = null;
-      _verificationId = null;
+      _tokenRefreshTimer?.cancel(); // Stop token refresh timer first
 
       await _auth.signOut();
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove("access_token");
-      await prefs.remove("refresh_token");
-
-      _tokenRefreshTimer?.cancel(); // Stop token refresh timer
+      await _clearStoredTokens();
 
       print("✅ User signed out successfully!");
       return {
@@ -322,11 +580,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       final String backendUrl = "$baseUrl/users/email/initiate-signup";
       print("⚡ Sending signup request to: $backendUrl");
-      
+
       final requestBody = {
         "email": email,
         "password": password,
@@ -334,9 +592,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "last_name": lastName,
         "mobile_number": mobileNumber ?? "",
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
-      
+
       // Make exactly ONE HTTP request
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -356,7 +614,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "error": "server_unavailable"
         };
       }
-      
+
       // Handle empty response body
       if (response.body.isEmpty) {
         return {
@@ -368,7 +626,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       try {
         final data = jsonDecode(response.body);
-        
+
         if (response.statusCode == 200 || response.statusCode == 201) {
           // Check if the response has the expected structure
           if (data.containsKey("success") && data["success"] == true) {
@@ -383,7 +641,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               // Get the signup token for OTP verification
               String token = data["data"]["token"];
               print("✅ OTP sent successfully. Token received: $token");
-            
+
               return {
                 "success": true,
                 "userExists": false,
@@ -411,7 +669,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
               // Get the signup token for OTP verification
               String token = data["data"]["token"];
               print("✅ OTP sent successfully. Token received: $token");
-            
+
               return {
                 "success": true,
                 "userExists": false,
@@ -494,7 +752,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     if (token.isEmpty) {
       print("❌ Signup token is empty");
       return {
@@ -503,20 +761,20 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "missing_token"
       };
     }
-    
+
     print("🔑 Using signup token for verification: $token");
-    
+
     try {
       final String backendUrl = "$baseUrl/users/email/complete-signup";
       print("⚡ Sending complete signup request to: $backendUrl");
-      
+
       final requestBody = {
         "token": token,
         "otp": otp,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
-      
+
       // Make exactly ONE HTTP request
       final response = await http.post(
         Uri.parse(backendUrl),
@@ -535,7 +793,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "error": "server_unavailable"
         };
       }
-      
+
       // Handle empty response body
       if (response.body.isEmpty) {
         return {
@@ -554,6 +812,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             _refreshToken = data["data"]["refreshToken"];
 
             await _saveTokens(_accessToken!, _refreshToken!);
+            // Verify tokens were saved correctly
+            bool verified = await _verifyTokenStorage();
+            if (!verified) {
+              print("⚠️ Token storage verification failed, but continuing...");
+            }
             _startTokenRefreshTimer();
 
             print("✅ User registered and logged in successfully!");
@@ -627,16 +890,16 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       final String loginUrl = "$baseUrl/users/email/login";
       print("⚡ Sending login request to: $loginUrl");
-      
+
       final requestBody = {
         "email": email,
         "password": password,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -656,7 +919,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "error": "server_unavailable"
         };
       }
-      
+
       // Handle empty response body
       if (response.body.isEmpty) {
         return {
@@ -675,12 +938,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
             _refreshToken = data["data"]["refreshToken"];
 
             await _saveTokens(_accessToken!, _refreshToken!);
+            // Verify tokens were saved correctly
+            bool verified = await _verifyTokenStorage();
+            if (!verified) {
+              print("⚠️ Token storage verification failed, but continuing...");
+            }
             _startTokenRefreshTimer();
 
             print("✅ User logged in successfully!");
             print("✅ Access Token: $_accessToken");
             print("✅ Refresh Token: $_refreshToken");
-            
+
             return {
               "success": true,
               "message": "User logged in successfully",
@@ -739,9 +1007,9 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
     } catch (e) {
       print("❌ Email Login Error: $e");
       String errorMessage = e.toString();
-      
+
       // Provide more user-friendly error messages for common errors
-      if (errorMessage.contains("Failed host lookup") || 
+      if (errorMessage.contains("Failed host lookup") ||
           errorMessage.contains("SocketException") ||
           errorMessage.contains("Connection refused")) {
         return {
@@ -750,7 +1018,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
           "error": "network_error"
         };
       }
-      
+
       return {
         "success": false,
         "message": "Login failed: ${e.toString()}",
@@ -775,11 +1043,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       final String oauthUrl = "$baseUrl/users/oauth/signin";
       print("⚡ Sending OAuth sign-in request to: $oauthUrl");
-      
+
       final requestBody = {
         "email": email,
         "provider": provider,
@@ -787,7 +1055,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "last_name": lastName,
         "mobile_number": mobileNumber ?? "",
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -865,15 +1133,15 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       final String forgotUrl = "$baseUrl/users/password/forgot";
       print("⚡ Sending forgot password request to: $forgotUrl");
-      
+
       final requestBody = {
         "email": email,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -939,17 +1207,17 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       final String resetUrl = "$baseUrl/users/password/reset";
       print("⚡ Sending password reset request to: $resetUrl");
-      
+
       final requestBody = {
         "token": token,
         "otp": otp,
         "password": password,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -996,7 +1264,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     if (_accessToken == null) {
       return {
         "success": false,
@@ -1004,7 +1272,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "auth_error"
       };
     }
-    
+
     try {
       final String profileUrl = "$baseUrl/users";
       print("⚡ Fetching user profile from: $profileUrl");
@@ -1075,7 +1343,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     if (_accessToken == null) {
       return {
         "success": false,
@@ -1083,11 +1351,11 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "auth_error"
       };
     }
-    
+
     try {
       final String updateUrl = "$baseUrl/users";
       print("⚡ Updating user profile at: $updateUrl");
-      
+
       // Build request body with only the fields that are provided
       final Map<String, dynamic> requestBody = {};
       if (firstName != null) requestBody["first_name"] = firstName;
@@ -1095,7 +1363,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (dob != null) requestBody["dob"] = dob;
       if (location != null) requestBody["location"] = location;
       if (userPlan != null) requestBody["user_plan"] = userPlan;
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.patch(
@@ -1165,7 +1433,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     if (_accessToken == null) {
       return {
         "success": false,
@@ -1173,7 +1441,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "auth_error"
       };
     }
-    
+
     try {
       final String deleteUrl = "$baseUrl/users";
       print("⚡ Deleting user account at: $deleteUrl");
@@ -1194,7 +1462,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200 && data["success"] == true) {
         // Clear all tokens and sign out
         await signOut();
-        
+
         print("✅ User account deleted successfully!");
         return {
           "success": true,
@@ -1240,7 +1508,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     if (_refreshToken == null) {
       return {
         "success": false,
@@ -1248,7 +1516,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "auth_error"
       };
     }
-    
+
     try {
       final String refreshUrl = "$baseUrl/users/refresh-token";
       print("⚡ Refreshing token at: $refreshUrl");
@@ -1267,7 +1535,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200 && data["success"] == true) {
         _accessToken = data["data"]["accessToken"];
         await _saveTokens(_accessToken!, _refreshToken!);
-        
+
         print("✅ Access token refreshed successfully!");
         return {
           "success": true,
@@ -1332,7 +1600,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       // Step 1: Verify OTP with Firebase and get ID Token
       String? idToken = await _verifyOtp(otpCode);
@@ -1350,7 +1618,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final String backendUrl = "$baseUrl/users/signup";
       print("⚡ Sending registration request to: $backendUrl");
-      
+
       final requestBody = {
         "mobile_number": phoneNumber,
         "first_name": firstName,
@@ -1358,7 +1626,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "location": location,
         "idToken": idToken,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -1432,7 +1700,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         "error": "network_error"
       };
     }
-    
+
     try {
       // Step 1: Verify OTP and Get ID Token
       String? idToken = await _verifyOtp(otpCode);
@@ -1447,12 +1715,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
 
       final String signInUrl = "$baseUrl/users/signin";
       print("⚡ Sending sign-in request to: $signInUrl");
-      
+
       final requestBody = {
         "mobile_number": phoneNumber,
         "idToken": idToken,
       };
-      
+
       print("⚡ Request body: ${jsonEncode(requestBody)}");
 
       final response = await http.post(
@@ -1477,7 +1745,7 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         print("✅ User signed in successfully!");
         print("🔑 Access Token: $_accessToken");
         print("🔄 Refresh Token: $_refreshToken");
-        
+
         return {
           "success": true,
           "message": "User signed in successfully!",
