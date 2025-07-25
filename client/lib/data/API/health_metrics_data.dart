@@ -3,9 +3,9 @@ class HealthMetrics {
   final String userId;
   final String dayId;
   final int? targetCalories;
-  final int? activityScore;
-  final int? foodScore;
-  final int? healthScore;
+  final double? activityScore;
+  final double? foodScore;
+  final double? healthScore;
   final int? bp;
   final int? spo2Avg;
   final int? spo2Min;
@@ -14,13 +14,13 @@ class HealthMetrics {
   final double? distanceCovered;
   final int? waterIntake;
   final int? totalWaterTaken;
-  final int? sleepScore;
+  final double? sleepScore;
   final double? sleepHours;
   final List<dynamic>? activityScoreArray;
   final List<dynamic>? foodScoreArray;
   final int? totalCaloriesBurnt;
   final dynamic nutritionTaken;
-  final int? metabolicScore;
+  final double? metabolicScore;
   final int? vo2Max;
   final dynamic medicationData;
   final dynamic medicationNotifications;
@@ -63,9 +63,9 @@ class HealthMetrics {
       userId: json['userId'],
       dayId: json['dayId'],
       targetCalories: json['target_calories'],
-      activityScore: json['activity_score'],
-      foodScore: json['food_score'],
-      healthScore: json['health_score'],
+      activityScore: json['activity_score']?.toDouble(),
+      foodScore: json['food_score']?.toDouble(),
+      healthScore: json['health_score']?.toDouble(),
       bp: json['bp'],
       spo2Avg: json['spo2_avg'],
       spo2Min: json['spo2_min'],
@@ -74,13 +74,15 @@ class HealthMetrics {
       distanceCovered: json['distance_covered']?.toDouble(),
       waterIntake: json['water_intake'],
       totalWaterTaken: json['total_water_taken'],
-      sleepScore: json['sleep_score'],
+      sleepScore: json['sleep_score']?.toDouble(),
       sleepHours: json['sleep_hours']?.toDouble(),
       activityScoreArray: json['activity_score_array'],
-      foodScoreArray: json['food_score_array'],
+      foodScoreArray: (json['food_score_array'] as List<dynamic>?)
+          ?.map((e) => (e as num).toDouble())
+          .toList(),
       totalCaloriesBurnt: json['total_calories_burnt'],
       nutritionTaken: json['nutrition_taken'],
-      metabolicScore: json['metabolic_score'],
+      metabolicScore: json['metabolic_score']?.toDouble(),
       vo2Max: json['vo2Max'],
       medicationData: json['medication_data'],
       medicationNotifications: json['medication_notifications'],

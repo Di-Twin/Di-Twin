@@ -17,6 +17,11 @@ class AuthRepositoryImpl implements AuthRepository {
   }
 
   @override
+  Future<Map<String, dynamic>> validateToken() {
+    return _remoteDataSource.validateToken();
+  }
+
+  @override
   Future<Map<String, dynamic>> initiateEmailSignup({
     required String email,
     required String password,

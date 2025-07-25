@@ -7,9 +7,9 @@ class ActivitySelection extends StatefulWidget {
   final Function(String) onActivitySelected;
 
   const ActivitySelection({
-    Key? key,
+    super.key,
     required this.onActivitySelected,
-  }) : super(key: key);
+  });
 
   @override
   _ActivitySelectionState createState() => _ActivitySelectionState();

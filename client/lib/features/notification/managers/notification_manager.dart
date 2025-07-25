@@ -252,7 +252,7 @@ class NotificationManager {
           presentAlert: true,
           presentBadge: true,
           presentSound: true,
-          sound: notification.sound != null ? notification.sound! : null,
+          sound: notification.sound,
           attachments:
               notification.imageUrl != null
                   ? [DarwinNotificationAttachment(notification.imageUrl!)]
@@ -277,7 +277,7 @@ class NotificationManager {
     try {
       // Generate a consistent ID for deduplication
       final messageId = message.messageId ?? const Uuid().v4();
-      final dedupeId = 'fcm_${messageId}';
+      final dedupeId = 'fcm_$messageId';
 
       // Skip if this is a duplicate
       if (_isDuplicate(dedupeId)) {
@@ -326,7 +326,7 @@ class NotificationManager {
 
       // Generate a consistent ID for deduplication
       final messageId = data['id'] ?? const Uuid().v4().toString();
-      final dedupeId = 'ws_${messageId}';
+      final dedupeId = 'ws_$messageId';
 
       // Skip if this is a duplicate
       if (_isDuplicate(dedupeId)) {

@@ -890,58 +890,56 @@ class _FoodManagementStatsScreenState extends State<FoodManagementStatsScreen>
 
       // Process each meal type
       foodData.forEach((mealType, foods) {
-        if (foods is List) {
-          for (var food in foods) {
-            // Ensure we have valid food data
-            if (food is Map<String, dynamic> && food['name'] != null) {
-              // IMPORTANT FIX: Use the selected date instead of the API date
-              // This fixes the date mismatch issue
-              DateTime foodDate = selectedDate; // Use the requested date
+        for (var food in foods) {
+          // Ensure we have valid food data
+          if (food is Map<String, dynamic> && food['name'] != null) {
+            // IMPORTANT FIX: Use the selected date instead of the API date
+            // This fixes the date mismatch issue
+            DateTime foodDate = selectedDate; // Use the requested date
 
-              // Only use API date if it matches the selected date
-              if (food['date'] is String) {
-                try {
-                  DateTime apiDate = DateTime.parse(food['date']);
-                  String apiDateStr = DateFormat('yyyy-MM-dd').format(apiDate);
-                  if (apiDateStr == formattedDate) {
-                    foodDate = apiDate; // Use API date only if it matches
-                  }
-                  print(
-                    'API date: $apiDateStr, Selected date: $formattedDate, Match: ${apiDateStr == formattedDate}',
-                  );
-                } catch (e) {
-                  print('Error parsing API date: $e');
-                  foodDate = selectedDate; // Fallback to selected date
-                }
-              } else if (food['date'] is DateTime) {
-                DateTime apiDate = food['date'];
+            // Only use API date if it matches the selected date
+            if (food['date'] is String) {
+              try {
+                DateTime apiDate = DateTime.parse(food['date']);
                 String apiDateStr = DateFormat('yyyy-MM-dd').format(apiDate);
                 if (apiDateStr == formattedDate) {
-                  foodDate = apiDate;
+                  foodDate = apiDate; // Use API date only if it matches
                 }
+                print(
+                  'API date: $apiDateStr, Selected date: $formattedDate, Match: ${apiDateStr == formattedDate}',
+                );
+              } catch (e) {
+                print('Error parsing API date: $e');
+                foodDate = selectedDate; // Fallback to selected date
               }
-
-              newFoodHistory.add({
-                'name': food['name'] ?? 'Unknown Food',
-                'calories': (food['calories'] ?? 0).toDouble(),
-                'image': food['image'] ?? 'images/default.png',
-                'color': food['colorValue'] ?? food['color'] ?? 0xFF4CAF50,
-                'date': foodDate, // This will now match the selected date
-                'time': food['time'] ?? '00:00',
-                'weight': food['weight'] ?? '100g',
-                'mealType': mealType,
-                'protein': (food['protein'] ?? 0).toDouble(),
-                'carbs': (food['carbs'] ?? 0).toDouble(),
-                'fat': (food['fat'] ?? 0).toDouble(),
-              });
-
-              print(
-                'Added food: ${food['name']} with date: ${DateFormat('yyyy-MM-dd').format(foodDate)}',
-              );
+            } else if (food['date'] is DateTime) {
+              DateTime apiDate = food['date'];
+              String apiDateStr = DateFormat('yyyy-MM-dd').format(apiDate);
+              if (apiDateStr == formattedDate) {
+                foodDate = apiDate;
+              }
             }
+
+            newFoodHistory.add({
+              'name': food['name'] ?? 'Unknown Food',
+              'calories': (food['calories'] ?? 0).toDouble(),
+              'image': food['image'] ?? 'images/default.png',
+              'color': food['colorValue'] ?? food['color'] ?? 0xFF4CAF50,
+              'date': foodDate, // This will now match the selected date
+              'time': food['time'] ?? '00:00',
+              'weight': food['weight'] ?? '100g',
+              'mealType': mealType,
+              'protein': (food['protein'] ?? 0).toDouble(),
+              'carbs': (food['carbs'] ?? 0).toDouble(),
+              'fat': (food['fat'] ?? 0).toDouble(),
+            });
+
+            print(
+              'Added food: ${food['name']} with date: ${DateFormat('yyyy-MM-dd').format(foodDate)}',
+            );
           }
         }
-      });
+            });
 
       print('Processed food history: ${newFoodHistory.length} items');
 

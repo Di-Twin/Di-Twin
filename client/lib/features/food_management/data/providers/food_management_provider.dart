@@ -34,14 +34,15 @@ class FoodManagementProvider {
 
     // Initialize dependencies
     final sharedPreferences = await SharedPreferences.getInstance();
-    final networkInfo = NetworkInfoImpl(InternetConnectionChecker.createInstance());
+    final connectionChecker = InternetConnectionChecker.createInstance();
+    final networkInfo = NetworkInfoImpl(connectionChecker: connectionChecker);
     final apiClient = ApiClient(
       baseUrl: 'https://test-prod-f427.onrender.com', // Replace with your actual API URL
       httpClient: http.Client(),
     );
 
     // Initialize data sources
-    final remoteDataSource = FoodRemoteDataSourceImpl(apiClient: apiClient);
+    final remoteDataSource = FoodRemoteDataSourceImpl(apiClient: apiClient, client: apiClient.httpClient);
     final localDataSource = FoodLocalDataSourceImpl(sharedPreferences: sharedPreferences);
 
     // Initialize repository

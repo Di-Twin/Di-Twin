@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../../../data/providers/food_management_provider.dart';
+import 'package:client/features/food_management/data/providers/food_management_provider.dart';
 import '../providers/daily_food_provider.dart';
 import '../../domain/entities/meal_item.dart';
 import 'empty_time_period_state.dart';

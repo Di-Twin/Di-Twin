@@ -424,12 +424,12 @@ class SocketService with ChangeNotifier {
         bool hasMealTimes = false;
         Map<String, String> directTimings = {};
         
-        ['breakfast', 'lunch', 'dinner', 'snack'].forEach((meal) {
+        for (var meal in ['breakfast', 'lunch', 'dinner', 'snack']) {
           if (timingsData.containsKey(meal)) {
             directTimings[meal] = timingsData[meal].toString();
             hasMealTimes = true;
           }
-        });
+        }
         
         if (hasMealTimes) {
           _mealTimings = directTimings;
@@ -672,6 +672,7 @@ class SocketService with ChangeNotifier {
   }
   
   // Dispose the socket
+  @override
   void dispose() {
     disconnect();
     socket = null;

@@ -55,8 +55,8 @@ class MedicationModel extends Medication {
     return MedicationModel(
       id: medication.id,
       name: medication.name,
-      dosage: medication.dosage,
-      instruction: medication.instruction,
+      dosage: medication.dosage ?? '',
+      instruction: medication.instruction ?? '',
       icon: medication.icon,
       taken: medication.taken,
     );

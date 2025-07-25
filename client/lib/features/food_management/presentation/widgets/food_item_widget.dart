@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../domain/entities/meal_item.dart';
+import 'package:client/features/food_management/domain/entities/meal_item.dart';
 
 class FoodItemWidget extends StatelessWidget {
   final MealItem foodItem;

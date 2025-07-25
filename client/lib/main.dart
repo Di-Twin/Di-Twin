@@ -12,7 +12,9 @@ import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
+import 'package:client/features/welcome/auth_guard.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:provider/provider.dart' as provider;
 import 'package:google_fonts/google_fonts.dart';
@@ -21,10 +23,11 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 // Import notification services
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'features/notification/services/firebase_services.dart';
 import 'features/notification/services/socket_services.dart';
 import 'features/notification/managers/notification_manager.dart';
-import 'features/notification/services/helper_services.dart';
+// Import cache and sync services
+import 'package:client/services/cache_service.dart';
+import 'package:client/services/background_sync_service.dart';
 
 // Import app_links
 import 'package:app_links/app_links.dart';
@@ -46,6 +49,8 @@ import 'package:client/features/food_management/presentation/providers/food_scor
 import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 import 'package:client/core/network/network_checker.dart';
+import 'dart:developer' as developer;
+import 'package:client/features/water_intake/data/providers/water_intake_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -58,9 +63,9 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   try {
     // Initialize Firebase if not already initialized
     await Firebase.initializeApp();
-    
+
     print('Handling a background message: ${message.messageId}');
-    
+
     // Process the notification
     NotificationManager.processFirebaseMessage(message);
   } catch (e) {
@@ -73,27 +78,27 @@ void main() async {
 
   // Initialize Firebase
   await Firebase.initializeApp();
-  print('✅ Firebase Initialized');
+  developer.log('✅ Firebase Initialized', name: 'Main');
 
   // Set background message handler for FCM
   FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
 
   // Initialize notification manager
-  print('🚀 Init notification service...');
+  developer.log('🚀 Initializing notification service...', name: 'Main');
   try {
     await NotificationManager.initialize();
-    print('✅ Notification manager initialized');
-    
+    developer.log('✅ Notification manager initialized', name: 'Main');
+
     // Set notification tap handler
     NotificationManager.onNotificationTap = (payload) {
       if (payload != null) {
-        print('Notification tapped: $payload');
+        developer.log('Notification tapped: $payload', name: 'Main');
         // Navigate to appropriate screen based on payload
         // You can use navigatorKey.currentState?.pushNamed() here
       }
     };
   } catch (e) {
-    print('❌ Error initializing notification manager: $e');
+    developer.log('❌ Error initializing notification manager: $e', name: 'Main');
   }
 
   // Reset feedback session flag on app start
@@ -107,22 +112,24 @@ void main() async {
   );
 
   // Test API connection
-  print('🔍 Testing API connection...');
+  developer.log('🔍 Testing API connection...', name: 'Main');
   try {
     final isConnected = await NetworkChecker.isApiServerReachable(
       'https://test-prod-f427.onrender.com/api',
     );
-    print(
+    developer.log(
       '🔍 API connection test result: ${isConnected ? 'SUCCESS' : 'FAILED'}',
+      name: 'Main',
     );
 
     if (!isConnected) {
-      print(
+      developer.log(
         '⚠️ Warning: API server appears to be unreachable. The app may not function correctly.',
+        name: 'Main',
       );
     }
   } catch (e) {
-    print('🔍 API connection test error: $e');
+    developer.log('🔍 API connection test error: $e', name: 'Main');
   }
 
   // Create network info
@@ -161,7 +168,7 @@ void main() async {
     networkInfo: networkInfo,
   );
 
-  // Create food score use cases  
+  // Create food score use cases
   final getDailyFoodScoreUseCase = GetDailyFoodScoreUseCase(foodRepository);
   final getFoodScoreUseCase = GetFoodScoreUseCase(foodRepository);
 
@@ -170,6 +177,15 @@ void main() async {
     getDailyFoodScoreUseCase: getDailyFoodScoreUseCase,
     getFoodScoreUseCase: getFoodScoreUseCase,
   );
+
+  // Initialize cache service
+  developer.log('🗄️ Initializing cache service...', name: 'Main');
+  try {
+    final cacheInfo = await CacheService.getCacheInfo();
+    developer.log('✅ Cache service initialized. Info: $cacheInfo', name: 'Main');
+  } catch (e) {
+    developer.log('❌ Error initializing cache service: $e', name: 'Main');
+  }
 
   runApp(
     provider.MultiProvider(
@@ -184,6 +200,9 @@ void main() async {
         provider.ChangeNotifierProvider<SocketService>(
           create: (context) => SocketService(),
         ),
+        provider.ChangeNotifierProvider<WaterIntakeProvider>(
+          create: (context) => WaterIntakeProvider()..initialize(),
+        ),
       ],
       child: ProviderScope(child: const MyApp()),
     ),
@@ -197,7 +216,7 @@ class MyApp extends StatefulWidget {
   State<MyApp> createState() => _MyAppState();
 }
 
-class _MyAppState extends State<MyApp> {
+class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
   // Create an instance of AppLinks
   late AppLinks _appLinks;
   StreamSubscription<Uri>? _linkSubscription;
@@ -206,7 +225,31 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     initAppLinks();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    super.didChangeAppLifecycleState(state);
+
+    switch (state) {
+      case AppLifecycleState.resumed:
+        developer.log('📱 App resumed, starting background sync', name: 'Main');
+        // Start background sync when app resumes
+        BackgroundSyncService.instance.startBackgroundSync();
+        break;
+      case AppLifecycleState.paused:
+        developer.log('📱 App paused', name: 'Main');
+        break;
+      case AppLifecycleState.detached:
+        developer.log('📱 App detached, stopping background sync', name: 'Main');
+        // Stop background sync when app is detached
+        BackgroundSyncService.instance.stopBackgroundSync();
+        break;
+      default:
+        break;
+    }
   }
 
   // Check if feedback form should be shown (every 3 days)
@@ -231,7 +274,9 @@ class _MyAppState extends State<MyApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _linkSubscription?.cancel();
+    BackgroundSyncService.instance.stopBackgroundSync();
     super.dispose();
   }
 
@@ -241,11 +286,11 @@ class _MyAppState extends State<MyApp> {
 
     // Handle app links when the app is already running
     _linkSubscription = _appLinks.uriLinkStream.listen(
-      (Uri uri) {
+          (Uri uri) {
         _handleIncomingLink(uri);
       },
       onError: (Object error) {
-        print('Error in app link stream: $error');
+        developer.log('❌ Error in app link stream: $error', name: 'Main');
       },
     );
 
@@ -253,23 +298,23 @@ class _MyAppState extends State<MyApp> {
     try {
       final appLink = await _appLinks.getInitialLink();
       if (appLink != null) {
-        print('Initial app link: $appLink');
+        developer.log('🔗 Initial app link: $appLink', name: 'Main');
         _handleIncomingLink(appLink);
       }
     } catch (e) {
-      print('Error getting initial app link: $e');
+      developer.log('❌ Error getting initial app link: $e', name: 'Main');
     }
   }
 
   // Handle incoming links
   void _handleIncomingLink(Uri uri) {
-    print('Received app link: $uri');
+    developer.log('🔗 Received app link: $uri', name: 'Main');
 
     if (uri.scheme == 'dtwin' && uri.host == 'fitbit-auth') {
       // Extract the authorization code
       final code = uri.queryParameters['code'];
       if (code != null) {
-        print('Received Fitbit authorization code: $code');
+        developer.log('✅ Received Fitbit authorization code: $code', name: 'Main');
 
         // Show a success message
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -333,7 +378,7 @@ class _MyAppState extends State<MyApp> {
           splitScreenMode: true,
           builder: (context, child) {
             return MaterialApp(
-              navigatorKey: navigatorKey, // ✅ Ensuring navigation key is unique
+              navigatorKey: navigatorKey,
               debugShowCheckedModeBanner: false,
               title: 'DTwin',
               theme: ThemeData(
@@ -341,34 +386,67 @@ class _MyAppState extends State<MyApp> {
                 textTheme: GoogleFonts.plusJakartaSansTextTheme(),
               ),
               initialRoute: '/',
+              onGenerateRoute: (settings) {
+                // Handle back button prevention for dashboard
+                if (settings.name == '/dashboard') {
+                  return PageRouteBuilder(
+                    settings: settings,
+                    pageBuilder: (context, animation, secondaryAnimation) {
+                      return WillPopScope(
+                        onWillPop: () async {
+                          // Prevent back navigation from dashboard
+                          // Show exit confirmation dialog instead
+                          return await showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Exit App'),
+                              content: const Text('Are you sure you want to exit the app?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.of(context).pop(false),
+                                  child: const Text('Cancel'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.of(context).pop(true);
+                                    SystemNavigator.pop(); // Exit the app
+                                  },
+                                  child: const Text('Exit'),
+                                ),
+                              ],
+                            ),
+                          ) ?? false;
+                        },
+                        child: AuthGuard(child: const HomeScreen()),
+                      );
+                    },
+                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                      return FadeTransition(opacity: animation, child: child);
+                    },
+                  );
+                }
+                return null;
+              },
               routes: {
                 '/': (context) => const Startpage(),
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInPage(),
                 '/signup': (context) => const SignUpPage(),
-                '/questions/goal': (context) => const HealthAssessmentGoal(),
-                '/questions/weight': (context) => const WeightInputPage(),
-                '/questions/height': (context) => const HeightInputPage(),
-                '/questions/age': (context) => const HealthAssessmentAge(),
-                '/loading':
-                    (context) => const HealthAssessmentLoading(
-                      loadingDuration: Duration(seconds: 5),
-                      nextScreen: HealthAssessmentScore(),
-                    ),
-                '/avatar': (context) => const HealthAssessmentAvatar(),
-                '/questions/gender':
-                    (context) => const HealthAssessmentGender(),
-                '/questions/allergy':
-                    (context) => const SymptomsSelectionPage(),
-                '/questions/medication':
-                    (context) => const HealthAssessmentMedication(),
-                '/dashboard': (context) => const HomeScreen(),
-                '/feedback': (context) => const FeedbackFormScreen(),
-                // Add notification test screen route
-                // '/notification-test':
-                //     (context) => const NotificationTestScreen(),
-
-                // '/': (context) => const MedicationsScreen(),
+                '/questions/goal': (context) => AuthGuard(child: const HealthAssessmentGoal()),
+                '/questions/weight': (context) => AuthGuard(child: const WeightInputPage()),
+                '/questions/height': (context) => AuthGuard(child: const HeightInputPage()),
+                '/questions/age': (context) => AuthGuard(child: const HealthAssessmentAge()),
+                '/loading': (context) => AuthGuard(
+                  child: const HealthAssessmentLoading(
+                    loadingDuration: Duration(seconds: 5),
+                    nextScreen: HealthAssessmentScore(),
+                  ),
+                ),
+                '/avatar': (context) => AuthGuard(child: const HealthAssessmentAvatar()),
+                '/questions/gender': (context) => AuthGuard(child: const HealthAssessmentGender()),
+                '/questions/allergy': (context) => AuthGuard(child: const SymptomsSelectionPage()),
+                '/questions/medication': (context) => AuthGuard(child: const HealthAssessmentMedication()),
+                '/feedback': (context) => AuthGuard(child: const FeedbackFormScreen()),
               },
             );
           },
