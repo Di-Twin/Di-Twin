@@ -65,15 +65,15 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
         content: Text(message),
         backgroundColor: Colors.red,
         action:
-            message.contains("server is temporarily unavailable")
-                ? SnackBarAction(
-                  label: "Retry",
-                  textColor: Colors.white,
-                  onPressed: () {
-                    handleSignUp(isRetry: true);
-                  },
-                )
-                : null,
+        message.contains("server is temporarily unavailable")
+            ? SnackBarAction(
+          label: "Retry",
+          textColor: Colors.white,
+          onPressed: () {
+            handleSignUp(isRetry: true);
+          },
+        )
+            : null,
       ),
     );
   }
@@ -162,12 +162,12 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             MaterialPageRoute(
               builder:
                   (context) => OtpVerificationPage(
-                    email: email,
-                    firstName: firstName,
-                    lastName: lastName,
-                    isEmailFlow: true,
-                    signupToken: token, // Pass the token directly
-                  ),
+                email: email,
+                firstName: firstName,
+                lastName: lastName,
+                isEmailFlow: true,
+                signupToken: token, // Pass the token directly
+              ),
             ),
           );
         }
@@ -455,8 +455,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                           if (mounted) {
                                             ref
                                                 .read(
-                                                  firstNameProvider.notifier,
-                                                )
+                                              firstNameProvider.notifier,
+                                            )
                                                 .state = value;
                                           }
                                         },
@@ -566,15 +566,15 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                             border: InputBorder.none,
                                             hintText: "Enter your phone number",
                                             hintStyle:
-                                                GoogleFonts.plusJakartaSans(
-                                                  fontSize: 14.sp,
-                                                  color: const Color.fromARGB(
-                                                    255,
-                                                    112,
-                                                    106,
-                                                    106,
-                                                  ),
-                                                ),
+                                            GoogleFonts.plusJakartaSans(
+                                              fontSize: 14.sp,
+                                              color: const Color.fromARGB(
+                                                255,
+                                                112,
+                                                106,
+                                                106,
+                                              ),
+                                            ),
                                           ),
                                           onChanged: (value) {
                                             if (mounted) {
@@ -614,55 +614,55 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                       ),
                                     ),
                                     child:
-                                        isLoading
-                                            ? Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                SizedBox(
-                                                  height: 20.h,
-                                                  width: 20.w,
-                                                  child:
-                                                      const CircularProgressIndicator(
-                                                        color: Colors.white,
-                                                        strokeWidth: 3,
-                                                      ),
-                                                ),
-                                                SizedBox(width: 12.w),
-                                                Text(
-                                                  isRetrying
-                                                      ? "Retrying..."
-                                                      : "Please wait...",
-                                                  style:
-                                                      GoogleFonts.plusJakartaSans(
-                                                        fontSize: 16.sp,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                ),
-                                              ],
-                                            )
-                                            : Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment.center,
-                                              children: [
-                                                Text(
-                                                  "Continue",
-                                                  style:
-                                                      GoogleFonts.plusJakartaSans(
-                                                        fontSize: 16.sp,
-                                                        fontWeight:
-                                                            FontWeight.w700,
-                                                      ),
-                                                ),
-                                                SizedBox(width: 8.w),
-                                                Image.asset(
-                                                  'images/SignInAddIcon.png',
-                                                  height: 24.h,
-                                                  width: 24.w,
-                                                ),
-                                              ],
-                                            ),
+                                    isLoading
+                                        ? Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                      children: [
+                                        SizedBox(
+                                          height: 20.h,
+                                          width: 20.w,
+                                          child:
+                                          const CircularProgressIndicator(
+                                            color: Colors.white,
+                                            strokeWidth: 3,
+                                          ),
+                                        ),
+                                        SizedBox(width: 12.w),
+                                        Text(
+                                          isRetrying
+                                              ? "Retrying..."
+                                              : "Please wait...",
+                                          style:
+                                          GoogleFonts.plusJakartaSans(
+                                            fontSize: 16.sp,
+                                            fontWeight:
+                                            FontWeight.w700,
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                        : Row(
+                                      mainAxisAlignment:
+                                      MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          "Continue",
+                                          style:
+                                          GoogleFonts.plusJakartaSans(
+                                            fontSize: 16.sp,
+                                            fontWeight:
+                                            FontWeight.w700,
+                                          ),
+                                        ),
+                                        SizedBox(width: 8.w),
+                                        Image.asset(
+                                          'images/SignInAddIcon.png',
+                                          height: 24.h,
+                                          width: 24.w,
+                                        ),
+                                      ],
+                                    ),
                                   ),
                                 ),
                                 SizedBox(height: 25.h),
@@ -686,7 +686,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                       // Enhanced Already have an account section
                                       Row(
                                         mainAxisAlignment:
-                                            MainAxisAlignment.center,
+                                        MainAxisAlignment.center,
                                         children: [
                                           Text(
                                             "Already have an account?",
@@ -703,23 +703,23 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                                 MaterialPageRoute(
                                                   builder:
                                                       (context) =>
-                                                          const SignInPage(),
+                                                  const SignInPage(),
                                                 ),
                                               );
                                             },
                                             child: Text(
                                               "Sign In",
                                               style:
-                                                  GoogleFonts.plusJakartaSans(
-                                                    color: const Color(
-                                                      0xFF0F67FE,
-                                                    ),
-                                                    fontWeight: FontWeight.bold,
-                                                    fontSize: 15.sp,
-                                                    decoration:
-                                                        TextDecoration
-                                                            .underline,
-                                                  ),
+                                              GoogleFonts.plusJakartaSans(
+                                                color: const Color(
+                                                  0xFF0F67FE,
+                                                ),
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 15.sp,
+                                                decoration:
+                                                TextDecoration
+                                                    .underline,
+                                              ),
                                             ),
                                           ),
                                         ],
@@ -741,122 +741,128 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                                       ),
                                       SizedBox(height: 15.h),
 
-                                      // Enhanced Privacy Policy button
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.pushNamed(
-                                            context,
-                                            '/privacy',
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(
-                                          10.r,
+                                      // Enhanced dropdown for Privacy Policy and Terms & Conditions
+                                      Container(
+                                        width: double.infinity,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 16.w,
+                                          vertical: 12.h,
                                         ),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 10.h,
-                                            horizontal: 20.w,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFF5F7FA),
+                                          borderRadius: BorderRadius.circular(
+                                            12.r,
                                           ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF5F7FA),
-                                            borderRadius: BorderRadius.circular(
-                                              10.r,
+                                          border: Border.all(
+                                            color: Colors.grey[300]!,
+                                            width: 1,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: Colors.black.withOpacity(
+                                                0.03,
+                                              ),
+                                              blurRadius: 4,
+                                              offset: const Offset(0, 2),
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.03,
+                                          ],
+                                        ),
+                                        child: DropdownButtonHideUnderline(
+                                          child: DropdownButton<String>(
+                                            isExpanded: true,
+                                            hint: Row(
+                                              children: [
+                                                Icon(
+                                                  Icons.description_outlined,
+                                                  size: 20.sp,
+                                                  color: Colors.red,
                                                 ),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.privacy_tip_outlined,
-                                                size: 20.sp,
-                                                color: Colors.red,
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              Text(
-                                                "Privacy Policy",
-                                                style:
-                                                    GoogleFonts.plusJakartaSans(
-                                                      color: Colors.red,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 14.sp,
-                                                    ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      SizedBox(height: 15.h),
-
-                                      Text(
-                                        "and",
-                                        style: GoogleFonts.plusJakartaSans(
-                                          color: Colors.grey.shade700,
-                                          fontSize: 14.sp,
-                                        ),
-                                      ),
-                                      SizedBox(height: 15.h),
-
-                                      // Enhanced Terms & Conditions button
-                                      InkWell(
-                                        onTap: () {
-                                          Navigator.pushNamed(
-                                            context,
-                                            '/terms',
-                                          );
-                                        },
-                                        borderRadius: BorderRadius.circular(
-                                          10.r,
-                                        ),
-                                        child: Container(
-                                          padding: EdgeInsets.symmetric(
-                                            vertical: 10.h,
-                                            horizontal: 20.w,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFFF5F7FA),
-                                            borderRadius: BorderRadius.circular(
-                                              10.r,
+                                                SizedBox(width: 12.w),
+                                                Text(
+                                                  "Select document to view",
+                                                  style:
+                                                  GoogleFonts.plusJakartaSans(
+                                                    color: Colors.grey[600],
+                                                    fontSize: 14.sp,
+                                                    fontWeight:
+                                                    FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                            boxShadow: [
-                                              BoxShadow(
-                                                color: Colors.black.withOpacity(
-                                                  0.03,
-                                                ),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
-                                              ),
-                                            ],
-                                          ),
-                                          child: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              Icon(
-                                                Icons.description_outlined,
-                                                size: 20.sp,
-                                                color: Colors.red,
-                                              ),
-                                              SizedBox(width: 10.w),
-                                              Text(
-                                                "Terms & Conditions",
-                                                style:
-                                                    GoogleFonts.plusJakartaSans(
+                                            value: null,
+                                            icon: Icon(
+                                              Icons.keyboard_arrow_down,
+                                              color: Colors.red,
+                                              size: 24.sp,
+                                            ),
+                                            items: [
+                                              DropdownMenuItem<String>(
+                                                value: 'privacy',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.privacy_tip_outlined,
+                                                      size: 20.sp,
                                                       color: Colors.red,
-                                                      fontWeight:
-                                                          FontWeight.bold,
-                                                      fontSize: 14.sp,
                                                     ),
+                                                    SizedBox(width: 12.w),
+                                                    Text(
+                                                      "Privacy Policy",
+                                                      style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        color: Colors.red,
+                                                        fontWeight:
+                                                        FontWeight.bold,
+                                                        fontSize: 14.sp,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                              DropdownMenuItem<String>(
+                                                value: 'terms',
+                                                child: Row(
+                                                  children: [
+                                                    Icon(
+                                                      Icons.description_outlined,
+                                                      size: 20.sp,
+                                                      color: Colors.red,
+                                                    ),
+                                                    SizedBox(width: 12.w),
+                                                    Text(
+                                                      "Terms & Conditions",
+                                                      style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        color: Colors.red,
+                                                        fontWeight:
+                                                        FontWeight.bold,
+                                                        fontSize: 14.sp,
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
                                               ),
                                             ],
+                                            onChanged: (String? value) {
+                                              if (value != null) {
+                                                if (value == 'privacy') {
+                                                  Navigator.pushNamed(
+                                                    context,
+                                                    '/privacy',
+                                                  );
+                                                } else if (value == 'terms') {
+                                                  Navigator.pushNamed(
+                                                    context,
+                                                    '/terms',
+                                                  );
+                                                }
+                                              }
+                                            },
+                                            dropdownColor: Colors.white,
+                                            borderRadius:
+                                            BorderRadius.circular(12.r),
+                                            elevation: 8,
                                           ),
                                         ),
                                       ),

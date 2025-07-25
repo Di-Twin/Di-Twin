@@ -1,13 +1,13 @@
 import 'package:get/get.dart';
-import '../../domain/entities/food_item.dart';
-import '../../domain/entities/nutrition_data.dart';
-import '../../domain/usecases/get_daily_food_data_usecase.dart';
-import '../../domain/usecases/get_food_score_usecase.dart';
-import '../../domain/usecases/get_popular_foods_usecase.dart';
-import '../../domain/usecases/get_nutrition_data_usecase.dart';
-import '../../domain/usecases/add_food_item_usecase.dart';
-import '../../domain/usecases/update_food_item_usecase.dart';
-import '../../domain/usecases/delete_food_item_usecase.dart';
+import 'package:client/features/food_management/domain/entities/food_item.dart';
+import 'package:client/features/food_management/domain/entities/nutrition_data.dart';
+import 'package:client/features/food_management/domain/usecases/get_daily_food_data_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/get_food_score_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/get_popular_foods_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/get_nutrition_data_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/add_food_item_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/update_food_item_usecase.dart';
+import 'package:client/features/food_management/domain/usecases/delete_food_item_usecase.dart';
 
 class FoodManagementController extends GetxController {
   final GetDailyFoodDataUseCase getDailyFoodDataUseCase;
@@ -108,7 +108,7 @@ class FoodManagementController extends GetxController {
       },
       (_) {
         // Refresh food data for the day
-        getDailyFoodData(foodItem.date.toIso8601String().split('T')[0]);
+        getDailyFoodData(foodItem.date.split('T')[0]);
         return true;
       },
     );
@@ -125,7 +125,7 @@ class FoodManagementController extends GetxController {
       },
       (_) {
         // Refresh food data for the day
-        getDailyFoodData(foodItem.date.toIso8601String().split('T')[0]);
+        getDailyFoodData(foodItem.date.split('T')[0]);
         return true;
       },
     );

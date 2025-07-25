@@ -6,6 +6,7 @@ import 'package:client/widgets/dashboard/health_score_card.dart';
 import 'package:client/widgets/dashboard/health_metrics_section.dart';
 import 'package:client/widgets/dashboard/fitness_tracker_section.dart';
 import 'package:client/widgets/dashboard/bottom_navigation.dart';
+import 'package:client/widgets/dashboard/smart_water_intake_widget.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -18,12 +19,15 @@ import '../notification/services/helper_services.dart';
 // Import cache and sync services
 import 'package:client/services/cache_service.dart';
 import 'package:client/services/background_sync_service.dart';
-
+import 'package:client/features/water_intake/presentation/widgets/water_intake_popup_manager.dart';
 // Import the FitbitCallbackNotification from main.dart
 import 'package:client/main.dart';
 // Add the import for the FitbitConnectionDrawer at the top of the file
 import 'package:client/features/wearable_integration/fitbit_appauth_service.dart';
 import 'package:client/widgets/dashboard/fitbit_connection_drawer.dart';
+// Import water intake components
+import 'package:client/features/water_intake/data/providers/water_intake_provider.dart';
+import 'package:client/features/water_intake/presentation/widgets/water_intake_drawer.dart';
 import 'dart:developer' as developer;
 
 class HomeScreen extends StatefulWidget {
@@ -57,6 +61,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   bool _isRefreshing = false;
   final FitbitAppAuthService _fitbitService = FitbitAppAuthService();
 
+  // Water intake drawer variables
+  bool _showWaterIntakeDrawer = false;
+  String? _currentWaterSlot;
+  late AnimationController _waterDrawerAnimationController;
+  late Animation<double> _waterDrawerAnimation;
+
   // Manual entry data
   Map<String, dynamic> _manualEntryData = {
     'steps': 0,
@@ -87,6 +97,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       parent: _animationController,
       curve: Curves.easeOutQuart,
     );
+
+    // Initialize water intake drawer animation controller
+    _waterDrawerAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _waterDrawerAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _waterDrawerAnimationController,
+      curve: Curves.easeInOut,
+    ));
 
     // Load cached data immediately for instant rendering
     _loadCachedDataFirst();
@@ -141,6 +165,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     // Start background sync service
     BackgroundSyncService.instance.startBackgroundSync();
 
+    // Initialize water intake and check for drawer trigger
+    await _initializeWaterIntake();
+
     // Check if we need to refresh data
     final needsRefresh = await CacheService.needsRefresh();
 
@@ -174,6 +201,91 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
       _initializeNotificationServices();
     });
+  }
+
+  /// Initialize water intake and check for drawer trigger
+  Future<void> _initializeWaterIntake() async {
+    try {
+      final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+      await waterProvider.initialize();
+
+      // Check if we should show the water intake drawer
+      _checkWaterIntakeDrawer();
+
+      // Set up periodic checks for water intake drawer
+      _startWaterIntakeTimer();
+    } catch (e) {
+      developer.log('❌ Error initializing water intake: $e', name: 'Dashboard');
+    }
+  }
+
+  void _checkWaterIntakeDrawer() {
+    final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+    final currentSlot = waterProvider.getCurrentIncompleteSlot();
+
+    if (currentSlot != null && !_showWaterIntakeDrawer) {
+      developer.log('🔔 Showing water intake drawer for slot: $currentSlot', name: 'Dashboard');
+
+      setState(() {
+        _currentWaterSlot = currentSlot;
+        _showWaterIntakeDrawer = true;
+      });
+
+      _waterDrawerAnimationController.forward();
+    }
+  }
+
+  void _startWaterIntakeTimer() {
+    // Check every 30 minutes for water intake drawer trigger
+    Future.delayed(const Duration(minutes: 30), () {
+      if (mounted) {
+        _checkWaterIntakeDrawer();
+        _startWaterIntakeTimer();
+      }
+    });
+  }
+
+  void _closeWaterIntakeDrawer() {
+    _waterDrawerAnimationController.reverse().then((_) {
+      if (mounted) {
+        setState(() {
+          _showWaterIntakeDrawer = false;
+          _currentWaterSlot = null;
+        });
+      }
+    });
+  }
+
+  void _onWaterAdded(double amount) {
+    // Refresh the fitness tracker section to update progress
+    setState(() {});
+
+    // Show success feedback
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
+            SizedBox(width: 8.w),
+            Text(
+              'Great! ${amount.toInt()}ml added to your daily intake',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        margin: EdgeInsets.all(16.w),
+        duration: const Duration(seconds: 3),
+      ),
+    );
   }
 
   /// Fetch fresh data in background without blocking UI
@@ -263,6 +375,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
     // Check for OAuth return
     _checkForRecentOAuthReturn();
+
+    // Check for water intake drawer
+    _checkWaterIntakeDrawer();
   }
 
   /// Pull to refresh functionality
@@ -438,6 +553,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
     _animationController.dispose();
+    _waterDrawerAnimationController.dispose();
     BackgroundSyncService.instance.stopBackgroundSync();
     super.dispose();
   }
@@ -1131,82 +1247,129 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF0F2F5),
-      body: RefreshIndicator(
-        onRefresh: _handleRefresh,
-        color: Color(0xFF0F67FE),
-        child: NestedScrollView(
-          headerSliverBuilder: (context, innerBoxIsScrolled) {
-            return [
-              SliverToBoxAdapter(
-                child: SafeArea(
-                  child: Column(
-                    children: [
-                      AppHeader(),
-                      // Show sync status indicator
-                      if (BackgroundSyncService.instance.isSyncing)
-                        Container(
-                          padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 12,
-                                height: 12,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 1.5,
-                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F67FE)),
+    return WaterIntakePopupManager(
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF0F2F5),
+        body: Stack(
+          children: [
+            // Main content
+            RefreshIndicator(
+              onRefresh: _handleRefresh,
+              color: const Color(0xFF0F67FE),
+              child: NestedScrollView(
+                headerSliverBuilder: (context, innerBoxIsScrolled) {
+                  return [
+                    SliverToBoxAdapter(
+                      child: SafeArea(
+                        child: Column(
+                          children: [
+                            AppHeader(),
+                            // Show sync status indicator
+                            if (BackgroundSyncService.instance.isSyncing)
+                              Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                child: Row(
+                                  children: [
+                                    SizedBox(
+                                      width: 12,
+                                      height: 12,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 1.5,
+                                        valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0F67FE)),
+                                      ),
+                                    ),
+                                    SizedBox(width: 8),
+                                    Text(
+                                      'Syncing data...',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12.sp,
+                                        fontWeight: FontWeight.w500,
+                                        color: const Color(0xFF1E293B),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              SizedBox(width: 8),
-                              Text(
-                                'Syncing data...',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  color: Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
+                          ],
                         ),
-                    ],
-                  ),
+                      ),
+                    ),
+                  ];
+                },
+                body: _isLoadingData && !_hasLoadedCachedData || _isCheckingConnection
+                    ? _buildLoadingState()
+                    : ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                  children: [
+                    const SizedBox(height: 20),
+                    HealthScoreCard(),
+                    const SizedBox(height: 20),
+                    const HealthMetricsSection(),
+                    const SizedBox(height: 20),
+                    const FitnessTrackerSection(),
+                    const SizedBox(height: 20),
+                  ],
                 ),
               ),
-            ];
+            ),
+
+            // Water Intake Drawer Overlay
+          //   if (_showWaterIntakeDrawer && _currentWaterSlot != null)
+          //     Positioned.fill(
+          //       child: AnimatedBuilder(
+          //         animation: _waterDrawerAnimation,
+          //         builder: (context, child) {
+          //           return Stack(
+          //             children: [
+          //               // Semi-transparent overlay
+          //               GestureDetector(
+          //                 onTap: () {
+          //                   // Don't allow dismissing by tapping overlay
+          //                   // User must interact with the drawer
+          //                 },
+          //                 child: Container(
+          //                   color: Colors.black.withOpacity(0.5 * _waterDrawerAnimation.value),
+          //                 ),
+          //               ),
+          //
+          //               // Drawer positioned at bottom
+          //               Positioned(
+          //                 bottom: 0,
+          //                 left: 0,
+          //                 right: 0,
+          //                 child: Transform.translate(
+          //                   offset: Offset(0, (1 - _waterDrawerAnimation.value) * 400),
+          //                   child: WaterIntakeDrawer(
+          //                     currentSlot: _currentWaterSlot!,
+          //                     onClose: _closeWaterIntakeDrawer,
+          //                     onWaterAdded: _onWaterAdded,
+          //                   ),
+          //                 ),
+          //               ),
+          //             ],
+          //           );
+          //         },
+          //       ),
+          //     ),
+        ],
+        ),
+        bottomNavigationBar: const BottomNavigation(),
+        floatingActionButton: FloatingActionButton(
+          onPressed: () {
+            if (_connectedWatchType == 'Manual') {
+              _showManualEntryDrawer();
+            } else if (_connectedWatchType == 'Fitbit') {
+              _fetchFitbitData();
+            }
           },
-          body: _isLoadingData && !_hasLoadedCachedData || _isCheckingConnection
-              ? _buildLoadingState()
-              : ListView(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
-            children: [
-              const SizedBox(height: 20),
-              HealthScoreCard(),
-              const SizedBox(height: 20),
-              const HealthMetricsSection(),
-              const SizedBox(height: 20),
-              const FitnessTrackerSection(),
-              const SizedBox(height: 20),
-            ],
+          backgroundColor: const Color(0xFF2563EB),
+          child: Icon(
+            _connectedWatchType == 'Manual' ? Icons.edit : Icons.refresh,
+            color: Colors.white,
           ),
         ),
+        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       ),
-      bottomNavigationBar: const BottomNavigation(),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          if (_connectedWatchType == 'Manual') {
-            _showManualEntryDrawer();
-          } else if (_connectedWatchType == 'Fitbit') {
-            _fetchFitbitData();
-          }
-        },
-        backgroundColor: const Color(0xFF2563EB),
-        child: Icon(
-          _connectedWatchType == 'Manual' ? Icons.edit : Icons.refresh,
-          color: Colors.white,
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
     );
   }
 
@@ -1217,7 +1380,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F67FE)),
+            valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0F67FE)),
           ),
           SizedBox(height: 16.h),
           Text(
@@ -1227,7 +1390,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             style: GoogleFonts.plusJakartaSans(
               fontSize: 16.sp,
               fontWeight: FontWeight.w500,
-              color: Color(0xFF1E293B),
+              color: const Color(0xFF1E293B),
             ),
           ),
         ],

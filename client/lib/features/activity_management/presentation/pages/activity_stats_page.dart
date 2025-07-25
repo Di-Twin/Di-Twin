@@ -25,7 +25,7 @@ class ActivityStatsPage extends StatelessWidget {
     final httpClient = http.Client();
     final apiClient = ApiClient(baseUrl: 'https://test-prod-f427.onrender.com', httpClient: httpClient);
     final connectionChecker = InternetConnectionChecker.createInstance();
-    final networkInfo = NetworkInfoImpl(connectionChecker);
+    final networkInfo = NetworkInfoImpl(connectionChecker: connectionChecker);
     final remoteDataSource = ActivityStatsRemoteDataSourceImpl(
       client: httpClient,
       baseUrl: 'https://test-prod-f427.onrender.com',

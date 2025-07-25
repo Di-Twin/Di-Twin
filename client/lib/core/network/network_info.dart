@@ -10,9 +10,9 @@ abstract class NetworkInfo {
 class NetworkInfoImpl implements NetworkInfo {
   final InternetConnectionChecker connectionChecker;
 
-  // Update constructor to use named parameters with default value
   NetworkInfoImpl({InternetConnectionChecker? connectionChecker})
-      : connectionChecker = connectionChecker ?? InternetConnectionChecker.createInstance();
+      : connectionChecker =
+            connectionChecker ?? InternetConnectionChecker.createInstance();
 
   @override
   Future<bool> get isConnected => connectionChecker.hasConnection;

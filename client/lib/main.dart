@@ -50,6 +50,7 @@ import 'package:client/features/food_management/data/datasources/food_remote_dat
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 import 'package:client/core/network/network_checker.dart';
 import 'dart:developer' as developer;
+import 'package:client/features/water_intake/data/providers/water_intake_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -198,6 +199,9 @@ void main() async {
         // Add SocketService provider
         provider.ChangeNotifierProvider<SocketService>(
           create: (context) => SocketService(),
+        ),
+        provider.ChangeNotifierProvider<WaterIntakeProvider>(
+          create: (context) => WaterIntakeProvider()..initialize(),
         ),
       ],
       child: ProviderScope(child: const MyApp()),
