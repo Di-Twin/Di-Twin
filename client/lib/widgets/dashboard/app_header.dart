@@ -110,51 +110,65 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Future<void> _fetchHealthScore() async {
-    if (widget.healthScore != null) {
-      if (mounted) {
-        setState(() {
-          _healthScore = widget.healthScore;
-        });
-      }
-      return;
+  if (widget.healthScore != null) {
+    debugPrint('[HealthScore] Using provided widget.healthScore: ${widget.healthScore}');
+    if (mounted) {
+      setState(() {
+        _healthScore = widget.healthScore;
+      });
     }
-    
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final accessToken = prefs.getString('access_token');
+    return;
+  }
 
-      if (accessToken == null) {
-        throw Exception('Access token not found');
-      }
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('access_token');
 
-      final response = await http.get(
-        Uri.parse('https://test-prod-f427.onrender.com/api/profiles'),
-        headers: {
-          'Authorization': 'Bearer $accessToken',
-        },
-      );
+    if (accessToken == null) {
+      throw Exception('[HealthScore] Access token not found in SharedPreferences');
+    }
 
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        final score = data['health_score'] ?? 0;
-        
-        if (mounted) {
-          setState(() {
-            _healthScore = score;
-          });
-        }
+    debugPrint('[HealthScore] Fetching health score from backend...');
+    final response = await http.get(
+      Uri.parse('https://test-prod-f427.onrender.com/api/profiles'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    debugPrint('[HealthScore] Response status: ${response.statusCode}');
+    debugPrint('[HealthScore] Raw response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      debugPrint('[HealthScore] Decoded JSON: $data');
+
+      if (data.containsKey('health_score')) {
+        debugPrint('[HealthScore] Found health_score key with value: ${data['health_score']}');
       } else {
-        throw Exception('Failed to fetch health score: ${response.statusCode}');
+        debugPrint('[HealthScore] health_score key NOT FOUND in response.');
       }
-    } catch (e) {
-      debugPrint('Error fetching health score: $e');
+
+      final score = data['data']['health_score'] ?? 0;
+
       if (mounted) {
         setState(() {
-          _healthScore = 88; // Default fallback value
+          _healthScore = score;
         });
       }
+    } else {
+      throw Exception('[HealthScore] Failed with status: ${response.statusCode}');
+    }
+  } catch (e) {
+    debugPrint('[HealthScore] Error fetching health score: $e');
+    if (mounted) {
+      setState(() {
+        _healthScore = 88; // Default fallback value
+      });
     }
   }
+}
+
 
   String _getFormattedDate() {
     return DateFormat('EEE, d MMM y').format(DateTime.now());
