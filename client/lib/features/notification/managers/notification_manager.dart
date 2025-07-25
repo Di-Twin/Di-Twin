@@ -1,9 +1,7 @@
 import 'dart:convert';
-import 'dart:io';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-import 'package:overlay_support/overlay_support.dart';
 import 'package:uuid/uuid.dart';
 
 class NotificationManager {
@@ -229,8 +227,6 @@ class NotificationManager {
         channelId = foodLogChannelId;
       }
 
-      
-
       // Create notification details
       final NotificationDetails platformChannelSpecifics = NotificationDetails(
         android: AndroidNotificationDetails(
@@ -246,7 +242,6 @@ class NotificationManager {
           priority: Priority.high,
           showWhen: true,
           color: getNotificationColor(notification.type),
-        
         ),
         iOS: DarwinNotificationDetails(
           presentAlert: true,
@@ -259,6 +254,7 @@ class NotificationManager {
                   : null,
         ),
       );
+      
       // Show notification
       await _notificationsPlugin.show(
         notification.id.hashCode,
@@ -296,72 +292,10 @@ class NotificationManager {
         sound: message.data['sound'],
       );
 
-      // Show only system notification
+      // Show system notification
       showSystemNotification(notification);
     } catch (e) {
       debugPrint('Error processing Firebase message: $e');
-    }
-  }
-
-  // Process WebSocket message
-  static void processWebSocketMessage(dynamic message) {
-    try {
-      Map<String, dynamic> data;
-
-      if (message is String) {
-        try {
-          data = json.decode(message);
-        } catch (e) {
-          debugPrint('Error decoding WebSocket message: $e');
-          return;
-        }
-      } else if (message is Map) {
-        data = Map<String, dynamic>.from(message);
-      } else {
-        debugPrint(
-          'Unsupported WebSocket message format: ${message.runtimeType}',
-        );
-        return;
-      }
-
-      // Generate a consistent ID for deduplication
-      final messageId = data['id'] ?? const Uuid().v4().toString();
-      final dedupeId = 'ws_$messageId';
-
-      // Skip if this is a duplicate
-      if (_isDuplicate(dedupeId)) {
-        debugPrint('Skipping duplicate WebSocket message: $messageId');
-        return;
-      }
-
-      // Extract timestamp and convert to DateTime
-      DateTime timestamp;
-      try {
-        if (data['timestamp'] != null) {
-          timestamp = DateTime.parse(data['timestamp']);
-        } else {
-          timestamp = DateTime.now();
-        }
-      } catch (e) {
-        debugPrint('Error parsing timestamp: $e');
-        timestamp = DateTime.now();
-      }
-
-      final notification = NotificationModel(
-        id: messageId,
-        title: data['title'] ?? 'New Notification',
-        message: data['message'] ?? '',
-        type: data['type'] ?? 'general',
-        timestamp: timestamp,
-        payload: json.encode(data),
-        imageUrl: data['imageUrl'],
-        sound: data['sound'],
-      );
-
-      // Show only system notification
-      showSystemNotification(notification);
-    } catch (e) {
-      debugPrint('Error processing WebSocket message: $e');
     }
   }
 
@@ -442,4 +376,32 @@ class NotificationModel {
     this.imageUrl,
     this.sound,
   });
+
+  factory NotificationModel.fromJson(Map<String, dynamic> json) {
+    return NotificationModel(
+      id: json['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      type: json['type'] ?? 'general',
+      title: json['title'] ?? 'Notification',
+      message: json['message'] ?? '',
+      timestamp: json['timestamp'] != null 
+          ? DateTime.parse(json['timestamp']) 
+          : DateTime.now(),
+      payload: json['payload'],
+      imageUrl: json['imageUrl'],
+      sound: json['sound'],
+    );
+  }
+  
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'type': type,
+      'title': title,
+      'message': message,
+      'timestamp': timestamp.toIso8601String(),
+      'payload': payload,
+      'imageUrl': imageUrl,
+      'sound': sound,
+    };
+  }
 }
