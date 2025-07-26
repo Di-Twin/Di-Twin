@@ -222,13 +222,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   void _checkWaterIntakeDrawer() {
     final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+
+    // Get current time and check if it's within active hours (7 AM to 10 PM)
+    final now = DateTime.now();
+    if (now.hour < 7 || now.hour > 22) {
+      developer.log('⏰ Outside active hours, not showing water drawer', name: 'Dashboard');
+      return;
+    }
+
+    // Check if goal is already achieved
+    if (waterProvider.todayIntake.progressPercentage >= 100) {
+      developer.log('🎉 Water goal already achieved, not showing drawer', name: 'Dashboard');
+      return;
+    }
+
+    // Get current incomplete slot
     final currentSlot = waterProvider.getCurrentIncompleteSlot();
 
-    if (currentSlot != null && !_showWaterIntakeDrawer) {
+    // Check if enough time has passed since last intake
+    final lastIntakeTime = waterProvider.todayIntake.entries.isNotEmpty
+        ? waterProvider.todayIntake.entries.last.timestamp
+        : null;
+
+    bool shouldShow = false;
+
+    if (currentSlot != null) {
+      // If there's a current slot that needs completion
+      shouldShow = true;
+      developer.log('📋 Current incomplete slot: $currentSlot', name: 'Dashboard');
+    } else if (lastIntakeTime != null) {
+      // Check if it's been more than 2 hours since last intake
+      final timeSinceLastIntake = now.difference(lastIntakeTime);
+      if (timeSinceLastIntake.inHours >= 2) {
+        shouldShow = true;
+        developer.log('⏱️ 2+ hours since last intake, showing reminder', name: 'Dashboard');
+      }
+    } else if (waterProvider.todayIntake.totalAmount == 0 && now.hour >= 9) {
+      // No water logged today and it's past 9 AM
+      shouldShow = true;
+      developer.log('🌅 No water logged today, showing morning reminder', name: 'Dashboard');
+    }
+
+    if (shouldShow && !_showWaterIntakeDrawer) {
       developer.log('🔔 Showing water intake drawer for slot: $currentSlot', name: 'Dashboard');
 
       setState(() {
-        _currentWaterSlot = currentSlot;
+        _currentWaterSlot = currentSlot ?? 'Hydration Reminder';
         _showWaterIntakeDrawer = true;
       });
 
@@ -1311,44 +1350,80 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             ),
 
             // Water Intake Drawer Overlay
-          //   if (_showWaterIntakeDrawer && _currentWaterSlot != null)
-          //     Positioned.fill(
-          //       child: AnimatedBuilder(
-          //         animation: _waterDrawerAnimation,
-          //         builder: (context, child) {
-          //           return Stack(
-          //             children: [
-          //               // Semi-transparent overlay
-          //               GestureDetector(
-          //                 onTap: () {
-          //                   // Don't allow dismissing by tapping overlay
-          //                   // User must interact with the drawer
-          //                 },
-          //                 child: Container(
-          //                   color: Colors.black.withOpacity(0.5 * _waterDrawerAnimation.value),
-          //                 ),
-          //               ),
-          //
-          //               // Drawer positioned at bottom
-          //               Positioned(
-          //                 bottom: 0,
-          //                 left: 0,
-          //                 right: 0,
-          //                 child: Transform.translate(
-          //                   offset: Offset(0, (1 - _waterDrawerAnimation.value) * 400),
-          //                   child: WaterIntakeDrawer(
-          //                     currentSlot: _currentWaterSlot!,
-          //                     onClose: _closeWaterIntakeDrawer,
-          //                     onWaterAdded: _onWaterAdded,
-          //                   ),
-          //                 ),
-          //               ),
-          //             ],
-          //           );
-          //         },
-          //       ),
-          //     ),
-        ],
+            if (_showWaterIntakeDrawer && _currentWaterSlot != null)
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _waterDrawerAnimation,
+                  builder: (context, child) {
+                    return Stack(
+                      children: [
+                        // Semi-transparent overlay
+                        GestureDetector(
+                          onTap: () {
+                            // Show confirmation dialog when tapping overlay
+                            showDialog(
+                              context: context,
+                              builder: (context) => AlertDialog(
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16.r),
+                                ),
+                                title: Text(
+                                  'Skip Hydration?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 18.sp,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                content: Text(
+                                  'Are you sure you want to skip your hydration reminder?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                                actions: [
+                                  TextButton(
+                                    onPressed: () => Navigator.of(context).pop(),
+                                    child: Text('Stay & Hydrate'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () {
+                                      Navigator.of(context).pop();
+                                      _closeWaterIntakeDrawer();
+                                    },
+                                    child: Text('Skip for Now'),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
+                          child: Container(
+                            color: Colors.black.withOpacity(0.5 * _waterDrawerAnimation.value),
+                          ),
+                        ),
+
+                        // Drawer positioned at bottom with proper sizing
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            constraints: BoxConstraints(
+                              maxHeight: MediaQuery.of(context).size.height * 0.7,
+                            ),
+                            child: WaterIntakeDrawer(
+                              currentSlot: _currentWaterSlot!,
+                              onClose: _closeWaterIntakeDrawer,
+                              onWaterAdded: _onWaterAdded,
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+          ],
         ),
         bottomNavigationBar: const BottomNavigation(),
         floatingActionButton: FloatingActionButton(

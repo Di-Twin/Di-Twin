@@ -23,6 +23,9 @@ class WaterStatsCards extends StatelessWidget {
                     unit: 'days',
                     icon: Icons.local_fire_department,
                     color: const Color(0xFFEF4444),
+                    subtitle: provider.currentStreak > 0
+                        ? 'Keep it up!'
+                        : 'Start today!',
                   ),
                 ),
                 SizedBox(width: 16.w),
@@ -33,6 +36,7 @@ class WaterStatsCards extends StatelessWidget {
                     unit: 'ml',
                     icon: Icons.trending_up,
                     color: const Color(0xFF10B981),
+                    subtitle: 'Per day',
                   ),
                 ),
               ],
@@ -50,16 +54,18 @@ class WaterStatsCards extends StatelessWidget {
                     unit: 'ml',
                     icon: Icons.flag,
                     color: const Color(0xFF3B82F6),
+                    subtitle: 'Target',
                   ),
                 ),
                 SizedBox(width: 16.w),
                 Expanded(
                   child: _buildStatCard(
-                    title: 'Completion Rate',
+                    title: 'Weekly Rate',
                     value: '${provider.weeklyCompletionRate.toInt()}',
                     unit: '%',
                     icon: Icons.check_circle,
                     color: const Color(0xFF8B5CF6),
+                    subtitle: 'Completion',
                   ),
                 ),
               ],
@@ -76,12 +82,20 @@ class WaterStatsCards extends StatelessWidget {
     required String unit,
     required IconData icon,
     required Color color,
+    String? subtitle,
   }) {
     return Container(
       padding: EdgeInsets.all(16.w),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -133,6 +147,18 @@ class WaterStatsCards extends StatelessWidget {
               color: const Color(0xFF64748B),
             ),
           ),
+
+          if (subtitle != null) ...[
+            SizedBox(height: 2.h),
+            Text(
+              subtitle,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w400,
+                color: color.withOpacity(0.7),
+              ),
+            ),
+          ],
         ],
       ),
     );

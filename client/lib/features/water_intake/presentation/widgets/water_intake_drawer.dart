@@ -22,11 +22,18 @@ class WaterIntakeDrawer extends StatefulWidget {
 
 class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProviderStateMixin {
   late AnimationController _slideController;
+  late AnimationController _dragController;
   late Animation<Offset> _slideAnimation;
+  late Animation<double> _dragAnimation;
 
   double _selectedAmount = 250.0;
-  final TextEditingController _customAmountController = TextEditingController();
   bool _isCustomAmount = false;
+  bool _isSubmitting = false;
+
+  // Drag variables
+  double _dragOffset = 0.0;
+  bool _isDragging = false;
+  final double _dragThreshold = 100.0;
 
   final List<double> _quickAmounts = [150, 250, 350, 500];
 
@@ -39,6 +46,11 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
       vsync: this,
     );
 
+    _dragController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
@@ -47,14 +59,226 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
       curve: Curves.easeOutCubic,
     ));
 
+    _dragAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _dragController,
+      curve: Curves.easeOut,
+    ));
+
     _slideController.forward();
   }
 
   @override
   void dispose() {
     _slideController.dispose();
-    _customAmountController.dispose();
+    _dragController.dispose();
     super.dispose();
+  }
+
+  void _handleDragStart(DragStartDetails details) {
+    setState(() {
+      _isDragging = true;
+      _dragOffset = 0.0;
+    });
+  }
+
+  void _handleDragUpdate(DragUpdateDetails details) {
+    if (!_isDragging) return;
+
+    setState(() {
+      _dragOffset += details.delta.dy;
+      if (_dragOffset < 0) _dragOffset = 0;
+    });
+  }
+
+  void _handleDragEnd(DragEndDetails details) {
+    if (!_isDragging) return;
+
+    setState(() {
+      _isDragging = false;
+    });
+
+    if (_dragOffset > _dragThreshold) {
+      _showCloseConfirmation();
+    } else {
+      _dragController.forward().then((_) {
+        setState(() {
+          _dragOffset = 0.0;
+        });
+        _dragController.reset();
+      });
+    }
+  }
+
+  void _showCloseConfirmation() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (BuildContext context) {
+        return Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
+          ),
+          child: Padding(
+            padding: EdgeInsets.all(24.w),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40.w,
+                  height: 4.h,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2E8F0),
+                    borderRadius: BorderRadius.circular(2.r),
+                  ),
+                ),
+
+                SizedBox(height: 24.h),
+
+                Container(
+                  width: 64.w,
+                  height: 64.w,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(32.r),
+                  ),
+                  child: Icon(
+                    Icons.warning_amber_rounded,
+                    color: const Color(0xFFF59E0B),
+                    size: 32.sp,
+                  ),
+                ),
+
+                SizedBox(height: 20.h),
+
+                Text(
+                  'Skip Hydration?',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 20.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+
+                SizedBox(height: 8.h),
+
+                Text(
+                  'Are you sure you want to skip your hydration reminder?',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+
+                SizedBox(height: 16.h),
+
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFECFDF5),
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(
+                      color: const Color(0xFF10B981).withOpacity(0.2),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.lightbulb_outline,
+                        color: const Color(0xFF10B981),
+                        size: 20.sp,
+                      ),
+                      SizedBox(width: 12.w),
+                      Expanded(
+                        child: Text(
+                          'Staying hydrated helps maintain your energy and focus throughout the day.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF10B981),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 24.h),
+
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          _closeDrawer();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          side: const BorderSide(color: Color(0xFFE2E8F0)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Skip for Now',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () {
+                          Navigator.of(context).pop();
+                          setState(() {
+                            _dragOffset = 0.0;
+                          });
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF10B981),
+                          foregroundColor: Colors.white,
+                          padding: EdgeInsets.symmetric(vertical: 14.h),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12.r),
+                          ),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Stay & Hydrate',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+
+                SizedBox(height: MediaQuery.of(context).viewInsets.bottom),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _closeDrawer() {
+    _slideController.reverse().then((_) {
+      widget.onClose();
+    });
   }
 
   Map<String, dynamic> _getSlotInfo() {
@@ -67,10 +291,18 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
           'icon': '🌅',
           'message': 'Start your day with proper hydration!',
         };
+      case 'Mid-Morning':
+        return {
+          'name': 'Mid-Morning Boost',
+          'time': '10:00 - 12:00 PM',
+          'color': const Color(0xFF06B6D4),
+          'icon': '☕',
+          'message': 'Keep your energy levels up!',
+        };
       case 'Lunch':
         return {
           'name': 'Lunch Time',
-          'time': '11:00 AM - 2:00 PM',
+          'time': '12:00 - 2:00 PM',
           'color': const Color(0xFF10B981),
           'icon': '🍽️',
           'message': 'Stay hydrated during your meal time!',
@@ -86,14 +318,14 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
       case 'Evening':
         return {
           'name': 'Evening Wind Down',
-          'time': '6:00 - 9:00 PM',
+          'time': '6:00 - 10:00 PM',
           'color': const Color(0xFF8B5CF6),
           'icon': '🌙',
           'message': 'Wind down with some hydration!',
         };
       default:
         return {
-          'name': 'Hydration Time',
+          'name': 'Hydration Reminder',
           'time': 'Now',
           'color': const Color(0xFF06B6D4),
           'icon': '💧',
@@ -103,139 +335,447 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
   }
 
   Future<void> _submitWaterIntake() async {
-    final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+    if (_isSubmitting) return;
 
-    final amount = _isCustomAmount
-        ? double.tryParse(_customAmountController.text) ?? 0
-        : _selectedAmount;
+    final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+    final amount = _selectedAmount;
 
     if (amount <= 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Please enter a valid amount'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+      _showErrorSnackBar('Please enter a valid amount');
       return;
     }
 
-    final success = await waterProvider.addWaterIntake(amount, slot: widget.currentSlot);
+    setState(() {
+      _isSubmitting = true;
+    });
 
-    if (success) {
-      widget.onWaterAdded(amount);
-      widget.onClose();
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to add water intake. Please try again.'),
-          backgroundColor: Colors.red,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+    try {
+      final success = await waterProvider.addWaterIntake(amount, slot: widget.currentSlot);
+
+      if (success) {
+        widget.onWaterAdded(amount);
+        _showSuccessAnimation(amount);
+
+        await Future.delayed(const Duration(milliseconds: 1500));
+        _closeDrawer();
+      } else {
+        _showErrorSnackBar('Failed to add water intake. Please try again.');
+      }
+    } catch (e) {
+      _showErrorSnackBar('Error: ${e.toString()}');
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
+  }
+
+  void _showSuccessAnimation(double amount) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Container(
+              padding: EdgeInsets.all(4.r),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.2),
+                borderRadius: BorderRadius.circular(12.r),
+              ),
+              child: Icon(
+                Icons.check_circle,
+                color: Colors.white,
+                size: 20.sp,
+              ),
+            ),
+            SizedBox(width: 12.w),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Great job! 🎉',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    '${amount.toInt()}ml logged successfully',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white.withOpacity(0.9),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFF10B981),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        margin: EdgeInsets.all(16.w),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            Icon(Icons.error_outline, color: Colors.white, size: 20.sp),
+            SizedBox(width: 8.w),
+            Expanded(
+              child: Text(
+                message,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: const Color(0xFFEF4444),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12.r),
+        ),
+        margin: EdgeInsets.all(16.w),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  Widget _buildQuickOption(String label, double value) {
+    final isSelected = _selectedAmount == value;
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedAmount = value;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
+          border: Border.all(
+            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
+          ),
+          borderRadius: BorderRadius.circular(8.r),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: isSelected ? Colors.white : const Color(0xFF64748B),
+          ),
+        ),
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     final slotInfo = _getSlotInfo();
 
-    return SlideTransition(
-      position: _slideAnimation,
-      child: Container(
-        height: MediaQuery.of(context).size.height * 0.6,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.only(
-            topLeft: Radius.circular(24.r),
-            topRight: Radius.circular(24.r),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.1),
-              blurRadius: 20,
-              spreadRadius: 0,
-              offset: const Offset(0, -4),
+    return GestureDetector(
+      onPanStart: _handleDragStart,
+      onPanUpdate: _handleDragUpdate,
+      onPanEnd: _handleDragEnd,
+      child: AnimatedBuilder(
+        animation: _slideAnimation,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: Offset(
+              _slideAnimation.value.dx * MediaQuery.of(context).size.width,
+              _slideAnimation.value.dy * MediaQuery.of(context).size.height + _dragOffset,
             ),
-          ],
-        ),
-        child: Column(
-          children: [
-            // Handle bar
-            Container(
-              margin: EdgeInsets.only(top: 12.h),
-              width: 40.w,
-              height: 4.h,
-              decoration: BoxDecoration(
-                color: Colors.grey[300],
-                borderRadius: BorderRadius.circular(2.r),
+            child: Container(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.of(context).size.height * 0.5, // Reduced from 0.6
               ),
-            ),
-
-            // Header with gradient
-            Container(
-              margin: EdgeInsets.all(20.w),
-              padding: EdgeInsets.all(20.w),
               decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [
-                    slotInfo['color'].withOpacity(0.1),
-                    slotInfo['color'].withOpacity(0.05),
-                  ],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24.r),
+                  topRight: Radius.circular(24.r),
                 ),
-                borderRadius: BorderRadius.circular(16.r),
-                border: Border.all(
-                  color: slotInfo['color'].withOpacity(0.2),
-                  width: 1,
-                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.15),
+                    blurRadius: 20,
+                    spreadRadius: 0,
+                    offset: const Offset(0, -4),
+                  ),
+                ],
               ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Drag handle
                   Container(
-                    width: 48.w,
-                    height: 48.w,
-                    decoration: BoxDecoration(
-                      color: slotInfo['color'].withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(12.r),
+                    margin: EdgeInsets.only(top: 12.h),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 40.w,
+                          height: 4.h,
+                          decoration: BoxDecoration(
+                            color: _isDragging
+                                ? slotInfo['color'].withOpacity(0.6)
+                                : Colors.grey[300],
+                            borderRadius: BorderRadius.circular(2.r),
+                          ),
+                        ),
+                        if (_isDragging && _dragOffset > 20)
+                          Padding(
+                            padding: EdgeInsets.only(top: 8.h),
+                            child: Text(
+                              _dragOffset > _dragThreshold
+                                  ? 'Release to skip'
+                                  : 'Drag down to skip',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: _dragOffset > _dragThreshold
+                                    ? const Color(0xFFF59E0B)
+                                    : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
-                    child: Center(
-                      child: Text(
-                        slotInfo['icon'],
-                        style: TextStyle(fontSize: 24.sp),
+                  ),
+
+                  // Header - more compact
+                  Container(
+                    margin: EdgeInsets.fromLTRB(16.w, 12.h, 16.w, 8.h),
+                    padding: EdgeInsets.all(12.w),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          slotInfo['color'].withOpacity(0.1),
+                          slotInfo['color'].withOpacity(0.05),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(
+                        color: slotInfo['color'].withOpacity(0.2),
+                        width: 1,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 36.w,
+                          height: 36.w,
+                          decoration: BoxDecoration(
+                            color: slotInfo['color'].withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Center(
+                            child: Text(
+                              slotInfo['icon'],
+                              style: TextStyle(fontSize: 18.sp),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                slotInfo['name'],
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                              ),
+                              Text(
+                                slotInfo['message'],
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: slotInfo['color'],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Content area
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'How much water did you drink?',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1E293B),
+                            ),
+                          ),
+                          SizedBox(height: 12.h),
+
+                          // Amount display similar to goal setting
+                          Center(
+                            child: Column(
+                              children: [
+                                Text(
+                                  '${_selectedAmount.toInt()}ml',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 32.sp,
+                                    fontWeight: FontWeight.w800,
+                                    color: slotInfo['color'],
+                                  ),
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  '${(_selectedAmount / 250).toStringAsFixed(1)} glasses',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          SizedBox(height: 16.h),
+
+                          // Slider similar to goal setting
+                          SliderTheme(
+                            data: SliderTheme.of(context).copyWith(
+                              activeTrackColor: slotInfo['color'],
+                              inactiveTrackColor: const Color(0xFFE5E7EB),
+                              thumbColor: slotInfo['color'],
+                              overlayColor: slotInfo['color'].withOpacity(0.1),
+                              trackHeight: 4,
+                              thumbShape: const RoundSliderThumbShape(
+                                enabledThumbRadius: 12,
+                              ),
+                            ),
+                            child: Slider(
+                              value: _selectedAmount,
+                              min: 50,
+                              max: 1000,
+                              divisions: 19,
+                              onChanged: (value) {
+                                setState(() {
+                                  _selectedAmount = value;
+                                });
+                              },
+                            ),
+                          ),
+
+                          // Quick options similar to goal setting
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceAround,
+                            children: [
+                              _buildQuickOption('150ml', 150),
+                              _buildQuickOption('250ml', 250),
+                              _buildQuickOption('350ml', 350),
+                              _buildQuickOption('500ml', 500),
+                            ],
+                          ),
+
+                          SizedBox(height: 8.h),
+                        ],
                       ),
                     ),
                   ),
-                  SizedBox(width: 16.w),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+
+                  // Action buttons
+                  Container(
+                    padding: EdgeInsets.all(16.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        top: BorderSide(
+                          color: Colors.grey[200]!,
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          slotInfo['name'],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 18.sp,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1E293B),
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: _showCloseConfirmation,
+                            style: OutlinedButton.styleFrom(
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              side: BorderSide(
+                                color: Colors.grey[300]!,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                            ),
+                            child: Text(
+                              'Skip',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
                           ),
                         ),
-                        SizedBox(height: 4.h),
-                        Text(
-                          slotInfo['time'],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14.sp,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                        SizedBox(height: 8.h),
-                        Text(
-                          slotInfo['message'],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12.sp,
-                            fontWeight: FontWeight.w500,
-                            color: slotInfo['color'],
+                        SizedBox(width: 10.w),
+                        Expanded(
+                          flex: 2,
+                          child: ElevatedButton(
+                            onPressed: _isSubmitting ? null : _submitWaterIntake,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: slotInfo['color'],
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(vertical: 14.h),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12.r),
+                              ),
+                              elevation: 0,
+                            ),
+                            child: _isSubmitting
+                                ? SizedBox(
+                              width: 18.w,
+                              height: 18.w,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  Colors.white,
+                                ),
+                              ),
+                            )
+                                : Text(
+                              'Add Water Intake',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
                           ),
                         ),
                       ],
@@ -244,244 +784,8 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                 ],
               ),
             ),
-
-            // Amount selection
-            Expanded(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: 20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'How much water did you drink?',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF1E293B),
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-
-                    // Quick amount buttons
-                    if (!_isCustomAmount) ...[
-                      Wrap(
-                        spacing: 12.w,
-                        runSpacing: 12.h,
-                        children: _quickAmounts.map((amount) {
-                          final isSelected = _selectedAmount == amount;
-                          return GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _selectedAmount = amount;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 20.w,
-                                vertical: 12.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: isSelected
-                                    ? slotInfo['color']
-                                    : Colors.grey[100],
-                                borderRadius: BorderRadius.circular(12.r),
-                                border: Border.all(
-                                  color: isSelected
-                                      ? slotInfo['color']
-                                      : Colors.grey[300]!,
-                                  width: 1.5,
-                                ),
-                              ),
-                              child: Text(
-                                '${amount.toInt()}ml',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w600,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : const Color(0xFF64748B),
-                                ),
-                              ),
-                            ),
-                          );
-                        }).toList(),
-                      ),
-                      SizedBox(height: 16.h),
-
-                      // Custom amount toggle
-                      GestureDetector(
-                        onTap: () {
-                          setState(() {
-                            _isCustomAmount = true;
-                          });
-                        },
-                        child: Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 16.w,
-                            vertical: 12.h,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[50],
-                            borderRadius: BorderRadius.circular(12.r),
-                            border: Border.all(
-                              color: Colors.grey[300]!,
-                              width: 1,
-                            ),
-                          ),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                Icons.edit,
-                                size: 16.sp,
-                                color: const Color(0xFF64748B),
-                              ),
-                              SizedBox(width: 8.w),
-                              Text(
-                                'Enter custom amount',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF64748B),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-
-                    // Custom amount input
-                    if (_isCustomAmount) ...[
-                      Container(
-                        padding: EdgeInsets.all(16.w),
-                        decoration: BoxDecoration(
-                          color: Colors.grey[50],
-                          borderRadius: BorderRadius.circular(12.r),
-                          border: Border.all(
-                            color: Colors.grey[300]!,
-                            width: 1,
-                          ),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Custom Amount (ml)',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF1E293B),
-                              ),
-                            ),
-                            SizedBox(height: 8.h),
-                            TextField(
-                              controller: _customAmountController,
-                              keyboardType: TextInputType.number,
-                              decoration: InputDecoration(
-                                hintText: 'Enter amount in ml',
-                                hintStyle: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14.sp,
-                                  color: const Color(0xFF94A3B8),
-                                ),
-                                border: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  borderSide: BorderSide(
-                                    color: Colors.grey[300]!,
-                                  ),
-                                ),
-                                focusedBorder: OutlineInputBorder(
-                                  borderRadius: BorderRadius.circular(8.r),
-                                  borderSide: BorderSide(
-                                    color: slotInfo['color'],
-                                    width: 2,
-                                  ),
-                                ),
-                                contentPadding: EdgeInsets.symmetric(
-                                  horizontal: 12.w,
-                                  vertical: 12.h,
-                                ),
-                              ),
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF1E293B),
-                              ),
-                            ),
-                            SizedBox(height: 12.h),
-                            GestureDetector(
-                              onTap: () {
-                                setState(() {
-                                  _isCustomAmount = false;
-                                  _customAmountController.clear();
-                                });
-                              },
-                              child: Text(
-                                'Back to quick amounts',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w500,
-                                  color: slotInfo['color'],
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            ),
-
-            // Action buttons
-            Padding(
-              padding: EdgeInsets.all(20.w),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Consumer<WaterIntakeProvider>(
-                      builder: (context, waterProvider, child) {
-                        return ElevatedButton(
-                          onPressed: waterProvider.isSubmitting
-                              ? null
-                              : _submitWaterIntake,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: slotInfo['color'],
-                            foregroundColor: Colors.white,
-                            padding: EdgeInsets.symmetric(vertical: 16.h),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12.r),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: waterProvider.isSubmitting
-                              ? SizedBox(
-                            width: 20.w,
-                            height: 20.w,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                Colors.white,
-                              ),
-                            ),
-                          )
-                              : Text(
-                            'Add Water Intake',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16.sp,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }

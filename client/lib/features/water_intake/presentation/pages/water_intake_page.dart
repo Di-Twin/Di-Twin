@@ -8,6 +8,7 @@ import '../widgets/goal_setting_sheet.dart';
 import '../widgets/water_stats_cards.dart';
 import '../widgets/water_progress_display.dart';
 import '../widgets/quick_add_buttons.dart';
+import '../widgets/monthly_insights_card.dart';
 
 class WaterIntakePage extends StatefulWidget {
   const WaterIntakePage({super.key});
@@ -64,11 +65,19 @@ class _WaterIntakePageState extends State<WaterIntakePage> {
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(
+        child: CircularProgressIndicator(
+          color: Color(0xFF0EA5E9),
+        ),
+      )
           : Consumer<WaterIntakeProvider>(
         builder: (context, provider, child) {
           final todayIntake = provider.todayIntake;
           final progressPercentage = provider.progressPercentage;
+
+          if (provider.error != null) {
+            return _buildErrorState(provider.error!);
+          }
 
           return RefreshIndicator(
             onRefresh: _handleRefresh,
@@ -81,9 +90,9 @@ class _WaterIntakePageState extends State<WaterIntakePage> {
                   // Custom header with progress display
                   _buildCustomHeader(provider, progressPercentage),
 
-                  SizedBox(height: 24.h),
+                  SizedBox(height: 50.h),
 
-                  // Quick Add Buttons (replacing daily slots)
+                  // Quick Add Buttons
                   Padding(
                     padding: EdgeInsets.symmetric(horizontal: 20.w),
                     child: const QuickAddButtons(),
@@ -99,8 +108,11 @@ class _WaterIntakePageState extends State<WaterIntakePage> {
 
                   SizedBox(height: 24.h),
 
-                  // Monthly Progress Card
-                  _buildMonthlyProgressCard(provider),
+                  // Monthly Insights Card
+                  Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 20.w),
+                    child: const MonthlyInsightsCard(),
+                  ),
 
                   SizedBox(height: 100.h), // Bottom padding
                 ],
@@ -108,6 +120,64 @@ class _WaterIntakePageState extends State<WaterIntakePage> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String error) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(20.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.sp,
+              color: const Color(0xFFEF4444),
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Something went wrong',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              error,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                color: const Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 24.h),
+            ElevatedButton(
+              onPressed: _handleRefresh,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF0EA5E9),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(
+                  horizontal: 24.w,
+                  vertical: 12.h,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+              ),
+              child: Text(
+                'Try Again',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -283,108 +353,16 @@ class _WaterIntakePageState extends State<WaterIntakePage> {
 
   String _getBadgeText(double progressPercentage) {
     if (progressPercentage >= 100) {
-      return 'Goal Achieved!';
+      return 'Goal Achieved! 🎉';
     } else if (progressPercentage >= 75) {
-      return 'Almost There';
+      return 'Almost There! 💪';
     } else if (progressPercentage >= 50) {
-      return 'Good Progress';
+      return 'Good Progress 👍';
     } else if (progressPercentage >= 25) {
-      return 'Getting Started';
+      return 'Getting Started 🌱';
     } else {
-      return 'Let\'s Hydrate';
+      return 'Let\'s Hydrate! 💧';
     }
-  }
-
-  Widget _buildMonthlyProgressCard(WaterIntakeProvider provider) {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 20.w),
-      child: Container(
-        padding: EdgeInsets.all(20.w),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20.r),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  padding: EdgeInsets.all(12.r),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF0EA5E9).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(12.r),
-                  ),
-                  child: Icon(
-                    Icons.water_drop,
-                    color: const Color(0xFF0EA5E9),
-                    size: 24.sp,
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Monthly Hydration',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 18.sp,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1E293B),
-                        ),
-                      ),
-                      Text(
-                        'Daily Average',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFF64748B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text(
-                      '${provider.monthlyAverage.toInt()}ml',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFF0EA5E9),
-                      ),
-                    ),
-                    Text(
-                      'avg',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 12.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF64748B),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            SizedBox(height: 16.h),
-            Text(
-              provider.missedDays > 0
-                  ? '${provider.missedDays} missed days'
-                  : 'Perfect month!',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: provider.missedDays > 0
-                    ? const Color(0xFFEF4444)
-                    : const Color(0xFF10B981),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
   }
 
   @override

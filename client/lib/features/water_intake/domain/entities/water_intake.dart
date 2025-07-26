@@ -12,6 +12,8 @@ class WaterIntake {
   });
 
   double get progressPercentage => (totalAmount / goalAmount * 100).clamp(0, 100);
+  double get remainingAmount => (goalAmount - totalAmount).clamp(0, goalAmount);
+  bool get isGoalAchieved => totalAmount >= goalAmount;
 
   WaterIntake copyWith({
     DateTime? date,

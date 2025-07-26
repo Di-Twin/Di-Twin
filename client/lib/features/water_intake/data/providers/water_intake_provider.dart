@@ -308,6 +308,7 @@ class WaterIntakeProvider extends ChangeNotifier {
         // Update dashboard data for fitness tracker
         _dashboardData = data;
 
+        // Parse the API response according to the provided format
         _todayIntake = WaterIntake(
           date: DateTime.parse(data['date'] ?? DateTime.now().toIso8601String()),
           totalAmount: (data['total_water_taken'] ?? 0).toDouble(),
@@ -323,9 +324,10 @@ class WaterIntakeProvider extends ChangeNotifier {
           ],
         );
 
+        // Update stats from API response
         _currentStreak = data['streak'] ?? 0;
         _weeklyAverage = (data['weekly_avg'] ?? 0).toDouble();
-        _weeklyCompletionRate = (data['weekly_completion_rate'] ?? 0).toDouble();
+        _weeklyCompletionRate = ((data['weekly_completion_rate'] ?? 0) * 100).toDouble();
 
         // Regenerate slots if goal changed
         if (_dailySlots.isEmpty || _todayIntake.goalAmount != (await _getStoredGoal())) {
@@ -348,13 +350,17 @@ class WaterIntakeProvider extends ChangeNotifier {
 
         // Set default dashboard data
         _dashboardData = {
+          'date': DateTime.now().toIso8601String().split('T')[0],
           'total_water_taken': 0,
           'target_water_ml': _todayIntake.goalAmount,
-          'date': DateTime.now().toIso8601String(),
           'streak': 0,
           'weekly_avg': 0,
           'weekly_completion_rate': 0,
         };
+
+        _currentStreak = 0;
+        _weeklyAverage = 0.0;
+        _weeklyCompletionRate = 0.0;
 
         _generateDailySlots();
         await _cacheData();
@@ -391,8 +397,12 @@ class WaterIntakeProvider extends ChangeNotifier {
       }
 
       final now = DateTime.now();
+      final monthlyUrl = '$_baseUrl/client/health/water-monthly/${now.year}/${now.month}';
+
+      developer.log('📡 Making API request to: $monthlyUrl', name: 'WaterIntakeProvider');
+
       final response = await http.get(
-        Uri.parse('$_baseUrl/client/health/water-monthly/${now.year}/${now.month}'),
+        Uri.parse(monthlyUrl),
         headers: {
           'Authorization': 'Bearer $accessToken',
           'Content-Type': 'application/json',
@@ -400,10 +410,12 @@ class WaterIntakeProvider extends ChangeNotifier {
       ).timeout(const Duration(seconds: 30));
 
       developer.log('📡 Monthly API Response Status: ${response.statusCode}', name: 'WaterIntakeProvider');
+      developer.log('📡 Monthly API Response Body: ${response.body}', name: 'WaterIntakeProvider');
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
 
+        // Parse monthly data according to the provided API format
         _monthlyAverage = (data['monthly_avg'] ?? 0).toDouble();
         _mostHydratedDay = data['most_hydrated_day'] ?? '';
         _leastHydratedDay = data['least_hydrated_day'] ?? '';
@@ -431,7 +443,16 @@ class WaterIntakeProvider extends ChangeNotifier {
         await _cacheData();
         notifyListeners();
 
-        developer.log('✅ Fetched monthly water intake data', name: 'WaterIntakeProvider');
+        developer.log('✅ Fetched monthly water intake data: ${_monthlyData.length} days', name: 'WaterIntakeProvider');
+      } else if (response.statusCode == 404) {
+        // No monthly data available
+        _monthlyAverage = 0.0;
+        _mostHydratedDay = '';
+        _leastHydratedDay = '';
+        _missedDays = 0;
+        _monthlyData = [];
+
+        developer.log('ℹ️ No monthly data available (404)', name: 'WaterIntakeProvider');
       } else {
         developer.log('⚠️ Failed to fetch monthly data: ${response.statusCode}', name: 'WaterIntakeProvider');
       }
@@ -524,6 +545,9 @@ class WaterIntakeProvider extends ChangeNotifier {
           throw Exception('Failed to save water intake. Please try again.');
         }
       }
+
+      // Refresh data after successful addition
+      await fetchTodayIntake();
 
       developer.log('✅ Added water intake: ${amount}ml', name: 'WaterIntakeProvider');
       return true;
