@@ -23,7 +23,6 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:client/features/dashboard/dashboard.dart';
 // Import notification services
 import 'package:firebase_messaging/firebase_messaging.dart';
-import 'features/notification/services/socket_services.dart';
 import 'features/notification/managers/notification_manager.dart';
 // Import cache and sync services
 import 'package:client/services/cache_service.dart';
@@ -223,10 +222,7 @@ void main() async {
         provider.ChangeNotifierProvider<FoodScoreProvider>(
           create: (context) => foodScoreProvider,
         ),
-        // Add SocketService provider
-        provider.ChangeNotifierProvider<SocketService>(
-          create: (context) => SocketService(),
-        ),
+        
         provider.ChangeNotifierProvider<WaterIntakeProvider>(
           create: (context) => WaterIntakeProvider()..initialize(),
         ),

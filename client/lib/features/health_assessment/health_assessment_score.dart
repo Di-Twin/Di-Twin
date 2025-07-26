@@ -29,18 +29,6 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
     _fetchHealthScore();
   }
 
-  // After the _fetchHealthScore() method, add a new method to save the health score to cache
-  Future<void> _saveHealthScoreToCache(int score) async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('profile_health_score', score);
-      print('✅ Health score saved to cache: $score');
-    } catch (e) {
-      print('❌ Error saving health score to cache: $e');
-    }
-  }
-
-  // Modify the _fetchHealthScore method to save the score to cache
   Future<void> _fetchHealthScore() async {
     try {
       final onboarding = ref.read(onboardingProvider);
@@ -52,11 +40,8 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
         gender: onboarding.gender,
       );
 
-      // Save the score to cache
-      await _saveHealthScoreToCache(score);
-
-      // Update user profile with health score
-      await _updateUserHealthScore();
+      // Update user profile with health score first
+      await _updateUserHealthScore(score);
 
       setState(() {
         _score = score;
@@ -70,11 +55,10 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
     }
   }
 
-  Future<void> _updateUserHealthScore() async {
+  Future<void> _updateUserHealthScore(int score) async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final accessToken = prefs.getString('access_token');
-      final score = prefs.getInt('profile_health_score');
 
       if (accessToken == null) {
         throw Exception('Access token not found');
@@ -82,7 +66,7 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
 
       final url = Uri.parse(
         'https://test-prod-f427.onrender.com/api/profiles',
-      ); // Replace with actual base URL
+      );
 
       final response = await http.patch(
         url,
@@ -97,9 +81,11 @@ class _HealthAssessmentScoreState extends ConsumerState<HealthAssessmentScore> {
         print('✅ Health score updated successfully: ${response.body}');
       } else {
         print('❌ Failed to update health score: ${response.body}');
+        throw Exception('Failed to update health score: ${response.statusCode}');
       }
     } catch (e) {
       print('❌ Error updating health score: $e');
+      throw Exception('Failed to update health score: $e');
     }
   }
 

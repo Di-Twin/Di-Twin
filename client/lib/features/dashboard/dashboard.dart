@@ -14,8 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:provider/provider.dart';
-// Import notification services
-import '../notification/services/socket_services.dart';
+// Import notification services - FCM only
 import '../notification/services/helper_services.dart';
 // Import cache and sync services
 import 'package:client/services/cache_service.dart';
@@ -200,6 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         _checkForRecentOAuthReturn();
       }
 
+      // Initialize FCM notification services only
       _initializeNotificationServices();
     });
   }
@@ -522,7 +522,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     }
   }
 
-  // Initialize notification services
+  // Initialize FCM notification services only
   Future<void> _initializeNotificationServices() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -530,23 +530,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       final userId = prefs.getString('user_id');
 
       if (accessToken != null && userId != null) {
-        final socketService = Provider.of<SocketService>(context, listen: false);
-        if (!socketService.isConnected) {
-          socketService.initSocket(
-            userId,
-            accessToken: accessToken,
-          );
-        }
-
+        // Initialize only FCM notification services
         await NotificationHelperService().initialize(
           accessToken: accessToken,
           userId: userId,
         );
 
-        developer.log('✅ Notification services initialized', name: 'Dashboard');
+        developer.log('✅ FCM notification services initialized', name: 'Dashboard');
       }
     } catch (e) {
-      developer.log('❌ Error initializing notification services: $e', name: 'Dashboard');
+      developer.log('❌ Error initializing FCM notification services: $e', name: 'Dashboard');
     }
   }
 

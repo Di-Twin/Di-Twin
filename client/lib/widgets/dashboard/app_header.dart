@@ -5,17 +5,16 @@ import 'package:client/data/API/user_profile_data.dart';
 import 'package:client/data/API/health_score_data.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:io'; // Add this import for File
-import 'dart:developer' as developer; // Import for better logging
-
-// Import the AvatarData class - adjust path as needed
-// import 'package:client/path/to/avatar_data.dart'; 
+import 'dart:io';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
+import 'dart:developer' as developer;
 
 class AppHeader extends StatefulWidget {
   final int? healthScore;
   const AppHeader({
     super.key,
-    this.healthScore, // Optional parameter
+    this.healthScore,
   });
 
   @override
@@ -29,7 +28,7 @@ class _AppHeaderState extends State<AppHeader> {
   String? _cachedAvatarUrl;
   File? _cachedAvatarFile;
   bool _isCustomAvatar = false;
-  int? _cachedHealthScore;
+  int? _healthScore;
   bool _isLoading = true;
   String _errorMessage = '';
 
@@ -49,7 +48,6 @@ class _AppHeaderState extends State<AppHeader> {
       final isCustomImage = prefs.getBool('isCustomImage') ?? false;
       
       if (isCustomImage) {
-        // Load custom avatar file path
         final cachedAvatarPath = prefs.getString('uploadedImagePath');
         if (cachedAvatarPath != null && cachedAvatarPath.isNotEmpty) {
           final file = File(cachedAvatarPath);
@@ -61,12 +59,9 @@ class _AppHeaderState extends State<AppHeader> {
               });
             }
             developer.log('Loaded cached avatar file: $cachedAvatarPath', name: 'AppHeader');
-          } else {
-            developer.log('Cached avatar file does not exist: $cachedAvatarPath', name: 'AppHeader');
           }
         }
       } else {
-        // Load cached avatar URL
         final cachedAvatarUrl = prefs.getString('selectedAvatarUrl');
         if (cachedAvatarUrl != null && cachedAvatarUrl.isNotEmpty) {
           if (mounted) {
@@ -75,17 +70,7 @@ class _AppHeaderState extends State<AppHeader> {
               _isCustomAvatar = false;
             });
           }
-          developer.log('Loaded cached avatar URL: $cachedAvatarUrl', name: 'AppHeader');
         }
-      }
-      
-      // Load cached health score
-      final cachedHealthScore = prefs.getInt('profile_health_score');
-      
-      if (mounted) {
-        setState(() {
-          _cachedHealthScore = cachedHealthScore;
-        });
       }
     } catch (e) {
       debugPrint('Error loading cached data: $e');
@@ -101,10 +86,9 @@ class _AppHeaderState extends State<AppHeader> {
         setState(() {
           _userData = response.data;
           _isLoading = false;
-          _errorMessage = ''; // Clear any previous errors
+          _errorMessage = '';
         });
         
-        // Cache the user's first name for avatar placeholder
         if (_userData?.firstName != null) {
           await prefs.setString('user_first_name', _userData!.firstName);
         }
@@ -115,8 +99,6 @@ class _AppHeaderState extends State<AppHeader> {
           _errorMessage = 'Failed to load user data';
           _isLoading = false;
         });
-        debugPrint('Error fetching user data: $e');
-        // Show a snackbar with the error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Error: ${e.toString()}'),
@@ -128,34 +110,65 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Future<void> _fetchHealthScore() async {
-    if (widget.healthScore != null) {
-      // If health score is provided as a prop, use it and cache it
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt('health_score', widget.healthScore!);
-      
-      if (mounted) {
-        setState(() {
-          _cachedHealthScore = widget.healthScore;
-        });
-      }
-      return;
+  if (widget.healthScore != null) {
+    debugPrint('[HealthScore] Using provided widget.healthScore: ${widget.healthScore}');
+    if (mounted) {
+      setState(() {
+        _healthScore = widget.healthScore;
+      });
     }
-    
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final healthScore = prefs.getInt('profile_health_score') ?? 0;
-      
-      // await prefs.setInt('profile_health_score', healthScore); // Uncommented this line to save the health score
+    return;
+  }
+
+  try {
+    final prefs = await SharedPreferences.getInstance();
+    final accessToken = prefs.getString('access_token');
+
+    if (accessToken == null) {
+      throw Exception('[HealthScore] Access token not found in SharedPreferences');
+    }
+
+    debugPrint('[HealthScore] Fetching health score from backend...');
+    final response = await http.get(
+      Uri.parse('https://test-prod-f427.onrender.com/api/profiles'),
+      headers: {
+        'Authorization': 'Bearer $accessToken',
+      },
+    );
+
+    debugPrint('[HealthScore] Response status: ${response.statusCode}');
+    debugPrint('[HealthScore] Raw response body: ${response.body}');
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      debugPrint('[HealthScore] Decoded JSON: $data');
+
+      if (data.containsKey('health_score')) {
+        debugPrint('[HealthScore] Found health_score key with value: ${data['health_score']}');
+      } else {
+        debugPrint('[HealthScore] health_score key NOT FOUND in response.');
+      }
+
+      final score = data['data']['health_score'] ?? 0;
 
       if (mounted) {
         setState(() {
-          _cachedHealthScore = healthScore;
+          _healthScore = score;
         });
       }
-    } catch (e) {
-      debugPrint('Error fetching health score: $e');
+    } else {
+      throw Exception('[HealthScore] Failed with status: ${response.statusCode}');
+    }
+  } catch (e) {
+    debugPrint('[HealthScore] Error fetching health score: $e');
+    if (mounted) {
+      setState(() {
+        _healthScore = 88; // Default fallback value
+      });
     }
   }
+}
+
 
   String _getFormattedDate() {
     return DateFormat('EEE, d MMM y').format(DateTime.now());
@@ -165,7 +178,6 @@ class _AppHeaderState extends State<AppHeader> {
     if (_userData?.userPlan == null || _userData!.userPlan!.isEmpty) {
       return 'Beta Member';
     }
-    // Capitalize the first letter of the plan
     return '${_userData!.userPlan![0].toUpperCase()}${_userData!.userPlan!.substring(1)} Member';
   }
 
@@ -182,7 +194,6 @@ class _AppHeaderState extends State<AppHeader> {
       ),
       child: Column(
         children: [
-          // Date and Notification Row
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -204,7 +215,6 @@ class _AppHeaderState extends State<AppHeader> {
                   ),
                 ],
               ),
-              // Notification Icon with rounded rectangle background
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 3),
                 decoration: BoxDecoration(
@@ -217,24 +227,15 @@ class _AppHeaderState extends State<AppHeader> {
                     color: Colors.white,
                     size: 26,
                   ),
-                  onPressed: () {
-                    // Navigator.push(
-                    //   context,
-                    //   MaterialPageRoute(
-                    //     builder: (context) => const NotificationScreen(),
-                    //   ),
-                    // );
-                  },
+                  onPressed: () {},
                 ),
               ),
             ],
           ),
           const SizedBox(height: 20),
 
-          // Profile and Greeting Section
           Row(
             children: [
-              // Enlarged Profile Image
               Container(
                 width: 60,
                 height: 60,
@@ -249,12 +250,10 @@ class _AppHeaderState extends State<AppHeader> {
               ),
               const SizedBox(width: 16),
 
-              // Greeting and Status
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Enlarged "Hi, Username!" text with bold weight
                     Row(
                       children: [
                         Text(
@@ -273,14 +272,13 @@ class _AppHeaderState extends State<AppHeader> {
                     ),
                     const SizedBox(height: 6),
 
-                    // Health Score & Membership with dot separator
                     Row(
                       children: [
                         const Icon(Icons.favorite, color: Colors.red, size: 18),
                         const SizedBox(width: 6),
                         Text(
-                          _cachedHealthScore != null
-                              ? '$_cachedHealthScore%'
+                          _healthScore != null
+                              ? '$_healthScore%'
                               : widget.healthScore != null
                                   ? '${widget.healthScore}%'
                                   : '88%',
@@ -320,7 +318,6 @@ class _AppHeaderState extends State<AppHeader> {
           ),
           const SizedBox(height: 20),
 
-          // Search Bar with rectangular rounded design
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18),
             height: 50,
@@ -348,67 +345,24 @@ class _AppHeaderState extends State<AppHeader> {
     );
   }
   
-  // New method to handle avatar display
   Widget _buildAvatarImage() {
-    // Log what we're trying to display
-    if (_isCustomAvatar && _cachedAvatarFile != null) {
-      developer.log('Displaying custom avatar image: ${_cachedAvatarFile!.path}', name: 'AppHeader');
-    } else if (!_isCustomAvatar && _cachedAvatarUrl != null) {
-      developer.log('Displaying avatar URL: $_cachedAvatarUrl', name: 'AppHeader');
-    } else {
-      developer.log('Displaying default avatar icon', name: 'AppHeader');
-    }
-    
-    // First try to display custom image if available
     if (_isCustomAvatar && _cachedAvatarFile != null) {
       return Image.file(
         _cachedAvatarFile!,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) {
-          developer.log('Error loading avatar file: $error', name: 'AppHeader');
           return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
         },
       );
-    } 
-    // Then try to display avatar URL if available
-    else if (!_isCustomAvatar && _cachedAvatarUrl != null) {
-      // Check if it's an SVG URL
-      if (_cachedAvatarUrl!.toLowerCase().endsWith('.svg') || 
-          _cachedAvatarUrl!.contains('svg')) {
-        // For SVG, you'll need to import flutter_svg and use SvgPicture
-        // return SvgPicture.network(
-        //   _cachedAvatarUrl!,
-        //   fit: BoxFit.cover,
-        //   placeholderBuilder: (context) => const CircularProgressIndicator(),
-        //   errorBuilder: (context, error, stackTrace) {
-        //     developer.log('Error loading SVG avatar: $error', name: 'AppHeader');
-        //     return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
-        //   },
-        // );
-        
-        // Since flutter_svg isn't imported in this file, using Image.network with error handling
-        return Image.network(
-          _cachedAvatarUrl!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            developer.log('Error loading avatar URL: $error', name: 'AppHeader');
-            return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
-          },
-        );
-      } else {
-        // Regular image URL
-        return Image.network(
-          _cachedAvatarUrl!,
-          fit: BoxFit.cover,
-          errorBuilder: (context, error, stackTrace) {
-            developer.log('Error loading avatar URL: $error', name: 'AppHeader');
-            return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
-          },
-        );
-      }
-    } 
-    // Default fallback
-    else {
+    } else if (!_isCustomAvatar && _cachedAvatarUrl != null) {
+      return Image.network(
+        _cachedAvatarUrl!,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) {
+          return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
+        },
+      );
+    } else {
       return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
     }
   }
