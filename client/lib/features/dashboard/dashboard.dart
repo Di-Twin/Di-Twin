@@ -1,3 +1,4 @@
+import 'package:client/widgets/dashboard/medication_section.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -1307,6 +1308,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     const HealthMetricsSection(),
                     const SizedBox(height: 20),
                     const FitnessTrackerSection(),
+                    const SizedBox(height: 20),
+                    const SizedBox(height: 20),
+                    const MedicationSection(),
                     const SizedBox(height: 20),
                   ],
                 ),

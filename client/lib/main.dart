@@ -52,6 +52,14 @@ import 'package:client/core/network/network_checker.dart';
 import 'dart:developer' as developer;
 import 'package:client/features/water_intake/data/providers/water_intake_provider.dart';
 
+// Import medication management dependencies
+import 'package:client/features/medication_management/data/datasources/medication_local_datasource.dart';
+import 'package:client/features/medication_management/data/repositories/medication_repository_impl.dart';
+import 'package:client/features/medication_management/domain/usecases/get_medication_schedules_usecase.dart';
+import 'package:client/features/medication_management/domain/usecases/get_medication_schedule_for_date_usecase.dart';
+import 'package:client/features/medication_management/domain/usecases/update_medication_status_usecase.dart';
+import 'package:client/features/medication_management/presentation/providers/medication_provider.dart';
+
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 // Store pending Fitbit URI for processing when dashboard is available
@@ -178,6 +186,25 @@ void main() async {
     getFoodScoreUseCase: getFoodScoreUseCase,
   );
 
+  // Create medication management dependencies
+  final medicationLocalDataSource = MedicationLocalDataSourceImpl();
+  final medicationRepository = MedicationRepositoryImpl(
+    localDataSource: medicationLocalDataSource,
+    networkInfo: networkInfo,
+  );
+
+  // Create medication use cases
+  final getMedicationSchedulesUseCase = GetMedicationSchedulesUseCase(medicationRepository);
+  final getMedicationScheduleForDateUseCase = GetMedicationScheduleForDateUseCase(medicationRepository);
+  final updateMedicationStatusUseCase = UpdateMedicationStatusUseCase(medicationRepository);
+
+  // Create medication provider
+  final medicationProvider = MedicationProvider(
+    getMedicationSchedulesUseCase: getMedicationSchedulesUseCase,
+    getMedicationScheduleForDateUseCase: getMedicationScheduleForDateUseCase,
+    updateMedicationStatusUseCase: updateMedicationStatusUseCase,
+  );
+
   // Initialize cache service
   developer.log('🗄️ Initializing cache service...', name: 'Main');
   try {
@@ -202,6 +229,10 @@ void main() async {
         ),
         provider.ChangeNotifierProvider<WaterIntakeProvider>(
           create: (context) => WaterIntakeProvider()..initialize(),
+        ),
+        // Add MedicationProvider
+        provider.ChangeNotifierProvider<MedicationProvider>(
+          create: (context) => medicationProvider,
         ),
       ],
       child: ProviderScope(child: const MyApp()),

@@ -29,10 +29,10 @@ class MedicationItemWidget extends StatelessWidget {
     final now = DateTime.now();
     final today = DateFormat('yyyy-MM-dd').format(now);
     final timeSlotDateTime = _parseTimeSlot(today, timeStr);
-    
+
     return now.isAfter(timeSlotDateTime);
   }
-  
+
   DateTime _parseTimeSlot(String dateStr, String timeStr) {
     final date = DateFormat('yyyy-MM-dd').parse(dateStr);
     final timeParts = timeStr.split(':');
@@ -74,9 +74,9 @@ class MedicationItemWidget extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
         border:
-            isCurrent && !isCompleted
-                ? Border.all(color: accentColor, width: 2.w)
-                : null,
+        isCurrent && !isCompleted
+            ? Border.all(color: accentColor, width: 2.w)
+            : null,
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.05),
@@ -95,9 +95,9 @@ class MedicationItemWidget extends StatelessWidget {
                 height: 40.h,
                 decoration: BoxDecoration(
                   color:
-                      isCompleted
-                          ? primaryColor.withOpacity(0.1)
-                          : Colors.grey.shade100,
+                  isCompleted
+                      ? primaryColor.withOpacity(0.1)
+                      : Colors.grey.shade100,
                   borderRadius: BorderRadius.circular(8.r),
                 ),
                 child: Center(child: medicationIcon),
@@ -117,13 +117,13 @@ class MedicationItemWidget extends StatelessWidget {
                               fontWeight: FontWeight.bold,
                               color: Colors.grey.shade800,
                               decoration:
-                                  isCompleted || isMissed
-                                      ? TextDecoration.lineThrough
-                                      : null,
+                              isCompleted || isMissed
+                                  ? TextDecoration.lineThrough
+                                  : null,
                               decorationColor:
-                                  isCompleted
-                                      ? Colors.grey.shade400
-                                      : errorColor,
+                              isCompleted
+                                  ? Colors.grey.shade400
+                                  : errorColor,
                               decorationThickness: 2,
                             ),
                           ),
@@ -143,7 +143,7 @@ class MedicationItemWidget extends StatelessWidget {
                             borderRadius: BorderRadius.circular(4.r),
                           ),
                           child: Text(
-                            medication.dosage,
+                            medication.dosage ?? "No dosage specified",
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 10.sp,
                               color: Colors.grey.shade700,
@@ -153,7 +153,7 @@ class MedicationItemWidget extends StatelessWidget {
                         SizedBox(width: 6.w),
                         Expanded(
                           child: Text(
-                            medication.instruction,
+                            medication.instruction ?? "",
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12.sp,
                               color: Colors.grey.shade500,
@@ -177,17 +177,17 @@ class MedicationItemWidget extends StatelessWidget {
                   height: 28.h,
                   decoration: BoxDecoration(
                     color:
-                        isCompleted
-                            ? accentColor
-                            : (isMissed ? errorColor : Colors.white),
+                    isCompleted
+                        ? accentColor
+                        : (isMissed ? errorColor : Colors.white),
                     borderRadius: BorderRadius.circular(6.r),
                     border:
-                        (!isCompleted && !isMissed)
-                            ? Border.all(
-                              color: Colors.grey.shade300,
-                              width: 1.5.w,
-                            )
-                            : null,
+                    (!isCompleted && !isMissed)
+                        ? Border.all(
+                      color: Colors.grey.shade300,
+                      width: 1.5.w,
+                    )
+                        : null,
                     boxShadow: [
                       if (isCompleted || isMissed)
                         BoxShadow(
@@ -200,15 +200,15 @@ class MedicationItemWidget extends StatelessWidget {
                     ],
                   ),
                   child:
-                      isCompleted
-                          ? Icon(Icons.check, color: Colors.white, size: 16.sp)
-                          : (isMissed
-                              ? Icon(
-                                Icons.close,
-                                color: Colors.white,
-                                size: 16.sp,
-                              )
-                              : null),
+                  isCompleted
+                      ? Icon(Icons.check, color: Colors.white, size: 16.sp)
+                      : (isMissed
+                      ? Icon(
+                    Icons.close,
+                    color: Colors.white,
+                    size: 16.sp,
+                  )
+                      : null),
                 ),
               ),
             ],
@@ -227,8 +227,8 @@ class MedicationItemWidget extends StatelessWidget {
                     builder: (BuildContext context) {
                       return MedicationTakeNowAlert(
                         medicationName: medication.name,
-                        dosage: medication.dosage,
-                        instructions: medication.instruction,
+                        dosage: medication.dosage ?? "No dosage specified",
+                        instructions: medication.instruction ?? "",
                         onTake: () {
                           // Mark medication as taken
                           onStatusChanged(medication.id, true);

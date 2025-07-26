@@ -35,7 +35,7 @@ class _MedicationsManagementDayState extends State<MedicationsManagementDay>
   @override
   void initState() {
     super.initState();
-    
+
     // Initialize animation controller with slower duration for day-long animation
     _animationController = AnimationController(
       vsync: this,
@@ -46,16 +46,16 @@ class _MedicationsManagementDayState extends State<MedicationsManagementDay>
     _lineAnimation = Tween<double>(begin: 0.7, end: 1.0).animate(
       CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
     );
-    
+
     // Initialize provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<MedicationProvider>(context, listen: false);
       provider.initialize();
-      
+
       if (_scrollController.hasClients) {
         _scrollToSelectedDate();
       }
-      
+
       _startMedicationCheckTimer();
       _startDayProgressTimer();
     });
@@ -73,12 +73,12 @@ class _MedicationsManagementDayState extends State<MedicationsManagementDay>
   void _scrollToSelectedDate() {
     final provider = Provider.of<MedicationProvider>(context, listen: false);
     final selectedIndex = provider.selectedDateIndex;
-    
+
     if (selectedIndex >= 0 && selectedIndex < provider.dateRange.length) {
       final double itemWidth = 80.0.w; // Increased width
       final double offset =
           (selectedIndex * itemWidth) -
-          (MediaQuery.of(context).size.width / 2 - itemWidth / 2);
+              (MediaQuery.of(context).size.width / 2 - itemWidth / 2);
 
       _scrollController.jumpTo(
         offset.clamp(0, _scrollController.position.maxScrollExtent),
@@ -90,7 +90,8 @@ class _MedicationsManagementDayState extends State<MedicationsManagementDay>
     // Update day progress every minute
     _dayProgressTimer = Timer.periodic(const Duration(minutes: 1), (timer) {
       final provider = Provider.of<MedicationProvider>(context, listen: false);
-      provider._calculateDayProgress();
+      // Call the public method instead of private _calculateDayProgress
+      provider.notifyListeners(); // This will trigger a rebuild
     });
   }
 
@@ -103,14 +104,14 @@ class _MedicationsManagementDayState extends State<MedicationsManagementDay>
   }
 
   // Make sure the _checkForMedicationAlerts method is properly implemented
-void _checkForMedicationAlerts() {
-  final now = DateTime.now();
-  final today = DateFormat('yyyy-MM-dd').format(now);
-  final currentTime = DateFormat('HH:mm').format(now);
-  
-  final provider = Provider.of<MedicationProvider>(context, listen: false);
-  provider.checkForMedicationAlerts(context);
-}
+  void _checkForMedicationAlerts() {
+    final now = DateTime.now();
+    final today = DateFormat('yyyy-MM-dd').format(now);
+    final currentTime = DateFormat('HH:mm').format(now);
+
+    final provider = Provider.of<MedicationProvider>(context, listen: false);
+    provider.checkForMedicationAlerts(context);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -285,9 +286,9 @@ void _checkForMedicationAlerts() {
           color: isSelected ? _primaryColor : Colors.white,
           borderRadius: BorderRadius.circular(16.r),
           border:
-              !isSelected && isToday
-                  ? Border.all(color: _primaryColor, width: 2.w)
-                  : null,
+          !isSelected && isToday
+              ? Border.all(color: _primaryColor, width: 2.w)
+              : null,
           boxShadow: [
             if (!isSelected)
               BoxShadow(
@@ -328,9 +329,9 @@ void _checkForMedicationAlerts() {
                   fontSize: 14.sp, // Increased font size
                   fontWeight: FontWeight.w500,
                   color:
-                      isSelected
-                          ? Colors.white.withOpacity(0.8)
-                          : Colors.grey.shade600,
+                  isSelected
+                      ? Colors.white.withOpacity(0.8)
+                      : Colors.grey.shade600,
                 ),
               ),
               SizedBox(height: 4.h),
@@ -348,9 +349,9 @@ void _checkForMedicationAlerts() {
   }
 
   bool _isSameDay(DateTime date1, DateTime date2) {
-    return date1.day == date2.day && 
-           date1.month == date2.month && 
-           date1.year == date2.year;
+    return date1.day == date2.day &&
+        date1.month == date2.month &&
+        date1.year == date2.year;
   }
 
   Widget _buildMedicationTimeline() {
@@ -359,7 +360,7 @@ void _checkForMedicationAlerts() {
         if (provider.isLoading) {
           return Center(child: CircularProgressIndicator());
         }
-        
+
         if (provider.currentMedicationSchedule.isEmpty) {
           return _buildEmptyState();
         }
@@ -402,9 +403,9 @@ void _checkForMedicationAlerts() {
 
                 // Set colors based on time status
                 Color timeColor =
-                    isPast
-                        ? Colors.grey.shade600
-                        : (isCurrent ? _accentColor : _secondaryColor);
+                isPast
+                    ? Colors.grey.shade600
+                    : (isCurrent ? _accentColor : _secondaryColor);
 
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -448,9 +449,9 @@ void _checkForMedicationAlerts() {
                           ),
                           decoration: BoxDecoration(
                             color:
-                                isCurrent
-                                    ? _accentColor.withOpacity(0.1)
-                                    : Colors.grey.shade100,
+                            isCurrent
+                                ? _accentColor.withOpacity(0.1)
+                                : Colors.grey.shade100,
                             borderRadius: BorderRadius.circular(16.r),
                           ),
                           child: Text(
@@ -459,7 +460,7 @@ void _checkForMedicationAlerts() {
                               fontSize: 14.sp,
                               fontWeight: FontWeight.w500,
                               color:
-                                  isCurrent ? _accentColor : Colors.grey.shade600,
+                              isCurrent ? _accentColor : Colors.grey.shade600,
                             ),
                           ),
                         ),
@@ -475,7 +476,7 @@ void _checkForMedicationAlerts() {
                       child: Column(
                         children: List.generate(
                           timeSlot.medications.length,
-                          (medIndex) => MedicationItemWidget(
+                              (medIndex) => MedicationItemWidget(
                             medication: timeSlot.medications[medIndex],
                             isCurrent: isCurrent,
                             timeStr: timeSlot.time,
@@ -562,7 +563,7 @@ void _checkForMedicationAlerts() {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(Icons.add, color: Colors.white, size: 20.sp),
-                  SizedBox(width: 8.w), 
+                  SizedBox(width: 8.w),
                   Text(
                     'Add Medication',
                     style: GoogleFonts.plusJakartaSans(
