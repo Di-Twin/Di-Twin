@@ -4,7 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:http/http.dart' as http;
 import '../../domain/repositories/leaderboard_repository.dart';
 import '../../domain/usecases/get_daily_leaderboard.dart';
-import '../../domain/usecases/get_monthly_leaderboard.dart';
+import 'package:client/features/leaderboard/domain/usecases/get_monthly_leaderboard.dart';
 import '../controllers/leaderboard_controller.dart';
 
 // Base URL provider

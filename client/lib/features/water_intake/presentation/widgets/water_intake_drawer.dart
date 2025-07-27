@@ -495,6 +495,7 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
       onPanStart: _handleDragStart,
       onPanUpdate: _handleDragUpdate,
       onPanEnd: _handleDragEnd,
+      onTap: _showCloseConfirmation,
       child: AnimatedBuilder(
         animation: _slideAnimation,
         builder: (context, child) {

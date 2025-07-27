@@ -1,15 +1,14 @@
-// Create a new use case file for getting food items
 import 'package:dartz/dartz.dart';
-import '../repositories/food_repository.dart';
-import '../entities/food_item.dart';
-import '../../../../core/errors/failures.dart';
+import 'package:client/core/errors/failures.dart';
+import 'package:client/features/food_management/domain/entities/food_item.dart';
+import 'package:client/features/food_management/domain/repositories/food_repository.dart';
 
-class GetFoodItemsUseCase {
+class AddFoodItemUseCase {
   final FoodRepository repository;
 
-  GetFoodItemsUseCase(this.repository);
+  AddFoodItemUseCase(this.repository);
 
-  Future<Either<Failure, List<FoodItem>>> call(String accessToken) {
-    return repository.getFoodItems(accessToken);
+  Future<Either<Failure, void>> call(FoodItem foodItem) async {
+    return await repository.addFoodItem(foodItem);
   }
 }
