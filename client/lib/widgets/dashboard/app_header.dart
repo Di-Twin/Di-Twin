@@ -32,9 +32,73 @@ class _AppHeaderState extends State<AppHeader> {
   bool _isLoading = true;
   String _errorMessage = '';
 
+  // Add these variables at the top of _AppHeaderState class
+  final TextEditingController _searchController = TextEditingController();
+  final List<Map<String, dynamic>> _searchModules = [
+    {
+      'title': 'Food Intelligence',
+      'subtitle': 'Track your nutrition and meals',
+      'icon': Icons.restaurant,
+      'color': const Color(0xFF10B981),
+      'route': '/food-intelligence',
+    },
+    {
+      'title': 'Activity - Calories Tracker',
+      'subtitle': 'Monitor calories burned',
+      'icon': Icons.local_fire_department,
+      'color': const Color(0xFFEF4444),
+      'route': '/activity-calories',
+    },
+    {
+      'title': 'Activity - Steps Tracker',
+      'subtitle': 'Track your daily steps',
+      'icon': Icons.directions_walk,
+      'color': const Color(0xFF3B82F6),
+      'route': '/activity-steps',
+    },
+    {
+      'title': 'Water Intake',
+      'subtitle': 'Stay hydrated throughout the day',
+      'icon': Icons.water_drop,
+      'color': const Color(0xFF06B6D4),
+      'route': '/water-intake',
+    },
+    {
+      'title': 'Nutrition Tracking',
+      'subtitle': 'Detailed nutrition analysis',
+      'icon': Icons.analytics,
+      'color': const Color(0xFF8B5CF6),
+      'route': '/nutrition-tracking',
+    },
+    {
+      'title': 'Activity Today',
+      'subtitle': 'View today\'s activities',
+      'icon': Icons.today,
+      'color': const Color(0xFFF59E0B),
+      'route': '/activity-today',
+    },
+    {
+      'title': 'My Activities',
+      'subtitle': 'Monthly activity overview',
+      'icon': Icons.calendar_month,
+      'color': const Color(0xFF84CC16),
+      'route': '/my-activities',
+    },
+    {
+      'title': 'Smart Health Analysis',
+      'subtitle': 'AI-powered health insights',
+      'icon': Icons.health_and_safety,
+      'color': const Color(0xFFEC4899),
+      'route': '/smart-health',
+    },
+  ];
+
+  List<Map<String, dynamic>> _filteredModules = [];
+
   @override
   void initState() {
     super.initState();
+    _filteredModules = _searchModules;
     _loadCachedData();
     _fetchUserData();
     _fetchHealthScore();
@@ -43,10 +107,10 @@ class _AppHeaderState extends State<AppHeader> {
   Future<void> _loadCachedData() async {
     try {
       final prefs = await SharedPreferences.getInstance();
-      
+
       // Check if using custom image first
       final isCustomImage = prefs.getBool('isCustomImage') ?? false;
-      
+
       if (isCustomImage) {
         final cachedAvatarPath = prefs.getString('uploadedImagePath');
         if (cachedAvatarPath != null && cachedAvatarPath.isNotEmpty) {
@@ -81,14 +145,14 @@ class _AppHeaderState extends State<AppHeader> {
     try {
       final response = await _userProvider.getUser();
       final prefs = await SharedPreferences.getInstance();
-      
+
       if (mounted) {
         setState(() {
           _userData = response.data;
           _isLoading = false;
           _errorMessage = '';
         });
-        
+
         if (_userData?.firstName != null) {
           await prefs.setString('user_first_name', _userData!.firstName);
         }
@@ -110,64 +174,64 @@ class _AppHeaderState extends State<AppHeader> {
   }
 
   Future<void> _fetchHealthScore() async {
-  if (widget.healthScore != null) {
-    debugPrint('[HealthScore] Using provided widget.healthScore: ${widget.healthScore}');
-    if (mounted) {
-      setState(() {
-        _healthScore = widget.healthScore;
-      });
-    }
-    return;
-  }
-
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString('access_token');
-
-    if (accessToken == null) {
-      throw Exception('[HealthScore] Access token not found in SharedPreferences');
-    }
-
-    debugPrint('[HealthScore] Fetching health score from backend...');
-    final response = await http.get(
-      Uri.parse('https://test-prod-f427.onrender.com/api/profiles'),
-      headers: {
-        'Authorization': 'Bearer $accessToken',
-      },
-    );
-
-    debugPrint('[HealthScore] Response status: ${response.statusCode}');
-    debugPrint('[HealthScore] Raw response body: ${response.body}');
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      debugPrint('[HealthScore] Decoded JSON: $data');
-
-      if (data.containsKey('health_score')) {
-        debugPrint('[HealthScore] Found health_score key with value: ${data['health_score']}');
-      } else {
-        debugPrint('[HealthScore] health_score key NOT FOUND in response.');
-      }
-
-      final score = data['data']['health_score'] ?? 0;
-
+    if (widget.healthScore != null) {
+      debugPrint('[HealthScore] Using provided widget.healthScore: ${widget.healthScore}');
       if (mounted) {
         setState(() {
-          _healthScore = score;
+          _healthScore = widget.healthScore;
         });
       }
-    } else {
-      throw Exception('[HealthScore] Failed with status: ${response.statusCode}');
+      return;
     }
-  } catch (e) {
-    debugPrint('[HealthScore] Error fetching health score: $e');
-    if (mounted) {
-      setState(() {
-        _healthScore = 88; // Default fallback value
-      });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final accessToken = prefs.getString('access_token');
+
+      if (accessToken == null) {
+        throw Exception('[HealthScore] Access token not found in SharedPreferences');
+      }
+
+      debugPrint('[HealthScore] Fetching health score from backend...');
+      final response = await http.get(
+        Uri.parse('https://test-prod-f427.onrender.com/api/profiles'),
+        headers: {
+          'Authorization': 'Bearer $accessToken',
+        },
+      );
+
+      debugPrint('[HealthScore] Response status: ${response.statusCode}');
+      debugPrint('[HealthScore] Raw response body: ${response.body}');
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        debugPrint('[HealthScore] Decoded JSON: $data');
+
+        if (data.containsKey('health_score')) {
+          debugPrint('[HealthScore] Found health_score key with value: ${data['health_score']}');
+        } else {
+          debugPrint('[HealthScore] health_score key NOT FOUND in response.');
+        }
+
+        final score = data['data']['health_score'] ?? 0;
+
+        if (mounted) {
+          setState(() {
+            _healthScore = score;
+          });
+        }
+      } else {
+        throw Exception('[HealthScore] Failed with status: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('[HealthScore] Error fetching health score: $e');
+      if (mounted) {
+        setState(() {
+          _healthScore = 88; // Default fallback value
+        });
+      }
     }
   }
-}
 
 
   String _getFormattedDate() {
@@ -280,8 +344,8 @@ class _AppHeaderState extends State<AppHeader> {
                           _healthScore != null
                               ? '$_healthScore%'
                               : widget.healthScore != null
-                                  ? '${widget.healthScore}%'
-                                  : '88%',
+                              ? '${widget.healthScore}%'
+                              : '88%',
                           style: GoogleFonts.plusJakartaSans(
                             color: Colors.white.withOpacity(0.9),
                             fontSize: 14,
@@ -318,33 +382,36 @@ class _AppHeaderState extends State<AppHeader> {
           ),
           const SizedBox(height: 20),
 
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 18),
-            height: 50,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.search, color: Colors.white70, size: 22),
-                const SizedBox(width: 10),
-                Text(
-                  'Search Di-Twin...',
-                  style: GoogleFonts.plusJakartaSans(
-                    color: Colors.white.withOpacity(0.7),
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+          GestureDetector(
+            onTap: _showSearchBottomSheet,
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 18),
+              height: 50,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.search, color: Colors.white70, size: 22),
+                  const SizedBox(width: 10),
+                  Text(
+                    'Search Di-Twin...',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white.withOpacity(0.7),
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],
       ),
     );
   }
-  
+
   Widget _buildAvatarImage() {
     if (_isCustomAvatar && _cachedAvatarFile != null) {
       return Image.file(
@@ -365,5 +432,299 @@ class _AppHeaderState extends State<AppHeader> {
     } else {
       return const Icon(Icons.person, size: 40, color: Color(0xFF1E293B));
     }
+  }
+
+  void _showSearchBottomSheet() {
+    _searchController.clear();
+    _filteredModules = _searchModules;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return Container(
+            height: MediaQuery.of(context).size.height * 0.8,
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(24),
+                topRight: Radius.circular(24),
+              ),
+            ),
+            child: Column(
+              children: [
+                // Handle
+                Container(
+                  margin: const EdgeInsets.only(top: 12),
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[300],
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+
+                // Header
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: Row(
+                    children: [
+                      Text(
+                        'Search Di-Twin',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 24,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1E293B),
+                        ),
+                      ),
+                      const Spacer(),
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 32,
+                          height: 32,
+                          decoration: BoxDecoration(
+                            color: Colors.grey[100],
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.close,
+                            size: 20,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Search Input
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: const Color(0xFFE2E8F0),
+                        width: 1,
+                      ),
+                    ),
+                    child: TextField(
+                      controller: _searchController,
+                      onChanged: (value) {
+                        setModalState(() {
+                          if (value.isEmpty) {
+                            _filteredModules = _searchModules;
+                          } else {
+                            _filteredModules = _searchModules
+                                .where((module) =>
+                            module['title']
+                                .toString()
+                                .toLowerCase()
+                                .contains(value.toLowerCase()) ||
+                                module['subtitle']
+                                    .toString()
+                                    .toLowerCase()
+                                    .contains(value.toLowerCase()))
+                                .toList();
+                          }
+                        });
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'Search modules...',
+                        hintStyle: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF64748B),
+                          fontSize: 16,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search,
+                          color: Color(0xFF64748B),
+                          size: 20,
+                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                      ),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 20),
+
+                // Results
+                Expanded(
+                  child: _filteredModules.isEmpty
+                      ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.search_off,
+                          size: 64,
+                          color: Colors.grey[300],
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'No modules found',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Try searching with different keywords',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: const Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
+                  )
+                      : ListView.builder(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    itemCount: _filteredModules.length,
+                    itemBuilder: (context, index) {
+                      final module = _filteredModules[index];
+                      return _buildModuleItem(module, context);
+                    },
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildModuleItem(Map<String, dynamic> module, BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: InkWell(
+        onTap: () {
+          Navigator.pop(context);
+          _navigateToModule(module['route']);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Container(
+                width: 48,
+                height: 48,
+                decoration: BoxDecoration(
+                  color: module['color'].withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(
+                  module['icon'],
+                  color: module['color'],
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      module['title'],
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      module['subtitle'],
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.arrow_forward_ios,
+                size: 16,
+                color: Colors.grey[400],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _navigateToModule(String route) {
+    switch (route) {
+      case '/food-intelligence':
+        Navigator.pushNamed(context, '/food-intelligence');
+        break;
+      case '/activity-calories':
+        Navigator.pushNamed(context, '/activity-calories');
+        break;
+      case '/activity-steps':
+        Navigator.pushNamed(context, '/activity-steps');
+        break;
+      case '/water-intake':
+        Navigator.pushNamed(context, '/water-intake');
+        break;
+      case '/nutrition-tracking':
+        Navigator.pushNamed(context, '/nutrition-tracking');
+        break;
+      case '/activity-today':
+        Navigator.pushNamed(context, '/activity-today');
+        break;
+      case '/my-activities':
+        Navigator.pushNamed(context, '/my-activities');
+        break;
+      case '/smart-health':
+        Navigator.pushNamed(context, '/smart-health');
+        break;
+      default:
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Module not available yet'),
+            backgroundColor: const Color(0xFF64748B),
+          ),
+        );
+    }
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }
