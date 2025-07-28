@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-import '../../features/medication_management/presentation/pages/medication_management_add_page.dart';
+import '../../features/medication_management/presentation/pages/medication_management_add.dart';
 import '../../features/medication_management/presentation/pages/medication_management_day.dart';
 import '../../features/medication_management/presentation/providers/medication_monthly_provider.dart';
 import '../../features/medication_management/data/models/monthly_medication_model.dart';
