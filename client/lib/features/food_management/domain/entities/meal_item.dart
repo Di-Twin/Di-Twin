@@ -20,4 +20,7 @@ class MealItem {
     required this.imageUrl,
     required this.mealType,
   });
+
+  // Add getter for backward compatibility
+  String get foodName => name;
 }

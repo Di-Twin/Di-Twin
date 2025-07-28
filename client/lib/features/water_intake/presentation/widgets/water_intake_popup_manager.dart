@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:client/widgets/dashboard/smart_water_intake_widget.dart';
+import 'water_intake_drawer.dart';
 
 class WaterIntakePopupManager extends StatefulWidget {
   final Widget child; // The widget that this manager wraps (e.g., your Dashboard content)
@@ -59,18 +59,48 @@ class _WaterIntakePopupManagerState extends State<WaterIntakePopupManager> {
   void _showWaterIntakePopup() {
     showModalBottomSheet(
       context: context,
-      isScrollControlled: true, // Allows the sheet to be full height if needed
-      backgroundColor: Colors.transparent, // For custom rounded corners
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      isDismissible: false, // Prevent dismissal by clicking outside
+      enableDrag: false, // Prevent dismissal by dragging
       builder: (context) {
-        return Container(
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        return WillPopScope(
+          onWillPop: () async {
+            // Intercept back button and show confirmation instead
+            return false; // Don't allow default back behavior
+          },
+          child: WaterIntakeDrawer(
+            currentSlot: _getCurrentSlot(),
+            onClose: () {
+              Navigator.of(context).pop();
+            },
+            onWaterAdded: (amount) {
+              // Handle water logging here
+              print('Water logged: ${amount}ml');
+            },
           ),
-          child: const WaterIntakeBottomSheetContent(), // Use the renamed widget
         );
       },
     );
+  }
+
+  String _getCurrentSlot() {
+    final now = DateTime.now();
+    final hour = now.hour;
+
+    if (hour >= 6 && hour < 10) {
+      return 'Morning';
+    } else if (hour >= 10 && hour < 12) {
+      return 'Mid-Morning';
+    } else if (hour >= 12 && hour < 14) {
+      return 'Lunch';
+    } else if (hour >= 14 && hour < 18) {
+      return 'Afternoon';
+    } else if (hour >= 18 && hour < 22) {
+      return 'Evening';
+    } else {
+      return 'Evening'; // Default for late night/early morning
+    }
   }
 
   @override

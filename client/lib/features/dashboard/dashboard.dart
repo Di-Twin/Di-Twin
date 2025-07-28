@@ -1,3 +1,4 @@
+import 'package:client/widgets/dashboard/medication_section.dart';
 import 'package:flutter/material.dart';
 import 'package:health/health.dart';
 import 'package:permission_handler/permission_handler.dart';
@@ -12,7 +13,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:provider/provider.dart';
+import 'package:provider/provider.dart' as provider;
 // Import notification services - FCM only
 import '../notification/services/helper_services.dart';
 // Import cache and sync services
@@ -29,14 +30,23 @@ import 'package:client/features/water_intake/data/providers/water_intake_provide
 import 'package:client/features/water_intake/presentation/widgets/water_intake_drawer.dart';
 import 'dart:developer' as developer;
 
-class HomeScreen extends StatefulWidget {
+// Import weight management components
+import 'package:client/features/weight_management/presentation/widgets/weight_input_dialog.dart';
+import 'package:client/features/weight_management/presentation/providers/weight_providers.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// Import sleep management components
+import 'package:client/features/sleep_management/presentation/providers/sleep_provider.dart';
+import 'package:client/features/sleep_management/presentation/services/sleep_notification_service.dart';
+
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   @override
-  _HomeScreenState createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
+class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStateMixin, WidgetsBindingObserver {
   Health? health;
   Map<String, dynamic> healthData = {
     // Initialize with zeros for all metrics
@@ -65,6 +75,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   String? _currentWaterSlot;
   late AnimationController _waterDrawerAnimationController;
   late Animation<double> _waterDrawerAnimation;
+
+  // Weight input drawer variables
+  bool _showWeightInputDrawer = false;
+  bool _isWeightInputRequired = false; // Flag to track if weight input is required
+  DateTime? _lastWeightEntry;
+  static const int _weightReminderIntervalDays = 3;
 
   // Manual entry data
   Map<String, dynamic> _manualEntryData = {
@@ -164,6 +180,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     // Start background sync service
     BackgroundSyncService.instance.startBackgroundSync();
 
+    // Initialize weight tracking first (higher priority)
+    await _initializeWeightTracking();
+
+    // Initialize sleep notifications
+    await _initializeSleepNotifications();
+
     // Initialize water intake and check for drawer trigger
     await _initializeWaterIntake();
 
@@ -177,7 +199,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
     // Check connection status and show drawer if needed
     final completed = await _checkConnectionCompleted();
-    if (!completed && !_isWatchDrawerShowing) {
+    if (!completed && !_isWatchDrawerShowing && !_isWeightInputRequired) {
       Future.delayed(const Duration(milliseconds: 1000), () {
         if (!mounted) return;
         _showWatchConnectionDrawer();
@@ -203,31 +225,233 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     });
   }
 
+  /// Initialize sleep notifications
+  Future<void> _initializeSleepNotifications() async {
+    try {
+      final sleepProvider = provider.Provider.of<SleepProvider>(context, listen: false);
+      await SleepNotificationService().initialize(sleepProvider);
+      developer.log('✅ Sleep notifications initialized', name: 'Dashboard');
+    } catch (e) {
+      developer.log('❌ Error initializing sleep notifications: $e', name: 'Dashboard');
+    }
+  }
+
   /// Initialize water intake and check for drawer trigger
   Future<void> _initializeWaterIntake() async {
     try {
-      final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+      final waterProvider = provider.Provider.of<WaterIntakeProvider>(context, listen: false);
       await waterProvider.initialize();
 
-      // Check if we should show the water intake drawer
-      _checkWaterIntakeDrawer();
-
-      // Set up periodic checks for water intake drawer
-      _startWaterIntakeTimer();
+      // Only check water intake drawer if weight input is not required
+      if (!_isWeightInputRequired) {
+        _checkWaterIntakeDrawer();
+        _startWaterIntakeTimer();
+      }
     } catch (e) {
       developer.log('❌ Error initializing water intake: $e', name: 'Dashboard');
     }
   }
 
+  /// Initialize weight tracking and check for drawer trigger
+  Future<void> _initializeWeightTracking() async {
+    try {
+      // Load last weight entry date
+      await _loadLastWeightEntryDate();
+
+      // Check if we should show the weight input drawer
+      _checkWeightInputDrawer();
+
+      // Set up periodic checks for weight input drawer
+      _startWeightTrackingTimer();
+    } catch (e) {
+      developer.log('❌ Error initializing weight tracking: $e', name: 'Dashboard');
+    }
+  }
+
+  /// Load last weight entry date from shared preferences
+  Future<void> _loadLastWeightEntryDate() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final lastEntryTimestamp = prefs.getInt('last_weight_entry_timestamp');
+      if (lastEntryTimestamp != null) {
+        _lastWeightEntry = DateTime.fromMillisecondsSinceEpoch(lastEntryTimestamp);
+        developer.log('📅 Last weight entry: ${_lastWeightEntry.toString()}', name: 'Dashboard');
+      } else {
+        developer.log('📅 No previous weight entry found', name: 'Dashboard');
+      }
+    } catch (e) {
+      developer.log('❌ Error loading last weight entry date: $e', name: 'Dashboard');
+    }
+  }
+
+  /// Check if weight input drawer should be shown
+  void _checkWeightInputDrawer() {
+    final now = DateTime.now();
+
+    bool shouldShow = false;
+
+    if (_lastWeightEntry == null) {
+      // First time user - show weight input
+      shouldShow = true;
+      developer.log('👋 First time user, showing weight input', name: 'Dashboard');
+    } else {
+      // Check if 3 days have passed since last entry
+      final daysSinceLastEntry = now.difference(_lastWeightEntry!).inDays;
+      developer.log('📊 Days since last weight entry: $daysSinceLastEntry', name: 'Dashboard');
+
+      if (daysSinceLastEntry >= _weightReminderIntervalDays) {
+        shouldShow = true;
+        developer.log('⚖️ $daysSinceLastEntry days passed, weight input required', name: 'Dashboard');
+      }
+    }
+
+    if (shouldShow) {
+      setState(() {
+        _isWeightInputRequired = true;
+        _showWeightInputDrawer = true;
+      });
+
+      developer.log('🔔 Weight input drawer activated', name: 'Dashboard');
+    }
+  }
+
+  /// Start weight tracking timer
+  void _startWeightTrackingTimer() {
+    // Check every hour for weight input drawer trigger
+    Future.delayed(const Duration(hours: 1), () {
+      if (mounted) {
+        // Only check if weight input is not already required
+        if (!_isWeightInputRequired) {
+          _checkWeightInputDrawer();
+        }
+        _startWeightTrackingTimer();
+      }
+    });
+  }
+
+  /// Handle weight input
+  Future<void> _onWeightSaved(double weight) async {
+    try {
+      developer.log('💾 Saving weight: $weight kg', name: 'Dashboard');
+
+      // Save weight using the weight controller
+      final weightController = ref.read(weightControllerProvider.notifier);
+      await weightController.updateWeight(weight);
+
+      // Update last weight entry timestamp
+      final prefs = await SharedPreferences.getInstance();
+      final currentTimestamp = DateTime.now().millisecondsSinceEpoch;
+      await prefs.setInt('last_weight_entry_timestamp', currentTimestamp);
+
+      setState(() {
+        _lastWeightEntry = DateTime.now();
+        _showWeightInputDrawer = false;
+        _isWeightInputRequired = false; // Reset the requirement flag
+      });
+
+      // Now that weight is entered, check for water intake drawer
+      _checkWaterIntakeDrawer();
+      _startWaterIntakeTimer();
+
+      // Show success feedback
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
+                SizedBox(width: 8.w),
+                Text(
+                  'Weight updated successfully: ${weight.toStringAsFixed(1)} kg',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            margin: EdgeInsets.all(16.w),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+
+      developer.log('✅ Weight saved successfully: $weight kg', name: 'Dashboard');
+    } catch (e) {
+      developer.log('❌ Error saving weight: $e', name: 'Dashboard');
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to save weight. Please try again.'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
+
   void _checkWaterIntakeDrawer() {
-    final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+    // Don't show water intake drawer if weight input is required
+    if (_isWeightInputRequired) {
+      developer.log('⚖️ Weight input required, skipping water intake drawer', name: 'Dashboard');
+      return;
+    }
+
+    final waterProvider = provider.Provider.of<WaterIntakeProvider>(context, listen: false);
+
+    // Get current time and check if it's within active hours (7 AM to 10 PM)
+    final now = DateTime.now();
+    if (now.hour < 7 || now.hour > 22) {
+      developer.log('⏰ Outside active hours, not showing water drawer', name: 'Dashboard');
+      return;
+    }
+
+    // Check if goal is already achieved
+    if (waterProvider.todayIntake.progressPercentage >= 100) {
+      developer.log('🎉 Water goal already achieved, not showing drawer', name: 'Dashboard');
+      return;
+    }
+
+    // Get current incomplete slot
     final currentSlot = waterProvider.getCurrentIncompleteSlot();
 
-    if (currentSlot != null && !_showWaterIntakeDrawer) {
+    // Check if enough time has passed since last intake
+    final lastIntakeTime = waterProvider.todayIntake.entries.isNotEmpty
+        ? waterProvider.todayIntake.entries.last.timestamp
+        : null;
+
+    bool shouldShow = false;
+
+    if (currentSlot != null) {
+      // If there's a current slot that needs completion
+      shouldShow = true;
+      developer.log('📋 Current incomplete slot: $currentSlot', name: 'Dashboard');
+    } else if (lastIntakeTime != null) {
+      // Check if it's been more than 2 hours since last intake
+      final timeSinceLastIntake = now.difference(lastIntakeTime);
+      if (timeSinceLastIntake.inHours >= 2) {
+        shouldShow = true;
+        developer.log('⏱️ 2+ hours since last intake, showing reminder', name: 'Dashboard');
+      }
+    } else if (waterProvider.todayIntake.totalAmount == 0 && now.hour >= 9) {
+      // No water logged today and it's past 9 AM
+      shouldShow = true;
+      developer.log('🌅 No water logged today, showing morning reminder', name: 'Dashboard');
+    }
+
+    if (shouldShow && !_showWaterIntakeDrawer) {
       developer.log('🔔 Showing water intake drawer for slot: $currentSlot', name: 'Dashboard');
 
       setState(() {
-        _currentWaterSlot = currentSlot;
+        _currentWaterSlot = currentSlot ?? 'Hydration Reminder';
         _showWaterIntakeDrawer = true;
       });
 
@@ -376,8 +600,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     // Check for OAuth return
     _checkForRecentOAuthReturn();
 
-    // Check for water intake drawer
-    _checkWaterIntakeDrawer();
+    // Check for weight input drawer first (higher priority)
+    if (!_isWeightInputRequired) {
+      _checkWeightInputDrawer();
+    }
+
+    // Check for water intake drawer only if weight is not required
+    if (!_isWeightInputRequired) {
+      _checkWaterIntakeDrawer();
+    }
   }
 
   /// Pull to refresh functionality
@@ -1240,129 +1471,188 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   @override
   Widget build(BuildContext context) {
-    return WaterIntakePopupManager(
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
-        body: Stack(
-          children: [
-            // Main content
-            RefreshIndicator(
-              onRefresh: _handleRefresh,
-              color: const Color(0xFF0F67FE),
-              child: NestedScrollView(
-                headerSliverBuilder: (context, innerBoxIsScrolled) {
-                  return [
-                    SliverToBoxAdapter(
-                      child: SafeArea(
-                        child: Column(
-                          children: [
-                            AppHeader(),
-                            // Show sync status indicator
-                            if (BackgroundSyncService.instance.isSyncing)
-                              Container(
-                                padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                                child: Row(
-                                  children: [
-                                    SizedBox(
-                                      width: 12,
-                                      height: 12,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 1.5,
-                                        valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0F67FE)),
+    return Consumer(
+        builder: (context, ref, child) {
+          // Initialize weight controller if needed
+          ref.watch(weightControllerInitProvider);
+
+          return WaterIntakePopupManager(
+            child: Scaffold(
+              backgroundColor: const Color(0xFFF0F2F5),
+              body: Stack(
+                children: [
+                  // Main content
+                  RefreshIndicator(
+                    onRefresh: _handleRefresh,
+                    color: const Color(0xFF0F67FE),
+                    child: NestedScrollView(
+                      headerSliverBuilder: (context, innerBoxIsScrolled) {
+                        return [
+                          SliverToBoxAdapter(
+                            child: SafeArea(
+                              child: Column(
+                                children: [
+                                  AppHeader(),
+                                  // Show sync status indicator
+                                  if (BackgroundSyncService.instance.isSyncing)
+                                    Container(
+                                      padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                      child: Row(
+                                        children: [
+                                          SizedBox(
+                                            width: 12,
+                                            height: 12,
+                                            child: CircularProgressIndicator(
+                                              strokeWidth: 1.5,
+                                              valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0F67FE)),
+                                            ),
+                                          ),
+                                          SizedBox(width: 8),
+                                          Text(
+                                            'Syncing data...',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12.sp,
+                                              fontWeight: FontWeight.w500,
+                                              color: const Color(0xFF1E293B),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Syncing data...',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12.sp,
-                                        fontWeight: FontWeight.w500,
-                                        color: const Color(0xFF1E293B),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                ],
                               ),
-                          ],
+                            ),
+                          ),
+                        ];
+                      },
+                      body: _isLoadingData && !_hasLoadedCachedData || _isCheckingConnection
+                          ? _buildLoadingState()
+                          : ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        children: [
+                          const SizedBox(height: 20),
+                          HealthScoreCard(),
+                          const SizedBox(height: 20),
+                          const HealthMetricsSection(),
+                          const SizedBox(height: 20),
+                          const FitnessTrackerSection(),
+                          const SizedBox(height: 20),
+                          // Removed LastNightSleepWidget from here
+                          const MedicationSection(),
+                          const SizedBox(height: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  // Weight Input Drawer Overlay (Highest Priority)
+                  if (_showWeightInputDrawer)
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.6),
+                        child: Center(
+                          child: WeightInputDialog(
+                            onWeightSaved: _onWeightSaved,
+                          ),
                         ),
                       ),
                     ),
-                  ];
+
+                  // Water Intake Drawer Overlay (Lower Priority)
+                  if (_showWaterIntakeDrawer && _currentWaterSlot != null && !_showWeightInputDrawer)
+                    Positioned.fill(
+                      child: AnimatedBuilder(
+                        animation: _waterDrawerAnimation,
+                        builder: (context, child) {
+                          return Stack(
+                            children: [
+                              // Semi-transparent overlay
+                              GestureDetector(
+                                onTap: () {
+                                  // Show confirmation dialog when tapping overlay
+                                  showDialog(
+                                    context: context,
+                                    builder: (context) => AlertDialog(
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(16.r),
+                                      ),
+                                      title: Text(
+                                        'Skip Hydration?',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18.sp,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      ),
+                                      content: Text(
+                                        'Are you sure you want to skip your hydration reminder?',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14.sp,
+                                          fontWeight: FontWeight.w500,
+                                        ),
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () => Navigator.of(context).pop(),
+                                          child: Text('Stay & Hydrate'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop();
+                                            _closeWaterIntakeDrawer();
+                                          },
+                                          child: Text('Skip for Now'),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                },
+                                child: Container(
+                                  color: Colors.black.withOpacity(0.5 * _waterDrawerAnimation.value),
+                                ),
+                              ),
+
+                              // Drawer positioned at bottom with proper sizing
+                              Positioned(
+                                bottom: 0,
+                                left: 0,
+                                right: 0,
+                                child: Container(
+                                  constraints: BoxConstraints(
+                                    maxHeight: MediaQuery.of(context).size.height * 0.7,
+                                  ),
+                                  child: WaterIntakeDrawer(
+                                    currentSlot: _currentWaterSlot!,
+                                    onClose: _closeWaterIntakeDrawer,
+                                    onWaterAdded: _onWaterAdded,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                ],
+              ),
+              bottomNavigationBar: const BottomNavigation(),
+              floatingActionButton: FloatingActionButton(
+                onPressed: () {
+                  if (_connectedWatchType == 'Manual') {
+                    _showManualEntryDrawer();
+                  } else if (_connectedWatchType == 'Fitbit') {
+                    _fetchFitbitData();
+                  }
                 },
-                body: _isLoadingData && !_hasLoadedCachedData || _isCheckingConnection
-                    ? _buildLoadingState()
-                    : ListView(
-                  padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                  children: [
-                    const SizedBox(height: 20),
-                    HealthScoreCard(),
-                    const SizedBox(height: 20),
-                    const HealthMetricsSection(),
-                    const SizedBox(height: 20),
-                    const FitnessTrackerSection(),
-                    const SizedBox(height: 20),
-                  ],
+                backgroundColor: const Color(0xFF2563EB),
+                child: Icon(
+                  _connectedWatchType == 'Manual' ? Icons.edit : Icons.refresh,
+                  color: Colors.white,
                 ),
               ),
+              floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
             ),
-
-            // Water Intake Drawer Overlay
-          //   if (_showWaterIntakeDrawer && _currentWaterSlot != null)
-          //     Positioned.fill(
-          //       child: AnimatedBuilder(
-          //         animation: _waterDrawerAnimation,
-          //         builder: (context, child) {
-          //           return Stack(
-          //             children: [
-          //               // Semi-transparent overlay
-          //               GestureDetector(
-          //                 onTap: () {
-          //                   // Don't allow dismissing by tapping overlay
-          //                   // User must interact with the drawer
-          //                 },
-          //                 child: Container(
-          //                   color: Colors.black.withOpacity(0.5 * _waterDrawerAnimation.value),
-          //                 ),
-          //               ),
-          //
-          //               // Drawer positioned at bottom
-          //               Positioned(
-          //                 bottom: 0,
-          //                 left: 0,
-          //                 right: 0,
-          //                 child: Transform.translate(
-          //                   offset: Offset(0, (1 - _waterDrawerAnimation.value) * 400),
-          //                   child: WaterIntakeDrawer(
-          //                     currentSlot: _currentWaterSlot!,
-          //                     onClose: _closeWaterIntakeDrawer,
-          //                     onWaterAdded: _onWaterAdded,
-          //                   ),
-          //                 ),
-          //               ),
-          //             ],
-          //           );
-          //         },
-          //       ),
-          //     ),
-        ],
-        ),
-        bottomNavigationBar: const BottomNavigation(),
-        floatingActionButton: FloatingActionButton(
-          onPressed: () {
-            if (_connectedWatchType == 'Manual') {
-              _showManualEntryDrawer();
-            } else if (_connectedWatchType == 'Fitbit') {
-              _fetchFitbitData();
-            }
-          },
-          backgroundColor: const Color(0xFF2563EB),
-          child: Icon(
-            _connectedWatchType == 'Manual' ? Icons.edit : Icons.refresh,
-            color: Colors.white,
-          ),
-        ),
-        floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      ),
+          );
+        }
     );
   }
 

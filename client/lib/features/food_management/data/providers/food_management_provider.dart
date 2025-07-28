@@ -13,6 +13,7 @@ import 'package:client/features/food_management/data/datasources/food_local_data
 import 'package:client/features/food_management/data/datasources/food_remote_datasource.dart';
 import 'package:client/features/food_management/data/repositories/food_repository_impl.dart';
 import 'package:client/features/food_management/domain/entities/food_item.dart';
+import 'package:client/features/food_management/domain/usecases/add_food_item_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/delete_food_item_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/get_daily_food_data_usecase.dart';
 import 'package:client/features/food_management/domain/usecases/get_food_score_usecase.dart';
@@ -48,7 +49,6 @@ class FoodManagementProvider {
     // Initialize repository
     final repository = FoodRepositoryImpl(
       remoteDataSource: remoteDataSource,
-      localDataSource: localDataSource,
       networkInfo: networkInfo,
     );
 
@@ -86,7 +86,7 @@ class FoodManagementProvider {
   Future<List<Map<String, dynamic>>> getPopularFoods() async {
     await _initializeController();
     await _controller.getPopularFoods();
-    
+
     // Convert FoodItem entities to Map for UI consumption
     return _controller.popularFoods.map((food) {
       return {
@@ -107,10 +107,10 @@ class FoodManagementProvider {
   Future<Map<String, List<Map<String, dynamic>>>> getDailyFoodData(String date) async {
     await _initializeController();
     await _controller.getDailyFoodData(date);
-    
+
     // Convert FoodItem entities to Map for UI consumption
     Map<String, List<Map<String, dynamic>>> result = {};
-    
+
     _controller.foodData.value.forEach((mealType, foods) {
       result[mealType] = foods.map((food) {
         return {
@@ -126,14 +126,14 @@ class FoodManagementProvider {
         };
       }).toList();
     });
-    
+
     return result;
   }
 
   // Add food item
   Future<bool> addFoodItem(Map<String, dynamic> foodData) async {
     await _initializeController();
-    
+
     // Create a FoodItem from the map
     final foodItem = FoodItem(
       id: foodData['id'] ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -148,14 +148,14 @@ class FoodManagementProvider {
       fat: foodData['fat'],
       color: foodData['color'] ?? Colors.blue,
     );
-    
+
     return await _controller.addFoodItem(foodItem);
   }
 
   // Update food item
   Future<bool> updateFoodItem(Map<String, dynamic> foodData) async {
     await _initializeController();
-    
+
     // Create a FoodItem from the map
     final foodItem = FoodItem(
       id: foodData['id'],
@@ -170,7 +170,7 @@ class FoodManagementProvider {
       fat: foodData['fat'],
       color: foodData['color'],
     );
-    
+
     return await _controller.updateFoodItem(foodItem);
   }
 
@@ -180,50 +180,50 @@ class FoodManagementProvider {
     return await _controller.deleteFoodItem(id, date);
   }
 
-static final FoodManagementProvider _instance =
-    FoodManagementProvider._internal();
+  static final FoodManagementProvider _instance =
+  FoodManagementProvider._internal();
 
-factory FoodManagementProvider.instance() {
-  return _instance;
-}
+  factory FoodManagementProvider.instance() {
+    return _instance;
+  }
 
-FoodManagementProvider._internal();
+  FoodManagementProvider._internal();
 
-final String _baseUrl =
-    'https://test-prod-f427.onrender.com'; // Replace with your actual base URL
+  final String _baseUrl =
+      'https://test-prod-f427.onrender.com'; // Replace with your actual base URL
 
-/// Fetches the daily food score for a specific date
-Future<String> getDailyFoodScore(String date) async {
-  try {
-    final token = await _getAccessToken();
+  /// Fetches the daily food score for a specific date
+  Future<String> getDailyFoodScore(String date) async {
+    try {
+      final token = await _getAccessToken();
 
-    final response = await http.get(
-      Uri.parse('$_baseUrl/food/score/daily/$date'),
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': 'Bearer $token',
-      },
-    );
+      final response = await http.get(
+        Uri.parse('$_baseUrl/food/score/daily/$date'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
 
-    if (response.statusCode == 200) {
-      final responseData = json.decode(response.body);
+      if (response.statusCode == 200) {
+        final responseData = json.decode(response.body);
 
-      if (responseData['success'] == true) {
-        double foodScore = responseData['data']['food_score'].toDouble();
-        return foodScore.round().toString();
+        if (responseData['success'] == true) {
+          double foodScore = responseData['data']['food_score'].toDouble();
+          return foodScore.round().toString();
+        } else {
+          return '0';
+        }
       } else {
         return '0';
       }
-    } else {
+    } catch (error) {
+      print('Error fetching food score: $error');
       return '0';
     }
-  } catch (error) {
-    print('Error fetching food score: $error');
-    return '0';
   }
-}
 
-/// Gets today's food score
+  /// Gets today's food score
 // Future<String> getTodayFoodScore() async {
 //   final today = DateTime.now();
 //   final formattedDate =
@@ -231,7 +231,7 @@ Future<String> getDailyFoodScore(String date) async {
 //   return getDailyFoodScore(formattedDate);
 // }
 
-/// Fetches daily food data for a specific date
+  /// Fetches daily food data for a specific date
 // Future<Map<String, List<Map<String, dynamic>>>> getDailyFoodData(
 //   String date,
 // ) async {
@@ -285,235 +285,235 @@ Future<String> getDailyFoodScore(String date) async {
 //   }
 // }
 
-/// Gets today's food data
-Future<Map<String, List<Map<String, dynamic>>>> getTodayFoodData() async {
-  final today = DateTime.now();
-  final formattedDate =
-      "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-  return getDailyFoodData(formattedDate);
-}
+  /// Gets today's food data
+  Future<Map<String, List<Map<String, dynamic>>>> getTodayFoodData() async {
+    final today = DateTime.now();
+    final formattedDate =
+        "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+    return getDailyFoodData(formattedDate);
+  }
 
-/// Transforms API meal data to the format needed by the app
-Map<String, List<Map<String, dynamic>>> _processApiMealData(
-  Map<String, dynamic> apiData,
-) {
-  Map<String, List<Map<String, dynamic>>> result = {
-    'breakfast': [],
-    'lunch': [],
-    'dinner': [],
-    'snacks': [],
-    'custom': [],
-  };
+  /// Transforms API meal data to the format needed by the app
+  Map<String, List<Map<String, dynamic>>> _processApiMealData(
+      Map<String, dynamic> apiData,
+      ) {
+    Map<String, List<Map<String, dynamic>>> result = {
+      'breakfast': [],
+      'lunch': [],
+      'dinner': [],
+      'snacks': [],
+      'custom': [],
+    };
 
-  // Process meals data
-  if (apiData.containsKey('meals')) {
-    Map<String, dynamic> meals = apiData['meals'];
+    // Process meals data
+    if (apiData.containsKey('meals')) {
+      Map<String, dynamic> meals = apiData['meals'];
 
-    meals.forEach((mealType, foodList) {
-      if (result.containsKey(mealType)) {
-        for (var foodItem in foodList) {
-          // Parse the time
-          DateTime foodTime = DateTime.parse(foodItem['time']);
-          double timeValue = foodTime.hour + (foodTime.minute / 60);
+      meals.forEach((mealType, foodList) {
+        if (result.containsKey(mealType)) {
+          for (var foodItem in foodList) {
+            // Parse the time
+            DateTime foodTime = DateTime.parse(foodItem['time']);
+            double timeValue = foodTime.hour + (foodTime.minute / 60);
 
-          // Create a standardized food item
-          Map<String, dynamic> processedFood = {
-            'name': foodItem['foodName'],
-            'calories':
-                foodItem['calories'] is int
-                    ? foodItem['calories']
-                    : (foodItem['calories'] as double).toInt(),
-            // Set default values for data not provided by API
-            'protein': foodItem['protein'] ?? 0.0,
-            'carbs': foodItem['carbs'] ?? 0.0,
-            'fat': foodItem['fat'] ?? 0.0,
-            'time': _formatTime(foodTime),
-            'timeValue': timeValue,
-            // Set default icons and colors based on meal type
-            'colorValue': _getColorValueForMealType(mealType),
-            'iconName': _getIconNameForMealType(mealType),
-            'image':
-                foodItem['imageUrl'] ?? _getDefaultImageForMealType(mealType),
-            'weight': foodItem['weight'] ?? '100g',
-            'date': DateTime.now().toString(),
-          };
+            // Create a standardized food item
+            Map<String, dynamic> processedFood = {
+              'name': foodItem['foodName'],
+              'calories':
+              foodItem['calories'] is int
+                  ? foodItem['calories']
+                  : (foodItem['calories'] as double).toInt(),
+              // Set default values for data not provided by API
+              'protein': foodItem['protein'] ?? 0.0,
+              'carbs': foodItem['carbs'] ?? 0.0,
+              'fat': foodItem['fat'] ?? 0.0,
+              'time': _formatTime(foodTime),
+              'timeValue': timeValue,
+              // Set default icons and colors based on meal type
+              'colorValue': _getColorValueForMealType(mealType),
+              'iconName': _getIconNameForMealType(mealType),
+              'image':
+              foodItem['imageUrl'] ?? _getDefaultImageForMealType(mealType),
+              'weight': foodItem['weight'] ?? '100g',
+              'date': DateTime.now().toString(),
+            };
 
-          result[mealType]!.add(processedFood);
+            result[mealType]!.add(processedFood);
+          }
         }
+      });
+    }
+
+    return result;
+  }
+
+  /// Get a formatted time string from DateTime (e.g., "08:30 AM")
+  String _formatTime(DateTime dateTime) {
+    int hour = dateTime.hour;
+    String period = hour >= 12 ? 'PM' : 'AM';
+
+    if (hour > 12) hour -= 12;
+    if (hour == 0) hour = 12;
+
+    String minute = dateTime.minute.toString().padLeft(2, '0');
+
+    return '$hour:$minute $period';
+  }
+
+  /// Get default color value for a meal type
+  int _getColorValueForMealType(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return 0xFF4CAF50;
+      case 'lunch':
+        return 0xFFFFA726;
+      case 'dinner':
+        return 0xFFEC407A;
+      case 'snacks':
+        return 0xFF7E57C2;
+      default:
+        return 0xFF26A69A;
+    }
+  }
+
+  /// Get default icon name for a meal type
+  String _getIconNameForMealType(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return 'breakfast_dining';
+      case 'lunch':
+        return 'lunch_dining';
+      case 'dinner':
+        return 'dinner_dining';
+      case 'snacks':
+        return 'food_bank';
+      default:
+        return 'local_dining';
+    }
+  }
+
+  /// Get default image path for a meal type
+  String _getDefaultImageForMealType(String mealType) {
+    switch (mealType) {
+      case 'breakfast':
+        return 'images/breakfast.png';
+      case 'lunch':
+        return 'images/lunch.png';
+      case 'dinner':
+        return 'images/dinner.png';
+      case 'snacks':
+        return 'images/snack.png';
+      default:
+        return 'images/food.png';
+    }
+  }
+
+  /// Gets all foods across all meal types, sorted by time
+  List<Map<String, dynamic>> getAllFoodsSortedByTime(
+      Map<String, List<Map<String, dynamic>>> mealData,
+      ) {
+    List<Map<String, dynamic>> allFoods = [];
+
+    mealData.forEach((mealType, foods) {
+      for (var food in foods) {
+        // Add meal type to the food data
+        Map<String, dynamic> foodWithType = Map.from(food);
+        foodWithType['mealType'] = mealType;
+        allFoods.add(foodWithType);
       }
     });
+
+    // Sort by timeValue
+    allFoods.sort(
+          (a, b) => (a['timeValue'] as double).compareTo(b['timeValue'] as double),
+    );
+
+    return allFoods;
   }
 
-  return result;
-}
+  /// Gets foods for a specific time period
+  List<Map<String, dynamic>> getFoodsForTimePeriod(
+      Map<String, List<Map<String, dynamic>>> mealData,
+      Map<String, dynamic> timePeriod,
+      ) {
+    // Get all foods sorted by time
+    List<Map<String, dynamic>> allFoods = getAllFoodsSortedByTime(mealData);
 
-/// Get a formatted time string from DateTime (e.g., "08:30 AM")
-String _formatTime(DateTime dateTime) {
-  int hour = dateTime.hour;
-  String period = hour >= 12 ? 'PM' : 'AM';
-
-  if (hour > 12) hour -= 12;
-  if (hour == 0) hour = 12;
-
-  String minute = dateTime.minute.toString().padLeft(2, '0');
-
-  return '$hour:$minute $period';
-}
-
-/// Get default color value for a meal type
-int _getColorValueForMealType(String mealType) {
-  switch (mealType) {
-    case 'breakfast':
-      return 0xFF4CAF50;
-    case 'lunch':
-      return 0xFFFFA726;
-    case 'dinner':
-      return 0xFFEC407A;
-    case 'snacks':
-      return 0xFF7E57C2;
-    default:
-      return 0xFF26A69A;
+    // Filter foods that belong to this time period
+    return allFoods.where((food) {
+      double timeValue = food['timeValue'] as double;
+      return timeValue >= timePeriod['startTime'] &&
+          timeValue < timePeriod['endTime'];
+    }).toList();
   }
-}
 
-/// Get default icon name for a meal type
-String _getIconNameForMealType(String mealType) {
-  switch (mealType) {
-    case 'breakfast':
-      return 'breakfast_dining';
-    case 'lunch':
-      return 'lunch_dining';
-    case 'dinner':
-      return 'dinner_dining';
-    case 'snacks':
-      return 'food_bank';
-    default:
-      return 'local_dining';
-  }
-}
+  /// Calculate total calories for a specific time period
+  int getTotalCaloriesForTimePeriod(
+      Map<String, List<Map<String, dynamic>>> mealData,
+      Map<String, dynamic> timePeriod,
+      ) {
+    List<Map<String, dynamic>> periodFoods = getFoodsForTimePeriod(
+      mealData,
+      timePeriod,
+    );
 
-/// Get default image path for a meal type
-String _getDefaultImageForMealType(String mealType) {
-  switch (mealType) {
-    case 'breakfast':
-      return 'images/breakfast.png';
-    case 'lunch':
-      return 'images/lunch.png';
-    case 'dinner':
-      return 'images/dinner.png';
-    case 'snacks':
-      return 'images/snack.png';
-    default:
-      return 'images/food.png';
-  }
-}
-
-/// Gets all foods across all meal types, sorted by time
-List<Map<String, dynamic>> getAllFoodsSortedByTime(
-  Map<String, List<Map<String, dynamic>>> mealData,
-) {
-  List<Map<String, dynamic>> allFoods = [];
-
-  mealData.forEach((mealType, foods) {
-    for (var food in foods) {
-      // Add meal type to the food data
-      Map<String, dynamic> foodWithType = Map.from(food);
-      foodWithType['mealType'] = mealType;
-      allFoods.add(foodWithType);
+    int totalCalories = 0;
+    for (var food in periodFoods) {
+      totalCalories += food['calories'] as int;
     }
-  });
-
-  // Sort by timeValue
-  allFoods.sort(
-    (a, b) => (a['timeValue'] as double).compareTo(b['timeValue'] as double),
-  );
-
-  return allFoods;
-}
-
-/// Gets foods for a specific time period
-List<Map<String, dynamic>> getFoodsForTimePeriod(
-  Map<String, List<Map<String, dynamic>>> mealData,
-  Map<String, dynamic> timePeriod,
-) {
-  // Get all foods sorted by time
-  List<Map<String, dynamic>> allFoods = getAllFoodsSortedByTime(mealData);
-
-  // Filter foods that belong to this time period
-  return allFoods.where((food) {
-    double timeValue = food['timeValue'] as double;
-    return timeValue >= timePeriod['startTime'] &&
-        timeValue < timePeriod['endTime'];
-  }).toList();
-}
-
-/// Calculate total calories for a specific time period
-int getTotalCaloriesForTimePeriod(
-  Map<String, List<Map<String, dynamic>>> mealData,
-  Map<String, dynamic> timePeriod,
-) {
-  List<Map<String, dynamic>> periodFoods = getFoodsForTimePeriod(
-    mealData,
-    timePeriod,
-  );
-
-  int totalCalories = 0;
-  for (var food in periodFoods) {
-    totalCalories += food['calories'] as int;
+    return totalCalories;
   }
-  return totalCalories;
-}
 
-/// Calculate total nutrients for a meal type
-Map<String, double> calculateTotalNutrients(
-  Map<String, List<Map<String, dynamic>>> mealData, [
-  String? specificMealType,
-]) {
-  double totalCalories = 0;
-  double totalProtein = 0;
-  double totalCarbs = 0;
-  double totalFat = 0;
+  /// Calculate total nutrients for a meal type
+  Map<String, double> calculateTotalNutrients(
+      Map<String, List<Map<String, dynamic>>> mealData, [
+        String? specificMealType,
+      ]) {
+    double totalCalories = 0;
+    double totalProtein = 0;
+    double totalCarbs = 0;
+    double totalFat = 0;
 
-  void processMeal(String mealType, List<Map<String, dynamic>> foods) {
-    for (var food in foods) {
-      totalCalories += food['calories'] as num;
-      totalProtein += food['protein'] as num;
-      totalCarbs += food['carbs'] as num;
-      totalFat += food['fat'] as num;
+    void processMeal(String mealType, List<Map<String, dynamic>> foods) {
+      for (var food in foods) {
+        totalCalories += food['calories'] as num;
+        totalProtein += food['protein'] as num;
+        totalCarbs += food['carbs'] as num;
+        totalFat += food['fat'] as num;
+      }
     }
-  }
 
-  if (specificMealType != null && mealData.containsKey(specificMealType)) {
-    processMeal(specificMealType, mealData[specificMealType]!);
-  } else {
-    mealData.forEach(processMeal);
-  }
-
-  return {
-    'calories': totalCalories,
-    'protein': totalProtein,
-    'carbs': totalCarbs,
-    'fat': totalFat,
-  };
-}
-
-/// Determine the current time period based on the current time
-String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
-  final now = DateTime.now();
-  double currentTimeValue = now.hour + (now.minute / 60);
-
-  for (var period in timePeriods) {
-    double startTime = period['startTime'] as double;
-    double endTime = period['endTime'] as double;
-
-    if (currentTimeValue >= startTime && currentTimeValue < endTime) {
-      return period['name'] as String;
+    if (specificMealType != null && mealData.containsKey(specificMealType)) {
+      processMeal(specificMealType, mealData[specificMealType]!);
+    } else {
+      mealData.forEach(processMeal);
     }
+
+    return {
+      'calories': totalCalories,
+      'protein': totalProtein,
+      'carbs': totalCarbs,
+      'fat': totalFat,
+    };
   }
 
-  // Default to the first time period if current time doesn't match any period
-  return timePeriods.isNotEmpty ? timePeriods.first['name'] as String : '';
-}
+  /// Determine the current time period based on the current time
+  String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
+    final now = DateTime.now();
+    double currentTimeValue = now.hour + (now.minute / 60);
+
+    for (var period in timePeriods) {
+      double startTime = period['startTime'] as double;
+      double endTime = period['endTime'] as double;
+
+      if (currentTimeValue >= startTime && currentTimeValue < endTime) {
+        return period['name'] as String;
+      }
+    }
+
+    // Default to the first time period if current time doesn't match any period
+    return timePeriods.isNotEmpty ? timePeriods.first['name'] as String : '';
+  }
 
 // Future<List<Map<String, dynamic>>> getPopularFoods() async {
 //   try {
@@ -601,7 +601,7 @@ String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
 //   }
 // }
 
-/// Adds a custom food item to the database
+  /// Adds a custom food item to the database
 // Future<bool> addCustomFood(Map<String, dynamic> foodData) async {
 //   try {
 //     final token = await _getAccessToken();
@@ -635,7 +635,7 @@ String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
 //   try {
 //     // First save to cache
 //     await _addFoodItemToCache(foodData);
-    
+
 //     // Then try to send to API
 //     final token = await _getAccessToken();
 
@@ -678,17 +678,17 @@ String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
 //   }
 // }
 
-/// Deletes a food item from the database
+  /// Deletes a food item from the database
 // Future<bool> deleteFoodItem(Map<String, dynamic> foodData) async {
 //   try {
 //     // First delete from cache
 //     await _deleteFoodItemFromCache(foodData);
-    
+
 //     // Then try to delete from API
 //     final token = await _getAccessToken();
 //     final date = foodData['date'] as String? ?? 
 //         DateFormat('yyyy-MM-dd').format(foodData['date'] as DateTime);
-    
+
 //     final response = await http.delete(
 //       Uri.parse('$_baseUrl/food/item'),
 //       headers: {
@@ -717,321 +717,321 @@ String getCurrentTimePeriod(List<Map<String, dynamic>> timePeriods) {
 //   }
 // }
 
-/// Helper method to get access token
-Future<String?> _getAccessToken() async {
-  final prefs = await SharedPreferences.getInstance();
-  final token = prefs.getString('access_token');
-  if (token == null) {
-    throw Exception('No access token found. Please log in.');
-  }
-  return token;
-}
-
-/// Helper method to determine appropriate icon name for a food item
-String _getIconNameForFoodItem(String foodName) {
-  // Convert to lowercase for case-insensitive comparison
-  final name = foodName.toLowerCase();
-
-  if (name.contains('salad') ||
-      name.contains('vegetable') ||
-      name.contains('spinach')) {
-    return 'eco';
-  } else if (name.contains('fruit') ||
-      name.contains('apple') ||
-      name.contains('banana')) {
-    return 'breakfast_dining';
-  } else if (name.contains('meat') ||
-      name.contains('chicken') ||
-      name.contains('beef')) {
-    return 'dinner_dining';
-  } else if (name.contains('drink') ||
-      name.contains('juice') ||
-      name.contains('smoothie')) {
-    return 'local_drink';
-  } else if (name.contains('protein') || name.contains('bar')) {
-    return 'food_bank';
-  } else {
-    return 'restaurant';
-  }
-}
-
-/// Save food data to cache
-Future<void> _saveFoodDataToCache(
-  String date,
-  Map<String, List<Map<String, dynamic>>> foodData,
-) async {
-  try {
+  /// Helper method to get access token
+  Future<String?> _getAccessToken() async {
     final prefs = await SharedPreferences.getInstance();
-    final key = 'food_data_$date';
-    
-    // Convert food data to JSON string
-    final jsonData = json.encode(foodData);
-    
-    // Save to SharedPreferences
-    await prefs.setString(key, jsonData);
-    print('Food data saved to cache for date: $date');
-  } catch (e) {
-    print('Error saving food data to cache: $e');
+    final token = prefs.getString('access_token');
+    if (token == null) {
+      throw Exception('No access token found. Please log in.');
+    }
+    return token;
   }
-}
 
-/// Get food data from cache
-Future<Map<String, List<Map<String, dynamic>>>> _getFoodDataFromCache(
-  String date,
-) async {
-try {
-  final prefs = await SharedPreferences.getInstance();
-  final key = 'food_data_$date';
-  
-  print('Getting food data from cache for date: $date, key: $key');
-  
-  // Get JSON string from SharedPreferences
-  final jsonData = prefs.getString(key);
-  
-  if (jsonData != null) {
-    print('Found cached data for date: $date');
-    
-    // Parse JSON string to Map
-    final Map<String, dynamic> decodedData = Map<String, dynamic>.from(json.decode(jsonData));
-    
-    // Convert to the expected format
-    Map<String, List<Map<String, dynamic>>> result = {
+  /// Helper method to determine appropriate icon name for a food item
+  String _getIconNameForFoodItem(String foodName) {
+    // Convert to lowercase for case-insensitive comparison
+    final name = foodName.toLowerCase();
+
+    if (name.contains('salad') ||
+        name.contains('vegetable') ||
+        name.contains('spinach')) {
+      return 'eco';
+    } else if (name.contains('fruit') ||
+        name.contains('apple') ||
+        name.contains('banana')) {
+      return 'breakfast_dining';
+    } else if (name.contains('meat') ||
+        name.contains('chicken') ||
+        name.contains('beef')) {
+      return 'dinner_dining';
+    } else if (name.contains('drink') ||
+        name.contains('juice') ||
+        name.contains('smoothie')) {
+      return 'local_drink';
+    } else if (name.contains('protein') || name.contains('bar')) {
+      return 'food_bank';
+    } else {
+      return 'restaurant';
+    }
+  }
+
+  /// Save food data to cache
+  Future<void> _saveFoodDataToCache(
+      String date,
+      Map<String, List<Map<String, dynamic>>> foodData,
+      ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'food_data_$date';
+
+      // Convert food data to JSON string
+      final jsonData = json.encode(foodData);
+
+      // Save to SharedPreferences
+      await prefs.setString(key, jsonData);
+      print('Food data saved to cache for date: $date');
+    } catch (e) {
+      print('Error saving food data to cache: $e');
+    }
+  }
+
+  /// Get food data from cache
+  Future<Map<String, List<Map<String, dynamic>>>> _getFoodDataFromCache(
+      String date,
+      ) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'food_data_$date';
+
+      print('Getting food data from cache for date: $date, key: $key');
+
+      // Get JSON string from SharedPreferences
+      final jsonData = prefs.getString(key);
+
+      if (jsonData != null) {
+        print('Found cached data for date: $date');
+
+        // Parse JSON string to Map
+        final Map<String, dynamic> decodedData = Map<String, dynamic>.from(json.decode(jsonData));
+
+        // Convert to the expected format
+        Map<String, List<Map<String, dynamic>>> result = {
+          'breakfast': [],
+          'lunch': [],
+          'dinner': [],
+          'snacks': [],
+          'custom': [],
+        };
+
+        decodedData.forEach((mealType, foodList) {
+          if (result.containsKey(mealType)) {
+            result[mealType]!.addAll((foodList as List).map((e) => Map<String, dynamic>.from(e)).toList());
+          }
+        });
+
+        print('Returning ${result.entries.fold(0, (sum, entry) => sum + entry.value.length)} food items from cache');
+        return result;
+      } else {
+        print('No cached data found for date: $date');
+      }
+    } catch (e) {
+      print('Error getting food data from cache: $e');
+    }
+
+// Return empty structure if no data found or error occurred
+    print('Returning empty food data structure');
+    return {
       'breakfast': [],
       'lunch': [],
       'dinner': [],
       'snacks': [],
       'custom': [],
     };
-    
-    decodedData.forEach((mealType, foodList) {
-      if (result.containsKey(mealType)) {
-        result[mealType]!.addAll((foodList as List).map((e) => Map<String, dynamic>.from(e)).toList());
+  }
+
+  /// Add a food item to cache
+  Future<void> _addFoodItemToCache(Map<String, dynamic> foodData) async {
+    try {
+      final date = foodData['date'] as String? ??
+          DateTime.now().toString().split(' ')[0]; // Use today's date if not provided
+
+      print('Adding food to cache for date: $date');
+
+      final mealType = foodData['mealType'] as String? ?? 'snacks';
+
+      // Get existing food data for the date
+      final existingData = await _getFoodDataFromCache(date);
+
+      // Create a standardized food item
+      final processedFood = {
+        'name': foodData['foodName'],
+        'calories': foodData['calories'] ?? 0,
+        'protein': foodData['protein'] ?? 0.0,
+        'carbs': foodData['carbs'] ?? 0.0,
+        'fat': foodData['fat'] ?? 0.0,
+        'time': foodData['time'] ?? _formatTime(DateTime.now()),
+        'timeValue': foodData['timeValue'] ??
+            (DateTime.now().hour + (DateTime.now().minute / 60)),
+        'colorValue': _getColorValueForMealType(mealType),
+        'iconName': _getIconNameForMealType(mealType),
+        'image': foodData['image'] ?? _getDefaultImageForMealType(mealType),
+        'weight': foodData['weight'] ?? '100g',
+        'date': date,
+      };
+
+      print('Processed food item: $processedFood');
+
+      // Add the new food item to the appropriate meal type
+      if (existingData.containsKey(mealType)) {
+        existingData[mealType]!.add(processedFood);
       }
-    });
-    
-    print('Returning ${result.entries.fold(0, (sum, entry) => sum + entry.value.length)} food items from cache');
-    return result;
-  } else {
-    print('No cached data found for date: $date');
+
+      // Save the updated data back to cache
+      await _saveFoodDataToCache(date, existingData);
+
+      // Update top nutrients cache
+      await _updateTopNutrientsCache();
+
+      print('Food item added to cache for date: $date, meal type: $mealType');
+    } catch (e) {
+      print('Error adding food item to cache: $e');
+    }
   }
-} catch (e) {
-  print('Error getting food data from cache: $e');
-}
 
-// Return empty structure if no data found or error occurred
-print('Returning empty food data structure');
-return {
-  'breakfast': [],
-  'lunch': [],
-  'dinner': [],
-  'snacks': [],
-  'custom': [],
-};
-}
+  /// Delete a food item from cache
+  Future<void> _deleteFoodItemFromCache(Map<String, dynamic> foodData) async {
+    try {
+      final date = foodData['date'] is DateTime
+          ? DateFormat('yyyy-MM-dd').format(foodData['date'] as DateTime)
+          : foodData['date'] as String;
 
-/// Add a food item to cache
-Future<void> _addFoodItemToCache(Map<String, dynamic> foodData) async {
-try {
-  final date = foodData['date'] as String? ?? 
-      DateTime.now().toString().split(' ')[0]; // Use today's date if not provided
-  
-  print('Adding food to cache for date: $date');
-  
-  final mealType = foodData['mealType'] as String? ?? 'snacks';
-  
-  // Get existing food data for the date
-  final existingData = await _getFoodDataFromCache(date);
-  
-  // Create a standardized food item
-  final processedFood = {
-    'name': foodData['foodName'],
-    'calories': foodData['calories'] ?? 0,
-    'protein': foodData['protein'] ?? 0.0,
-    'carbs': foodData['carbs'] ?? 0.0,
-    'fat': foodData['fat'] ?? 0.0,
-    'time': foodData['time'] ?? _formatTime(DateTime.now()),
-    'timeValue': foodData['timeValue'] ?? 
-        (DateTime.now().hour + (DateTime.now().minute / 60)),
-    'colorValue': _getColorValueForMealType(mealType),
-    'iconName': _getIconNameForMealType(mealType),
-    'image': foodData['image'] ?? _getDefaultImageForMealType(mealType),
-    'weight': foodData['weight'] ?? '100g',
-    'date': date,
-  };
-  
-  print('Processed food item: $processedFood');
-  
-  // Add the new food item to the appropriate meal type
-  if (existingData.containsKey(mealType)) {
-    existingData[mealType]!.add(processedFood);
-  }
-  
-  // Save the updated data back to cache
-  await _saveFoodDataToCache(date, existingData);
-  
-  // Update top nutrients cache
-  await _updateTopNutrientsCache();
-  
-  print('Food item added to cache for date: $date, meal type: $mealType');
-} catch (e) {
-  print('Error adding food item to cache: $e');
-}
-}
+      final mealType = foodData['mealType'] as String? ?? 'snacks';
+      final foodName = foodData['name'] ?? foodData['foodName'];
+      final foodTime = foodData['time'];
 
-/// Delete a food item from cache
-Future<void> _deleteFoodItemFromCache(Map<String, dynamic> foodData) async {
-  try {
-    final date = foodData['date'] is DateTime 
-        ? DateFormat('yyyy-MM-dd').format(foodData['date'] as DateTime)
-        : foodData['date'] as String;
-    
-    final mealType = foodData['mealType'] as String? ?? 'snacks';
-    final foodName = foodData['name'] ?? foodData['foodName'];
-    final foodTime = foodData['time'];
-    
-    // Get existing food data for the date
-    final existingData = await _getFoodDataFromCache(date);
-    
-    // Remove the food item from the appropriate meal type
-    if (existingData.containsKey(mealType)) {
-      existingData[mealType]!.removeWhere((item) => 
+      // Get existing food data for the date
+      final existingData = await _getFoodDataFromCache(date);
+
+      // Remove the food item from the appropriate meal type
+      if (existingData.containsKey(mealType)) {
+        existingData[mealType]!.removeWhere((item) =>
         item['name'] == foodName && item['time'] == foodTime);
-    }
-    
-    // Save the updated data back to cache
-    await _saveFoodDataToCache(date, existingData);
-    
-    // Update top nutrients cache
-    await _updateTopNutrientsCache();
-    
-    print('Food item deleted from cache for date: $date, meal type: $mealType');
-  } catch (e) {
-    print('Error deleting food item from cache: $e');
-  }
-}
+      }
 
-/// Get top nutrients from all cached food data
-Future<List<Map<String, dynamic>>> getTopNutrients() async {
-  try {
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'top_nutrients';
-    
-    // Get JSON string from SharedPreferences
-    final jsonData = prefs.getString(key);
-    
-    if (jsonData != null) {
-      // Parse JSON string to List
-      final List<dynamic> decodedData = json.decode(jsonData);
-      return decodedData.map((item) => Map<String, dynamic>.from(item)).toList();
-    }
-    
-    // If no cached data, calculate and cache it
-    return await _updateTopNutrientsCache();
-  } catch (e) {
-    print('Error getting top nutrients from cache: $e');
-    return _getDefaultTopNutrients();
-  }
-}
+      // Save the updated data back to cache
+      await _saveFoodDataToCache(date, existingData);
 
-/// Update top nutrients cache based on all food data
-Future<List<Map<String, dynamic>>> _updateTopNutrientsCache() async {
-  try {
-    // Get today's date
-    final today = DateTime.now();
-    final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
-    
-    // Get food data for today
-    final foodData = await _getFoodDataFromCache(formattedDate);
-    
-    // Calculate total nutrients
-    final totalNutrients = calculateTotalNutrients(foodData);
-    
-    // Create top nutrients list with serializable values
-    final List<Map<String, dynamic>> topNutrients = [
+      // Update top nutrients cache
+      await _updateTopNutrientsCache();
+
+      print('Food item deleted from cache for date: $date, meal type: $mealType');
+    } catch (e) {
+      print('Error deleting food item from cache: $e');
+    }
+  }
+
+  /// Get top nutrients from all cached food data
+  Future<List<Map<String, dynamic>>> getTopNutrients() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'top_nutrients';
+
+      // Get JSON string from SharedPreferences
+      final jsonData = prefs.getString(key);
+
+      if (jsonData != null) {
+        // Parse JSON string to List
+        final List<dynamic> decodedData = json.decode(jsonData);
+        return decodedData.map((item) => Map<String, dynamic>.from(item)).toList();
+      }
+
+      // If no cached data, calculate and cache it
+      return await _updateTopNutrientsCache();
+    } catch (e) {
+      print('Error getting top nutrients from cache: $e');
+      return _getDefaultTopNutrients();
+    }
+  }
+
+  /// Update top nutrients cache based on all food data
+  Future<List<Map<String, dynamic>>> _updateTopNutrientsCache() async {
+    try {
+      // Get today's date
+      final today = DateTime.now();
+      final formattedDate = "${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}";
+
+      // Get food data for today
+      final foodData = await _getFoodDataFromCache(formattedDate);
+
+      // Calculate total nutrients
+      final totalNutrients = calculateTotalNutrients(foodData);
+
+      // Create top nutrients list with serializable values
+      final List<Map<String, dynamic>> topNutrients = [
+        {
+          'name': 'Protein',
+          'value': totalNutrients['protein']!.toStringAsFixed(1),
+          'unit': 'g',
+          'colorValue': 0xFF4CAF50,
+          'iconName': 'fitness_center',
+        },
+        {
+          'name': 'Carbs',
+          'value': totalNutrients['carbs']!.toStringAsFixed(1),
+          'unit': 'g',
+          'colorValue': 0xFF2196F3,
+          'iconName': 'grain',
+        },
+        {
+          'name': 'Fat',
+          'value': totalNutrients['fat']!.toStringAsFixed(1),
+          'unit': 'g',
+          'colorValue': 0xFFFF9800,
+          'iconName': 'opacity',
+        },
+      ];
+
+      // Save to SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      final key = 'top_nutrients';
+      await prefs.setString(key, json.encode(topNutrients));
+
+      return topNutrients;
+    } catch (e) {
+      print('Error updating top nutrients cache: $e');
+      return _getDefaultTopNutrients();
+    }
+  }
+
+  /// Get default top nutrients
+  List<Map<String, dynamic>> _getDefaultTopNutrients() {
+    return [
       {
         'name': 'Protein',
-        'value': totalNutrients['protein']!.toStringAsFixed(1),
+        'value': '0.0',
         'unit': 'g',
         'colorValue': 0xFF4CAF50,
         'iconName': 'fitness_center',
       },
       {
         'name': 'Carbs',
-        'value': totalNutrients['carbs']!.toStringAsFixed(1),
+        'value': '0.0',
         'unit': 'g',
         'colorValue': 0xFF2196F3,
         'iconName': 'grain',
       },
       {
         'name': 'Fat',
-        'value': totalNutrients['fat']!.toStringAsFixed(1),
+        'value': '0.0',
         'unit': 'g',
         'colorValue': 0xFFFF9800,
         'iconName': 'opacity',
       },
     ];
-    
-    // Save to SharedPreferences
-    final prefs = await SharedPreferences.getInstance();
-    final key = 'top_nutrients';
-    await prefs.setString(key, json.encode(topNutrients));
-    
-    return topNutrients;
-  } catch (e) {
-    print('Error updating top nutrients cache: $e');
-    return _getDefaultTopNutrients();
   }
-}
 
-/// Get default top nutrients
-List<Map<String, dynamic>> _getDefaultTopNutrients() {
-  return [
-    {
-      'name': 'Protein',
-      'value': '0.0',
-      'unit': 'g',
-      'colorValue': 0xFF4CAF50,
-      'iconName': 'fitness_center',
-    },
-    {
-      'name': 'Carbs',
-      'value': '0.0',
-      'unit': 'g',
-      'colorValue': 0xFF2196F3,
-      'iconName': 'grain',
-    },
-    {
-      'name': 'Fat',
-      'value': '0.0',
-      'unit': 'g',
-      'colorValue': 0xFFFF9800,
-      'iconName': 'opacity',
-    },
-  ];
-}
+  /// Convert icon name to IconData
+  IconData getIconFromName(String iconName) {
+    // Use a map of predefined icons to ensure they are constant
+    const Map<String, IconData> iconMap = {
+      'breakfast_dining': Icons.breakfast_dining,
+      'lunch_dining': Icons.lunch_dining,
+      'dinner_dining': Icons.dinner_dining,
+      'food_bank': Icons.food_bank,
+      'local_dining': Icons.local_dining,
+      'eco': Icons.eco,
+      'restaurant': Icons.restaurant,
+      'local_drink': Icons.local_drink,
+      'fitness_center': Icons.fitness_center,
+      'grain': Icons.grain,
+      'opacity': Icons.opacity,
+    };
 
-/// Convert icon name to IconData
-IconData getIconFromName(String iconName) {
-  // Use a map of predefined icons to ensure they are constant
-  const Map<String, IconData> iconMap = {
-    'breakfast_dining': Icons.breakfast_dining,
-    'lunch_dining': Icons.lunch_dining,
-    'dinner_dining': Icons.dinner_dining,
-    'food_bank': Icons.food_bank,
-    'local_dining': Icons.local_dining,
-    'eco': Icons.eco,
-    'restaurant': Icons.restaurant,
-    'local_drink': Icons.local_drink,
-    'fitness_center': Icons.fitness_center,
-    'grain': Icons.grain,
-    'opacity': Icons.opacity,
-  };
-  
-  return iconMap[iconName] ?? Icons.help_outline; // Default to help_outline if icon name not found
-}
+    return iconMap[iconName] ?? Icons.help_outline; // Default to help_outline if icon name not found
+  }
 
-/// Convert color value to Color
-Color getColorFromValue(int colorValue) {
-  return Color(colorValue);
-}
+  /// Convert color value to Color
+  Color getColorFromValue(int colorValue) {
+    return Color(colorValue);
+  }
 }

@@ -42,13 +42,13 @@ class FoodManagementController extends GetxController {
     error.value = '';
 
     final result = await getDailyFoodDataUseCase(date);
-    
+
     result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to load food data';
         isLoading.value = false;
       },
-      (data) {
+          (data) {
         foodData.value = data;
         isLoading.value = false;
       },
@@ -58,12 +58,12 @@ class FoodManagementController extends GetxController {
   // Get food score
   Future<void> getFoodScore() async {
     final result = await getFoodScoreUseCase();
-    
+
     result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to load food score';
       },
-      (score) {
+          (score) {
         foodScore.value = score;
       },
     );
@@ -72,12 +72,12 @@ class FoodManagementController extends GetxController {
   // Get popular foods
   Future<void> getPopularFoods() async {
     final result = await getPopularFoodsUseCase();
-    
+
     result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to load popular foods';
       },
-      (foods) {
+          (foods) {
         popularFoods.value = foods;
       },
     );
@@ -86,12 +86,12 @@ class FoodManagementController extends GetxController {
   // Get nutrition data
   Future<void> getNutritionData(DateTime date) async {
     final result = await getNutritionDataUseCase(date);
-    
+
     result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to load nutrition data';
       },
-      (data) {
+          (data) {
         nutritionData.value = data;
       },
     );
@@ -100,13 +100,13 @@ class FoodManagementController extends GetxController {
   // Add food item
   Future<bool> addFoodItem(FoodItem foodItem) async {
     final result = await addFoodItemUseCase(foodItem);
-    
+
     return result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to add food item';
         return false;
       },
-      (_) {
+          (_) {
         // Refresh food data for the day
         getDailyFoodData(foodItem.date.split('T')[0]);
         return true;
@@ -117,13 +117,13 @@ class FoodManagementController extends GetxController {
   // Update food item
   Future<bool> updateFoodItem(FoodItem foodItem) async {
     final result = await updateFoodItemUseCase(foodItem);
-    
+
     return result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to update food item';
         return false;
       },
-      (_) {
+          (_) {
         // Refresh food data for the day
         getDailyFoodData(foodItem.date.split('T')[0]);
         return true;
@@ -134,13 +134,13 @@ class FoodManagementController extends GetxController {
   // Delete food item
   Future<bool> deleteFoodItem(String id, DateTime date) async {
     final result = await deleteFoodItemUseCase(id);
-    
+
     return result.fold(
-      (failure) {
+          (failure) {
         error.value = 'Failed to delete food item';
         return false;
       },
-      (_) {
+          (_) {
         // Refresh food data for the day
         getDailyFoodData(date.toIso8601String().split('T')[0]);
         return true;

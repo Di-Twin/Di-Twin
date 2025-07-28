@@ -130,4 +130,32 @@ class TokenManager {
       saveUserId(userId),
     ]);
   }
+
+  // Save both tokens at once
+  static Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+    required int expiresIn,
+  }) async {
+    await Future.wait([
+      saveAccessToken(accessToken, expiryInSeconds: expiresIn),
+      saveRefreshToken(refreshToken),
+    ]);
+  }
+
+  // Check if token is expired
+  static Future<bool> isTokenExpired() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final expiry = prefs.getInt(_tokenExpiryKey);
+
+      if (expiry == null) return false;
+
+      final expiryDate = DateTime.fromMillisecondsSinceEpoch(expiry);
+      return DateTime.now().isAfter(expiryDate);
+    } catch (e) {
+      developer.log('❌ Error checking token expiry: $e', name: 'TokenManager');
+      return true; // Assume expired on error
+    }
+  }
 }

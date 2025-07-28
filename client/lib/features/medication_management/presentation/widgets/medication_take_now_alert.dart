@@ -7,19 +7,19 @@ import 'package:google_fonts/google_fonts.dart';
 class MedicationTakeNowAlert extends StatefulWidget {
   /// The name of the medication
   final String medicationName;
-  
+
   /// The dosage of the medication (e.g., "10mg")
   final String dosage;
-  
+
   /// Instructions for taking the medication (e.g., "Take with food")
   final String instructions;
-  
+
   /// Callback function when the user confirms taking the medication
   final VoidCallback onTake;
-  
+
   /// Optional callback when the user reschedules the medication
   final VoidCallback? onReschedule;
-  
+
   /// Path to the background image for the alert
   final String backgroundImagePath;
 
@@ -271,7 +271,7 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                               // Action buttons
                               Row(
                                 mainAxisAlignment:
-                                    MainAxisAlignment.spaceEvenly,
+                                MainAxisAlignment.spaceEvenly,
                                 children: [
                                   _buildActionButton(
                                     context: context,
@@ -327,9 +327,9 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
                           height: 60.w,
                           decoration: BoxDecoration(
                             color:
-                                _dragExtent > 0
-                                    ? blueColor.withOpacity(0.9)
-                                    : redColor.withOpacity(0.9),
+                            _dragExtent > 0
+                                ? blueColor.withOpacity(0.9)
+                                : redColor.withOpacity(0.9),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
@@ -424,10 +424,10 @@ class _MedicationTakeNowAlertState extends State<MedicationTakeNowAlert>
 /// Service class for managing medication alerts
 class MedicationAlertService {
   static final MedicationAlertService _instance = MedicationAlertService._internal();
-  
+
   /// Factory constructor to return the singleton instance
   factory MedicationAlertService() => _instance;
-  
+
   MedicationAlertService._internal();
 
   final List<Map<String, dynamic>> _queue = [];
@@ -479,12 +479,6 @@ class MedicationAlertService {
         );
       },
     ).then((value) {
-      // Show the next alert after this one is closed
-      _showNextAlert();
-    });
-  }
-
-  ///  {
       // Show the next alert after this one is closed
       _showNextAlert();
     });

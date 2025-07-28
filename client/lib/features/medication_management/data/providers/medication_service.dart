@@ -1,4 +1,3 @@
-
 class MedicationService {
   // Base URL for API calls
   final String _baseUrl = 'https://api.example.com/medications';
@@ -36,6 +35,34 @@ class MedicationService {
       return mockResponse;
     } catch (e) {
       throw Exception('Failed to save medication: $e');
+    }
+  }
+
+  // Add medication to the backend
+  Future<Map<String, dynamic>> addMedication({
+    required String name,
+    required String dosage,
+    required String frequency,
+    required String notes,
+  }) async {
+    try {
+      // In a real app, this would be an API call
+      // For now, we'll simulate a successful response
+      await Future.delayed(Duration(seconds: 1));
+
+      // Mock response
+      final mockResponse = {
+        'id': 'med_${DateTime.now().millisecondsSinceEpoch}',
+        'name': name,
+        'dosage': dosage,
+        'frequency': frequency,
+        'notes': notes,
+        'createdAt': DateTime.now().toIso8601String(),
+      };
+
+      return mockResponse;
+    } catch (e) {
+      throw Exception('Failed to add medication: $e');
     }
   }
 
@@ -80,7 +107,7 @@ class MedicationService {
     try {
       // In a real app, this would be an API call
       await Future.delayed(Duration(milliseconds: 500));
-      
+
       // Mock successful update
       return true;
     } catch (e) {
@@ -93,7 +120,7 @@ class MedicationService {
     try {
       // In a real app, this would be an API call
       await Future.delayed(Duration(milliseconds: 800));
-      
+
       // Mock successful deletion
       return true;
     } catch (e) {
