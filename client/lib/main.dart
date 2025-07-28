@@ -27,7 +27,6 @@ import 'features/notification/managers/notification_manager.dart';
 // Import cache and sync services
 import 'package:client/services/cache_service.dart';
 import 'package:client/services/background_sync_service.dart';
-
 // Import app_links
 import 'package:app_links/app_links.dart';
 import 'dart:async';
@@ -58,6 +57,17 @@ import 'package:client/features/medication_management/domain/usecases/get_medica
 import 'package:client/features/medication_management/domain/usecases/get_medication_schedule_for_date_usecase.dart';
 import 'package:client/features/medication_management/domain/usecases/update_medication_status_usecase.dart';
 import 'package:client/features/medication_management/presentation/providers/medication_provider.dart';
+
+// Import sleep management dependencies
+import 'package:client/features/sleep_management/data/datasources/sleep_local_datasource.dart';
+import 'package:client/features/sleep_management/data/datasources/sleep_remote_datasource.dart';
+import 'package:client/features/sleep_management/data/repositories/sleep_repository_impl.dart';
+import 'package:client/features/sleep_management/domain/usecases/get_last_night_sleep_usecase.dart';
+import 'package:client/features/sleep_management/domain/usecases/get_todays_sleep_usecase.dart';
+import 'package:client/features/sleep_management/domain/usecases/start_sleep_usecase.dart';
+import 'package:client/features/sleep_management/domain/usecases/end_sleep_usecase.dart';
+import 'package:client/features/sleep_management/domain/usecases/check_sleep_data_usecase.dart';
+import 'package:client/features/sleep_management/presentation/providers/sleep_provider.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -204,6 +214,33 @@ void main() async {
     updateMedicationStatusUseCase: updateMedicationStatusUseCase,
   );
 
+  // Create sleep management dependencies
+  final sleepLocalDataSource = SleepLocalDataSourceImpl();
+  final sleepRemoteDataSource = SleepRemoteDataSourceImpl(
+    apiClient: apiClient,
+  );
+  final sleepRepository = SleepRepositoryImpl(
+    localDataSource: sleepLocalDataSource,
+    remoteDataSource: sleepRemoteDataSource,
+    networkInfo: networkInfo,
+  );
+
+  // Create sleep use cases
+  final getLastNightSleepUseCase = GetLastNightSleepUseCase(sleepRepository);
+  final getTodaysSleepUseCase = GetTodaysSleepUseCase(sleepRepository);
+  final startSleepUseCase = StartSleepUseCase(sleepRepository);
+  final endSleepUseCase = EndSleepUseCase(sleepRepository);
+  final checkSleepDataUseCase = CheckSleepDataUseCase(sleepRepository);
+
+  // Create sleep provider
+  final sleepProvider = SleepProvider(
+    getLastNightSleepUseCase: getLastNightSleepUseCase,
+    getTodaysSleepUseCase: getTodaysSleepUseCase,
+    startSleepUseCase: startSleepUseCase,
+    endSleepUseCase: endSleepUseCase,
+    checkSleepDataUseCase: checkSleepDataUseCase,
+  );
+
   // Initialize cache service
   developer.log('🗄️ Initializing cache service...', name: 'Main');
   try {
@@ -222,13 +259,16 @@ void main() async {
         provider.ChangeNotifierProvider<FoodScoreProvider>(
           create: (context) => foodScoreProvider,
         ),
-        
         provider.ChangeNotifierProvider<WaterIntakeProvider>(
           create: (context) => WaterIntakeProvider()..initialize(),
         ),
         // Add MedicationProvider
         provider.ChangeNotifierProvider<MedicationProvider>(
           create: (context) => medicationProvider,
+        ),
+        // Add SleepProvider
+        provider.ChangeNotifierProvider<SleepProvider>(
+          create: (context) => sleepProvider,
         ),
       ],
       child: ProviderScope(child: const MyApp()),

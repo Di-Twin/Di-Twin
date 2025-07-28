@@ -35,6 +35,10 @@ import 'package:client/features/weight_management/presentation/widgets/weight_in
 import 'package:client/features/weight_management/presentation/providers/weight_providers.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Import sleep management components
+import 'package:client/features/sleep_management/presentation/providers/sleep_provider.dart';
+import 'package:client/features/sleep_management/presentation/services/sleep_notification_service.dart';
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -179,6 +183,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
     // Initialize weight tracking first (higher priority)
     await _initializeWeightTracking();
 
+    // Initialize sleep notifications
+    await _initializeSleepNotifications();
+
     // Initialize water intake and check for drawer trigger
     await _initializeWaterIntake();
 
@@ -216,6 +223,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
       // Initialize FCM notification services only
       _initializeNotificationServices();
     });
+  }
+
+  /// Initialize sleep notifications
+  Future<void> _initializeSleepNotifications() async {
+    try {
+      final sleepProvider = provider.Provider.of<SleepProvider>(context, listen: false);
+      await SleepNotificationService().initialize(sleepProvider);
+      developer.log('✅ Sleep notifications initialized', name: 'Dashboard');
+    } catch (e) {
+      developer.log('❌ Error initializing sleep notifications: $e', name: 'Dashboard');
+    }
   }
 
   /// Initialize water intake and check for drawer trigger
@@ -1519,7 +1537,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> with TickerProviderStat
                           const SizedBox(height: 20),
                           const FitnessTrackerSection(),
                           const SizedBox(height: 20),
-                          const SizedBox(height: 20),
+                          // Removed LastNightSleepWidget from here
                           const MedicationSection(),
                           const SizedBox(height: 20),
                         ],
