@@ -301,17 +301,17 @@ class _SPO2PageState extends State<SPO2Page> {
                   ),
 
                   // Footer Button
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: CustomButton(
-                      height: 50,
-                      text: "View Detailed Report",
-                      iconPath: 'images/SignInAddIcon.png',
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.all(16.0),
+                  //   child: CustomButton(
+                  //     height: 50,
+                  //     text: "View Detailed Report",
+                  //     iconPath: 'images/SignInAddIcon.png',
+                  //     onPressed: () {
+                  //       Navigator.pushNamed(context, '/dashboard');
+                  //     },
+                  //   ),
+                  // ),
                 ],
               ),
             ),
