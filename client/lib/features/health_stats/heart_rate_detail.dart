@@ -307,17 +307,17 @@ final maxPercentage = displayData['max'] > 0 ? (displayData['max'] / 200) * 100 
                   ),
 
                   // Footer Button
-                  Padding(
-                    padding: const EdgeInsets.all(16.0),
-                    child: CustomButton(
-                      height: 50,
-                      text: "View Detailed Report",
-                      iconPath: 'images/SignInAddIcon.png',
-                      onPressed: () {
-                        Navigator.pushNamed(context, '/dashboard');
-                      },
-                    ),
-                  ),
+                  // Padding(
+                  //   padding: const EdgeInsets.all(16.0),
+                  //   child: CustomButton(
+                  //     height: 50,
+                  //     text: "View Detailed Report",
+                  //     iconPath: 'images/SignInAddIcon.png',
+                  //     onPressed: () {
+                  //       Navigator.pushNamed(context, '/dashboard');
+                  //     },
+                  //   ),
+                  // ),
                 ],
               ),
             ),

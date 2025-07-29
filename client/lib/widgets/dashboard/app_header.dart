@@ -1,3 +1,12 @@
+import 'package:client/features/activity_management/presentation/pages/activity_calories_tracker_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_stats_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_steps_page.dart';
+import 'package:client/features/activity_management/presentation/pages/activity_today_page.dart';
+import 'package:client/features/activity_management/presentation/pages/my_activities_page.dart';
+import 'package:client/features/food_management/presentation/pages/food_intelligence_page.dart';
+import 'package:client/features/food_management/presentation/pages/nutrition_tracking_screen.dart';
+import 'package:client/features/health_stats/smart_health_analysis.dart';
+import 'package:client/features/water_intake/presentation/pages/water_intake_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/user_profile_provider.dart';
@@ -35,63 +44,97 @@ class _AppHeaderState extends State<AppHeader> {
   // Add these variables at the top of _AppHeaderState class
   final TextEditingController _searchController = TextEditingController();
   final List<Map<String, dynamic>> _searchModules = [
-    {
-      'title': 'Food Intelligence',
-      'subtitle': 'Track your nutrition and meals',
-      'icon': Icons.restaurant,
-      'color': const Color(0xFF10B981),
-      'route': '/food-intelligence',
-    },
-    {
-      'title': 'Activity - Calories Tracker',
-      'subtitle': 'Monitor calories burned',
-      'icon': Icons.local_fire_department,
-      'color': const Color(0xFFEF4444),
-      'route': '/activity-calories',
-    },
-    {
-      'title': 'Activity - Steps Tracker',
-      'subtitle': 'Track your daily steps',
-      'icon': Icons.directions_walk,
-      'color': const Color(0xFF3B82F6),
-      'route': '/activity-steps',
-    },
-    {
-      'title': 'Water Intake',
-      'subtitle': 'Stay hydrated throughout the day',
-      'icon': Icons.water_drop,
-      'color': const Color(0xFF06B6D4),
-      'route': '/water-intake',
-    },
-    {
-      'title': 'Nutrition Tracking',
-      'subtitle': 'Detailed nutrition analysis',
-      'icon': Icons.analytics,
-      'color': const Color(0xFF8B5CF6),
-      'route': '/nutrition-tracking',
-    },
-    {
-      'title': 'Activity Today',
-      'subtitle': 'View today\'s activities',
-      'icon': Icons.today,
-      'color': const Color(0xFFF59E0B),
-      'route': '/activity-today',
-    },
-    {
-      'title': 'My Activities',
-      'subtitle': 'Monthly activity overview',
-      'icon': Icons.calendar_month,
-      'color': const Color(0xFF84CC16),
-      'route': '/my-activities',
-    },
-    {
-      'title': 'Smart Health Analysis',
-      'subtitle': 'AI-powered health insights',
-      'icon': Icons.health_and_safety,
-      'color': const Color(0xFFEC4899),
-      'route': '/smart-health',
-    },
-  ];
+  {
+    'title': 'Food Intelligence',
+    'subtitle': 'Track your nutrition and meals',
+    'icon': Icons.restaurant,
+    'color': const Color(0xFF10B981),
+    'route': '/food-intelligence',
+    'pageBuilder': () => const FoodIntelligencePage(),
+  },
+  {
+    'title': 'Activity - Calories Tracker',
+    'subtitle': 'Monitor calories burned',
+    'icon': Icons.local_fire_department,
+    'color': const Color(0xFFEF4444),
+    'route': '/activity-calories',
+    'pageBuilder': () => const ActivityCaloriesTrackerPage(),
+  },
+  {
+    'title': 'Activity - Steps Tracker',
+    'subtitle': 'Track your daily steps',
+    'icon': Icons.directions_walk,
+    'color': const Color(0xFF3B82F6),
+    'route': '/activity-steps',
+    'pageBuilder': () => const ActivityStepsPage(),
+  },
+  {
+    'title': 'Water Intake',
+    'subtitle': 'Stay hydrated throughout the day',
+    'icon': Icons.water_drop,
+    'color': const Color(0xFF06B6D4),
+    'route': '/water-intake',
+    'pageBuilder': () => const WaterIntakePage(),
+  },
+  {
+    'title': 'Nutrition Tracking',
+    'subtitle': 'Detailed nutrition analysis',
+    'icon': Icons.analytics,
+    'color': const Color(0xFF8B5CF6),
+    'route': '/nutrition-tracking',
+    'pageBuilder': () => const NutritionTrackingPage(),
+  },
+  {
+    'title': 'Activity Today',
+    'subtitle': 'View today\'s activities',
+    'icon': Icons.today,
+    'color': const Color(0xFFF59E0B),
+    'route': '/activity-today',
+    'pageBuilder': () => const ActivityTodayPage(),
+  },
+  {
+    'title': 'My Activities',
+    'subtitle': 'Monthly activity overview',
+    'icon': Icons.calendar_month,
+    'color': const Color(0xFF84CC16),
+    'route': '/my-activities',
+    'pageBuilder': () => const ActivityTodayPage(),
+  },
+  {
+    'title': 'Smart Health Analysis',
+    'subtitle': 'AI-powered health insights',
+    'icon': Icons.health_and_safety,
+    'color': const Color(0xFFEC4899),
+    'route': '/smart-health',
+    'pageBuilder': () => const SmartHealthAnalysisScreen(),
+  },
+];
+
+// Dynamic navigation method
+void _navigateToModule(String route) {
+  try {
+    // Find the module configuration
+    final module = _searchModules.firstWhere(
+      (m) => m['route'] == route,
+      orElse: () => {},
+    );
+
+    if (module.isEmpty || module['pageBuilder'] == null) {
+      // _showErrorSnackBar('Module not available yet');
+      return;
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => module['pageBuilder'](),
+      ),
+    );
+  } catch (e) {
+    developer.log('Navigation error for route $route: $e', name: 'AppHeader');
+    // _showErrorSnackBar('Failed to navigate to module');
+  }
+}
 
   List<Map<String, dynamic>> _filteredModules = [];
 
@@ -686,41 +729,41 @@ class _AppHeaderState extends State<AppHeader> {
     );
   }
 
-  void _navigateToModule(String route) {
-    switch (route) {
-      case '/food-intelligence':
-        Navigator.pushNamed(context, '/food-intelligence');
-        break;
-      case '/activity-calories':
-        Navigator.pushNamed(context, '/activity-calories');
-        break;
-      case '/activity-steps':
-        Navigator.pushNamed(context, '/activity-steps');
-        break;
-      case '/water-intake':
-        Navigator.pushNamed(context, '/water-intake');
-        break;
-      case '/nutrition-tracking':
-        Navigator.pushNamed(context, '/nutrition-tracking');
-        break;
-      case '/activity-today':
-        Navigator.pushNamed(context, '/activity-today');
-        break;
-      case '/my-activities':
-        Navigator.pushNamed(context, '/my-activities');
-        break;
-      case '/smart-health':
-        Navigator.pushNamed(context, '/smart-health');
-        break;
-      default:
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Module not available yet'),
-            backgroundColor: const Color(0xFF64748B),
-          ),
-        );
-    }
-  }
+  // void _navigateToModule(String route) {
+  //   switch (route) {
+  //     case '/food-intelligence':
+  //       Navigator.pushNamed(context, '/food-intelligence');
+  //       break;
+  //     case '/activity-calories':
+  //       Navigator.pushNamed(context, '/activity-calories');
+  //       break;
+  //     case '/activity-steps':
+  //       Navigator.pushNamed(context, '/activity-steps');
+  //       break;
+  //     case '/water-intake':
+  //       Navigator.pushNamed(context, '/water-intake');
+  //       break;
+  //     case '/nutrition-tracking':
+  //       Navigator.pushNamed(context, '/nutrition-tracking');
+  //       break;
+  //     case '/activity-today':
+  //       Navigator.pushNamed(context, '/activity-today');
+  //       break;
+  //     case '/my-activities':
+  //       Navigator.pushNamed(context, '/my-activities');
+  //       break;
+  //     case '/smart-health':
+  //       Navigator.pushNamed(context, '/smart-health');
+  //       break;
+  //     default:
+  //       ScaffoldMessenger.of(context).showSnackBar(
+  //         SnackBar(
+  //           content: Text('Module not available yet'),
+  //           backgroundColor: const Color(0xFF64748B),
+  //         ),
+  //       );
+  //   }
+  // }
 
   @override
   void dispose() {
