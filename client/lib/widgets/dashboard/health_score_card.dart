@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:client/features/activity_management/presentation/pages/activity_today_page.dart';
+import 'package:client/features/food_management/presentation/pages/food_intelligence_page.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/dashboard_provider.dart';
@@ -23,6 +25,14 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
   List<Map<String, dynamic>> scores = [];
   int healthScore = 0;
   bool isLoading = true;
+
+  final Map<String, Widget Function()> scoreRoutes = {
+    // 'Health Score': () => const HealthScorePage(),
+    'Metabolic Score': () => const FoodIntelligencePage(),
+    // 'Sleep Score': () => const SleepScorePage(),
+    'Food Score': () => const FoodIntelligencePage(),
+    'Activity Score': () => const ActivityTodayPage(),
+  };
 
   // Modify the _HealthScoreCardState class to load the health score from cache first
   // Add this method to load the health score from cache
@@ -217,78 +227,88 @@ class _HealthScoreCardState extends State<HealthScoreCard> {
     String description,
     Color backgroundColor,
   ) {
-    return Container(
-      margin: const EdgeInsets.only(right: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          Stack(
-            alignment: Alignment.center, // Center everything in the Stack
-            children: [
-              // Texture Image as Background
-              Positioned(
-                top: -5, // Adjust positioning to fine-tune the effect
-                left: -5,
-                child: Opacity(
-                  opacity: 0.2, // Adjust visibility
-                  child: Image.asset(
-                    'images/testure_score.png',
-                    width: 100, // Adjust size
-                    height: 100,
-                    fit: BoxFit.cover,
-                  ),
-                ),
-              ),
-
-              // Score Box
-              Container(
-                width: 80,
-                height: 80,
-                decoration: BoxDecoration(
-                  color: backgroundColor, // Dynamic background color
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Center(
-                  child: Text(
-                    '$score',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 46,
-                      fontWeight: FontWeight.w900,
-                      color: Colors.white,
+    return GestureDetector(
+      onTap: () {
+        final routeBuilder = scoreRoutes[title];
+        if (routeBuilder != null) {
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (context) => routeBuilder()));
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.only(right: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Stack(
+              alignment: Alignment.center, // Center everything in the Stack
+              children: [
+                // Texture Image as Background
+                Positioned(
+                  top: -5, // Adjust positioning to fine-tune the effect
+                  left: -5,
+                  child: Opacity(
+                    opacity: 0.2, // Adjust visibility
+                    child: Image.asset(
+                      'images/testure_score.png',
+                      width: 100, // Adjust size
+                      height: 100,
+                      fit: BoxFit.cover,
                     ),
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
+
+                // Score Box
+                Container(
+                  width: 80,
+                  height: 80,
+                  decoration: BoxDecoration(
+                    color: backgroundColor, // Dynamic background color
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  description,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    color: const Color(0xFF6B7280),
+                  child: Center(
+                    child: Text(
+                      '$score',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 46,
+                        fontWeight: FontWeight.w900,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
-          ),
-        ],
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    description,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      color: const Color(0xFF6B7280),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

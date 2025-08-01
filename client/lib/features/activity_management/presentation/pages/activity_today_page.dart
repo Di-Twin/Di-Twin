@@ -31,6 +31,7 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
   int _totalActivities = 0;
   int _activityScore = 0;
   bool _isAddingActivity = false;
+  bool _hasInitialLoadCompleted = false;
 
   @override
   void initState() {
@@ -49,32 +50,111 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
       final activities = await ActivityRemoteDataSource.fetchTopActivities(
         DateTime.now(),
       );
+      
+      // Process and validate activities before setting state
+      final processedActivities = _processActivities(activities ?? []);
+      
       setState(() {
-        // Only update if we got data back, otherwise keep current state
-        if (activities.isNotEmpty) {
-          _topActivities = activities;
-          _totalActivities = activities.length;
-        } else if (_topActivities.isEmpty) {
-          // If current state is empty too, set empty list
-          _topActivities = [];
-          _totalActivities = 0;
-        }
+        _topActivities = processedActivities;
+        _totalActivities = _topActivities.length;
         _isLoading = false;
+        _hasInitialLoadCompleted = true;
+        _errorMessage = '';
       });
+      
+      print('Fetched and processed ${_topActivities.length} activities');
+      
     } catch (e) {
       print('Error in _fetchActivities: $e');
       setState(() {
-        // Don't clear existing activities on error, only update loading state
-        // This ensures manually added activities remain visible even if refresh fails
-        _errorMessage = '';
+        _errorMessage = 'Failed to load activities';
         _isLoading = false;
-        // Only set to empty list if currently empty
-        if (_topActivities.isEmpty) {
+        _hasInitialLoadCompleted = true;
+        // Only clear activities if this is the initial load
+        if (!_hasInitialLoadCompleted) {
           _topActivities = [];
           _totalActivities = 0;
         }
       });
     }
+  }
+
+  List<Map<String, dynamic>> _processActivities(List<Map<String, dynamic>> rawActivities) {
+    final activityTypes = ActivityType.getActivityTypes();
+    final processedActivities = <Map<String, dynamic>>[];
+
+    for (final activity in rawActivities) {
+      try {
+        // Extract activity type from the raw data
+        final activityTypeString = activity['activity_type']?.toString() ?? 
+                                 activity['type']?.toString() ?? 
+                                 activity['label']?.toString() ?? '';
+
+        if (activityTypeString.isEmpty) {
+          print('Skipping activity with no type: $activity');
+          continue; // Skip activities without a type
+        }
+
+        // Find matching activity type
+        ActivityType? matchingType;
+        try {
+          matchingType = activityTypes.firstWhere(
+            (type) => type.type.toLowerCase() == activityTypeString.toLowerCase() ||
+                     type.label.toLowerCase() == activityTypeString.toLowerCase(),
+          );
+        } catch (e) {
+          // If no exact match, try partial matching
+          try {
+            matchingType = activityTypes.firstWhere(
+              (type) => activityTypeString.toLowerCase().contains(type.type.toLowerCase()) ||
+                       type.type.toLowerCase().contains(activityTypeString.toLowerCase()),
+            );
+          } catch (e) {
+            print('No matching activity type found for: $activityTypeString');
+            continue; // Skip this activity if no match found
+          }
+        }
+
+        if (matchingType == null) {
+          continue; // Skip if no matching type found
+        }
+
+        // Calculate duration in minutes
+        final durationSeconds = activity['duration_seconds'] as int? ?? 
+                              activity['duration'] as int? ?? 0;
+        final minutes = durationSeconds > 0 ? (durationSeconds / 60).round() : 
+                       int.tryParse(activity['minutes']?.toString() ?? '0') ?? 0;
+
+        if (minutes <= 0) {
+          print('Skipping activity with invalid duration: $activity');
+          continue; // Skip activities with no duration
+        }
+
+        // Create processed activity
+        final processedActivity = {
+          'minutes': minutes.toString(),
+          'label': matchingType.label,
+          'color': matchingType.color,
+          'icon': matchingType.icon,
+          'calories': activity['calories'] ?? _calculateCalories(matchingType.type, minutes),
+          'distance': activity['distance'] ?? _calculateDistance(matchingType.type, minutes),
+          'heart_rate_avg': activity['heart_rate_avg'] ?? 120,
+          'start_time': activity['start_time'] ?? '',
+          'end_time': activity['end_time'] ?? '',
+          'source_device': activity['source_device'] ?? 'Unknown Device',
+          'activity_type': matchingType.type,
+        };
+
+        processedActivities.add(processedActivity);
+        
+      } catch (e) {
+        print('Error processing activity $activity: $e');
+        // Skip malformed activities
+        continue;
+      }
+    }
+
+    return processedActivities;
   }
 
   Future<void> _fetchActivityScore() async {
@@ -83,7 +163,7 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
         DateTime.now(),
       );
       setState(() {
-        _activityScore = score;
+        _activityScore = score ?? 0;
       });
     } catch (e) {
       print('Error in _fetchActivityScore: $e');
@@ -97,11 +177,9 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder:
-            (context) => MyActivitiesPage(userJoinDate: DateTime(2025, 4, 1)),
+        builder: (context) => MyActivitiesPage(userJoinDate: DateTime(2025, 4, 1)),
       ),
     ).then((_) {
-      // Refresh data when returning from MyActivitiesScreen
       _fetchActivities();
       _fetchActivityScore();
     });
@@ -112,44 +190,43 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
       isManualEntryOpen = true;
       currentStep = 0;
       selectedActivityType = null;
-      activityDuration = 30; // Reset to default
+      activityDuration = 30;
     });
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder:
-          (context) => StatefulBuilder(
-            builder: (context, setModalState) {
-              return GestureDetector(
-                onTap: () {},
-                child: ManualEntryDrawer(
-                  currentStep: currentStep,
-                  selectedActivityType: selectedActivityType,
-                  activityDuration: activityDuration,
-                  onActivitySelected: (activityType) {
-                    setModalState(() {
-                      selectedActivityType = activityType;
-                      currentStep = 1;
-                    });
-                  },
-                  onStepBack: () {
-                    setModalState(() {
-                      currentStep = 0;
-                    });
-                  },
-                  onDurationChanged: (duration) {
-                    setModalState(() {
-                      activityDuration = duration;
-                    });
-                  },
-                  onAddActivity: () => _addActivity(setModalState),
-                  isAddingActivity: _isAddingActivity,
-                ),
-              );
-            },
-          ),
+      builder: (context) => StatefulBuilder(
+        builder: (context, setModalState) {
+          return GestureDetector(
+            onTap: () {},
+            child: ManualEntryDrawer(
+              currentStep: currentStep,
+              selectedActivityType: selectedActivityType,
+              activityDuration: activityDuration,
+              onActivitySelected: (activityType) {
+                setModalState(() {
+                  selectedActivityType = activityType;
+                  currentStep = 1;
+                });
+              },
+              onStepBack: () {
+                setModalState(() {
+                  currentStep = 0;
+                });
+              },
+              onDurationChanged: (duration) {
+                setModalState(() {
+                  activityDuration = duration;
+                });
+              },
+              onAddActivity: () => _addActivity(setModalState),
+              isAddingActivity: _isAddingActivity,
+            ),
+          );
+        },
+      ),
     ).then((_) {
       setState(() {
         isManualEntryOpen = false;
@@ -158,128 +235,155 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
   }
 
   Future<void> _addActivity(StateSetter setModalState) async {
-    if (selectedActivityType != null && activityDuration > 0) {
-      final activityTypes = ActivityType.getActivityTypes();
-      final activityData = activityTypes.firstWhere(
-        (element) => element.label == selectedActivityType,
-        orElse: () => activityTypes[0],
+    if (selectedActivityType == null || activityDuration <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please select an activity and duration'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
       );
+      return;
+    }
 
-      // Set loading state
-      setModalState(() {
-        _isAddingActivity = true;
-      });
+    final activityTypes = ActivityType.getActivityTypes();
+    
+    if (activityTypes.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('No activity types available'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
 
-      try {
-        // Get the activity type from the mapping
-        final activityType = activityData.type;
+    ActivityType activityData;
+    try {
+      activityData = activityTypes.firstWhere(
+        (element) => element.label == selectedActivityType,
+      );
+    } catch (e) {
+      activityData = activityTypes.first;
+      print('Activity type not found, using fallback: ${activityData.label}');
+    }
 
-        // Calculate start and end times
-        final now = DateTime.now();
-        final endTime = now;
-        final startTime = now.subtract(Duration(minutes: activityDuration));
+    setModalState(() {
+      _isAddingActivity = true;
+    });
 
-        // Format times for API
-        final formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+    try {
+      final activityType = activityData.type;
+      final now = DateTime.now();
+      final endTime = now;
+      final startTime = now.subtract(Duration(minutes: activityDuration));
+      final formatter = DateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
-        // Create activity payload according to API requirements
-        final payload = [
-          {
-            'activity_type': activityType,
-            'start_time': formatter.format(startTime),
-            'end_time': formatter.format(endTime),
-            'duration_seconds': activityDuration * 60, // convert minutes to seconds
-            'source_device': 'Manual Entry',
-          },
-        ];
+      final payload = [
+        {
+          'activity_type': activityType,
+          'start_time': formatter.format(startTime),
+          'end_time': formatter.format(endTime),
+          'duration_seconds': activityDuration * 60,
+          'source_device': 'Manual Entry',
+        },
+      ];
 
-        // Send request to API
-        final response = await ActivityRemoteDataSource.addManualActivity(
-          payload,
-        );
-        print('response: $response');
+      final response = await ActivityRemoteDataSource.addManualActivity(payload);
+      print('Add activity response: $response');
 
-        // Handle response
-        if (response['success'] == true) {
-          // Success - create new activity data locally
-          final newActivity = {
-            'minutes': activityDuration.toString(),
-            'label': selectedActivityType!,
-            'color': activityData.color,
-            'icon': activityData.icon,
-            'calories':
-                activityDuration *
-                (activityType == 'running'
-                    ? 10
-                    : activityType == 'cycling'
-                    ? 8
-                    : activityType == 'walking'
-                    ? 5
-                    : 7),
-            'distance':
-                activityType == 'running'
-                    ? activityDuration * 160
-                    : activityType == 'cycling'
-                    ? activityDuration * 400
-                    : activityType == 'walking'
-                    ? activityDuration * 80
-                    : 0,
-            'heart_rate_avg': 120,
-            'start_time': formatter.format(startTime),
-            'end_time': formatter.format(endTime),
-            'source_device': 'Manual Entry',
-          };
+      if (response != null && response['success'] == true) {
+        final newActivity = {
+          'minutes': activityDuration.toString(),
+          'label': selectedActivityType!,
+          'color': activityData.color,
+          'icon': activityData.icon,
+          'calories': _calculateCalories(activityType, activityDuration),
+          'distance': _calculateDistance(activityType, activityDuration),
+          'heart_rate_avg': 120,
+          'start_time': formatter.format(startTime),
+          'end_time': formatter.format(endTime),
+          'source_device': 'Manual Entry',
+          'activity_type': activityType,
+        };
 
-          Navigator.pop(context);
+        Navigator.pop(context);
 
-          // Update local state immediately
-          setState(() {
-            _topActivities.add(newActivity);
-            _totalActivities = _topActivities.length;
-            _activityScore += 1;
-          });
+        setState(() {
+          _topActivities.add(newActivity);
+          _totalActivities = _topActivities.length;
+          _activityScore += 1;
+        });
 
-          // Then refresh from server to get any additional processed data
-          _fetchActivities();
-          _fetchActivityScore();
+        _fetchActivities();
+        _fetchActivityScore();
 
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                '$selectedActivityType added for $activityDuration minutes',
-              ),
-              backgroundColor: Colors.green,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        } else {
-          // Error
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                response['message'] ??
-                    'Failed to add activity. Please try again.',
-              ),
-              backgroundColor: Colors.red,
-              behavior: SnackBarBehavior.floating,
-            ),
-          );
-        }
-      } catch (e) {
-        print('Error adding activity: $e');
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error adding activity: $e'),
+            content: Text(
+              '$selectedActivityType added for $activityDuration minutes',
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              response?['message'] ?? 'Failed to add activity. Please try again.',
+            ),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
         );
-      } finally {
-        // Reset loading state
-        setModalState(() {
-          _isAddingActivity = false;
-        });
       }
+    } catch (e) {
+      print('Error adding activity: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error adding activity: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      setModalState(() {
+        _isAddingActivity = false;
+      });
+    }
+  }
+
+  int _calculateCalories(String activityType, int duration) {
+    switch (activityType.toLowerCase()) {
+      case 'running':
+        return duration * 10;
+      case 'cycling':
+        return duration * 8;
+      case 'walking':
+        return duration * 5;
+      case 'swimming':
+        return duration * 12;
+      case 'yoga':
+        return duration * 3;
+      case 'weightlifting':
+        return duration * 6;
+      default:
+        return duration * 7;
+    }
+  }
+
+  int _calculateDistance(String activityType, int duration) {
+    switch (activityType.toLowerCase()) {
+      case 'running':
+        return duration * 160;
+      case 'cycling':
+        return duration * 400;
+      case 'walking':
+        return duration * 80;
+      default:
+        return 0;
     }
   }
 
@@ -287,7 +391,7 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final headerHeight = 370.h; // Adjust this value as needed
+        final headerHeight = 370.h;
 
         return Scaffold(
           backgroundColor: Colors.grey[100],
@@ -307,22 +411,19 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
                       buttonImage: 'images/SignInAddIcon.png',
                       onButtonTap: _navigateToMyActivities,
                       backgroundColor: const Color(0xFFD0E4FF),
-                      backgroundImagePath:
-                          'images/activity_header_background.png',
+                      backgroundImagePath: 'images/activity_header_background.png',
                       buttonColor: const Color(0xFF242E49),
                       buttonShadowColor: const Color(0xFF242E49),
                       titleTextColor: const Color(0xFF242E49),
                       scoreTextColor: const Color(0xFF242E49),
                       subtitleTextColor: const Color(0xFF242E49),
                       backButtonBorderColor: const Color(0xFF242E49),
-                      badgeBackgroundColor:
-                          isWatchConnected
-                              ? const Color(0xFF0F67FE)
-                              : const Color(0xFFFF5252).withOpacity(0.1),
-                      badgeTextColor:
-                          isWatchConnected
-                              ? Colors.white
-                              : const Color(0xFFFF5252),
+                      badgeBackgroundColor: isWatchConnected
+                          ? const Color(0xFF0F67FE)
+                          : const Color(0xFFFF5252).withOpacity(0.1),
+                      badgeTextColor: isWatchConnected
+                          ? Colors.white
+                          : const Color(0xFFFF5252),
                       backButtonBorderWidth: 1.0,
                       bottomLeftRadius: 30,
                       bottomRightRadius: 30,
@@ -336,15 +437,14 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
               ),
               SizedBox(height: 40.h),
               Expanded(
-                child:
-                    isWatchConnected
-                        ? _buildActivityContent()
-                        : SingleChildScrollView(
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          child: WatchDisconnectedState(
-                            onAddActivity: _openManualEntryDrawer,
-                          ),
+                child: isWatchConnected
+                    ? _buildActivityContent()
+                    : SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: WatchDisconnectedState(
+                          onAddActivity: _openManualEntryDrawer,
                         ),
+                      ),
               ),
             ],
           ),
@@ -354,23 +454,23 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
   }
 
   Widget _buildActivityContent() {
-    if (_isLoading) {
+    if (_isLoading && !_hasInitialLoadCompleted) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_errorMessage.isNotEmpty) {
+    if (_errorMessage.isNotEmpty && _topActivities.isEmpty) {
       return ErrorMessageWidget(
         errorMessage: _errorMessage,
         onRetry: _fetchActivities,
       );
     }
 
-    if (_topActivities.isEmpty) {
+    if (_topActivities.isEmpty && _hasInitialLoadCompleted) {
       return EmptyActivityState(onAddActivity: _openManualEntryDrawer);
     }
 
     final maxMinutesValue = _topActivities.fold(0.0, (max, activity) {
-      final minutes = double.parse(activity['minutes'].toString());
+      final minutes = double.tryParse(activity['minutes']?.toString() ?? '0') ?? 0.0;
       return minutes > max ? minutes : max;
     });
 
@@ -449,78 +549,77 @@ class _ActivityTodayPageState extends State<ActivityTodayPage> {
         Container(
           height: 300.h,
           padding: EdgeInsets.symmetric(horizontal: 24.w),
-          child:
-              _topActivities.isEmpty
-                  ? Center(
-                    child: Text(
-                      'No activities yet. Add one to get started!',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w500,
-                        color: Colors.grey[600],
-                      ),
-                    ),
-                  )
-                  : _topActivities.length == 1
-                  ? Center(
-                    child: SizedBox(
-                      width: 160.w, // Fixed width for single activity
-                      child: ActivityBar(
-                        minutes: _topActivities[0]['minutes'] as String,
-                        label: _topActivities[0]['label'] as String,
-                        color: _topActivities[0]['color'] as Color,
-                        icon: _topActivities[0]['icon'] as IconData,
-                        maxMinutes: double.parse(
-                          _topActivities[0]['minutes'].toString(),
-                        ),
-                      ),
-                    ),
-                  )
-                  : ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: (_topActivities.length / 3).ceil(),
-                    itemBuilder: (context, rowIndex) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: List.generate(
-                          3, // Always show 3 items per row
-                          (colIndex) {
-                            final index = rowIndex * 3 + colIndex;
-                            if (index < _topActivities.length) {
-                              final activity = _topActivities[index];
-                              return SizedBox(
-                                width:
-                                    (MediaQuery.of(context).size.width - 48.w) /
-                                    3,
-                                child: Padding(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 4.w,
-                                  ),
-                                  child: ActivityBar(
-                                    minutes: activity['minutes'] as String,
-                                    label: activity['label'] as String,
-                                    color: activity['color'] as Color,
-                                    icon: activity['icon'] as IconData,
-                                    maxMinutes: maxMinutesValue,
-                                  ),
-                                ),
-                              );
-                            } else {
-                              // Return empty container for placeholders
-                              return SizedBox(
-                                width:
-                                    (MediaQuery.of(context).size.width - 48.w) /
-                                    3,
-                              );
-                            }
-                          },
-                        ),
-                      );
-                    },
-                  ),
+          child: _buildActivityBars(maxMinutesValue),
         ),
       ],
+    );
+  }
+
+  Widget _buildActivityBars(double maxMinutesValue) {
+    if (_topActivities.isEmpty) {
+      return Center(
+        child: Text(
+          'No activities yet. Add one to get started!',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16.sp,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey[600],
+          ),
+        ),
+      );
+    }
+
+    if (_topActivities.length == 1) {
+      final activity = _topActivities[0];
+      return Center(
+        child: SizedBox(
+          width: 160.w,
+          child: ActivityBar(
+            minutes: activity['minutes']?.toString() ?? '0',
+            label: activity['label']?.toString() ?? 'Activity',
+            color: activity['color'] as Color,
+            icon: activity['icon'] as IconData,
+            maxMinutes: double.tryParse(activity['minutes']?.toString() ?? '0') ?? 0.0,
+          ),
+        ),
+      );
+    }
+
+    return ListView.builder(
+      scrollDirection: Axis.horizontal,
+      itemCount: (_topActivities.length / 3).ceil(),
+      itemBuilder: (context, rowIndex) {
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(
+            3,
+            (colIndex) {
+              final index = rowIndex * 3 + colIndex;
+              if (index < _topActivities.length) {
+                final activity = _topActivities[index];
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 48.w) / 3,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 4.w),
+                    child: ActivityBar(
+                      minutes: activity['minutes']?.toString() ?? '0',
+                      label: activity['label']?.toString() ?? 'Activity',
+                      color: activity['color'] as Color,
+                      icon: activity['icon'] as IconData,
+                      maxMinutes: maxMinutesValue,
+                    ),
+                  ),
+                );
+              } else {
+                return SizedBox(
+                  width: (MediaQuery.of(context).size.width - 48.w) / 3,
+                );
+              }
+            },
+          ),
+        );
+      },
     );
   }
 }
