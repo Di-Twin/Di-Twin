@@ -7,6 +7,26 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:client/features/medication_management/presentation/providers/medication_api_provider.dart';
 import 'package:client/features/medication_management/domain/usecases/create_medication_usecase.dart';
 
+class MedicationDose {
+  final TimeOfDay time;
+  final String mealTiming; // 'before', 'after', 'with', 'none'
+
+  MedicationDose({
+    required this.time,
+    this.mealTiming = 'none',
+  });
+
+  MedicationDose copyWith({
+    TimeOfDay? time,
+    String? mealTiming,
+  }) {
+    return MedicationDose(
+      time: time ?? this.time,
+      mealTiming: mealTiming ?? this.mealTiming,
+    );
+  }
+}
+
 class AddMedicationPage extends ConsumerStatefulWidget {
   const AddMedicationPage({Key? key}) : super(key: key);
 
@@ -16,20 +36,61 @@ class AddMedicationPage extends ConsumerStatefulWidget {
 
 class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
   final TextEditingController _medicationNameController = TextEditingController();
-  double _dosage = 1;
+  int _dosage = 1;
   DateTime _startDate = DateTime.now();
-  DateTime _endDate = DateTime.now().add(const Duration(days: 90));
-  bool _autoReminder = false;
-  bool _beforeMeal = false;
-  String _frequency = '3x Per Day';
-  String _time = '9:00 AM';
-  TimeOfDay _reminderTime = const TimeOfDay(hour: 9, minute: 0);
+  int _durationDays = 30;
+  bool _autoReminder = true;
+  int _dailyFrequency = 1;
+  List<MedicationDose> _doses = [
+    MedicationDose(time: const TimeOfDay(hour: 9, minute: 0)),
+  ];
   bool _isLoading = false;
+
+  final List<int> _frequencyOptions = [1, 2, 3, 4];
+  final List<int> _durationOptions = [7, 14, 30, 60, 90];
 
   @override
   void dispose() {
     _medicationNameController.dispose();
     super.dispose();
+  }
+
+  void _updateFrequency(int frequency) {
+    setState(() {
+      _dailyFrequency = frequency;
+
+      // Adjust doses list based on frequency
+      if (frequency > _doses.length) {
+        // Add more doses with default times
+        final defaultTimes = [
+          const TimeOfDay(hour: 9, minute: 0),   // Morning
+          const TimeOfDay(hour: 14, minute: 0),  // Afternoon
+          const TimeOfDay(hour: 19, minute: 0),  // Evening
+          const TimeOfDay(hour: 22, minute: 0),  // Night
+        ];
+
+        while (_doses.length < frequency) {
+          _doses.add(MedicationDose(
+            time: defaultTimes[_doses.length % defaultTimes.length],
+          ));
+        }
+      } else if (frequency < _doses.length) {
+        // Remove excess doses
+        _doses = _doses.take(frequency).toList();
+      }
+    });
+  }
+
+  void _updateDoseTime(int index, TimeOfDay time) {
+    setState(() {
+      _doses[index] = _doses[index].copyWith(time: time);
+    });
+  }
+
+  void _updateDoseMealTiming(int index, String mealTiming) {
+    setState(() {
+      _doses[index] = _doses[index].copyWith(mealTiming: mealTiming);
+    });
   }
 
   @override
@@ -38,417 +99,636 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
       backgroundColor: const Color(0xFFF5F7FA),
       body: Column(
         children: [
-          Container(
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              color: Color(0xFF1E2639),
-              borderRadius: BorderRadius.only(
-                bottomLeft: Radius.circular(30),
-                bottomRight: Radius.circular(30),
-              ),
-            ),
-            child: SafeArea(
-              child: Padding(
-                padding: EdgeInsets.all(20.w),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      decoration: BoxDecoration(
-                        border: Border.all(color: Colors.white),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: IconButton(
-                        icon: const Icon(
-                          Icons.arrow_back_ios_new,
-                          color: Colors.white,
-                        ),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                      ),
-                    ),
-                    SizedBox(height: 16.h),
-                    Text(
-                      'Add Medication',
-                      style: GoogleFonts.plusJakartaSans(
-                        color: Colors.white,
-                        fontSize: 24.sp,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                  ],
-                ),
+          _buildHeader(),
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(20.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildMedicationNameSection(),
+                  SizedBox(height: 32.h),
+                  _buildDosageSection(),
+                  SizedBox(height: 32.h),
+                  _buildFrequencySection(),
+                  SizedBox(height: 32.h),
+                  _buildScheduleSection(),
+                  SizedBox(height: 32.h),
+                  _buildDurationSection(),
+                  SizedBox(height: 32.h),
+                  _buildReminderSection(),
+                  SizedBox(height: 40.h),
+                  _buildAddButton(),
+                  SizedBox(height: 20.h),
+                ],
               ),
             ),
           ),
-          Expanded(
-            child: Padding(
-              padding: EdgeInsets.all(16.w),
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildSectionTitle('Medication Name'),
-                    _buildMedicationNameInput(),
-                    SizedBox(height: 24.h),
+        ],
+      ),
+    );
+  }
 
-                    _buildSectionTitle('Medication Dosage'),
-                    _buildDosageSlider(),
-                    SizedBox(height: 24.h),
+  Widget _buildHeader() {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFF1E2639),
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(30),
+          bottomRight: Radius.circular(30),
+        ),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.all(20.w),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: EdgeInsets.all(8.w),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.white.withOpacity(0.3)),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Icon(
+                    Icons.arrow_back_ios_new,
+                    color: Colors.white,
+                    size: 20.r,
+                  ),
+                ),
+              ),
+              SizedBox(height: 20.h),
+              Text(
+                'Add Medication',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white,
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                'Step 2 of 2 - Medication Details',
+                style: GoogleFonts.plusJakartaSans(
+                  color: Colors.white.withOpacity(0.7),
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-                    Text(
-                      'Medication Frequency',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
+  Widget _buildMedicationNameSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Medication Name'),
+        SizedBox(height: 12.h),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: TextField(
+            controller: _medicationNameController,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF242E49),
+            ),
+            decoration: InputDecoration(
+              hintText: 'Enter medication name',
+              hintStyle: GoogleFonts.plusJakartaSans(
+                color: Colors.grey.shade500,
+                fontSize: 16.sp,
+              ),
+              prefixIcon: Icon(
+                Icons.medical_information_outlined,
+                color: Colors.grey.shade600,
+                size: 22.r,
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 16.w,
+                vertical: 18.h,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDosageSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Dosage per intake'),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Amount',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  Text(
+                    '$_dosage ${_dosage == 1 ? 'tablet' : 'tablets'}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF242E49),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 20.h),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: List.generate(5, (index) {
+                  final value = index + 1;
+                  final isSelected = _dosage == value;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _dosage = value;
+                      });
+                    },
+                    child: Container(
+                      width: 50.w,
+                      height: 50.w,
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(12.r),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade300,
+                        ),
                       ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _showFrequencyDialog,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 12.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.black,
-                                    size: 20.r,
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    _frequency,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF242E49),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => _selectTime(context),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 12.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    color: Colors.black,
-                                    size: 20.r,
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    _time,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF242E49),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 24.h),
-
-                    Text(
-                      'Medication Duration',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'From',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              GestureDetector(
-                                onTap: () => _selectDate(context, true),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 12.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.black,
-                                            size: 20.r,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            DateFormat('MMM d').format(_startDate),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF242E49),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: Colors.black.withOpacity(0.5),
-                                        size: 20.r,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'To',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
-                                ),
-                              ),
-                              SizedBox(height: 4.h),
-                              GestureDetector(
-                                onTap: () => _selectDate(context, false),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 12.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.black,
-                                            size: 20.r,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            DateFormat('MMM d').format(_endDate),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF242E49),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: Colors.blueGrey.shade600,
-                                        size: 20.r,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 24.h),
-
-                    Text(
-                      'Take with Meal?',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _beforeMeal = true;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 16.h),
-                              decoration: BoxDecoration(
-                                color: _beforeMeal ? Color(0xFF0F67FE) : Colors.white,
-                                borderRadius: BorderRadius.circular(10.r),
-                                boxShadow: _beforeMeal
-                                    ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.25),
-                                    blurRadius: 0,
-                                    spreadRadius: 5,
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.watch_later_outlined,
-                                      color: _beforeMeal ? Colors.white : Colors.black,
-                                      size: 20.r,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      'Before',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: _beforeMeal ? Colors.white : Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                _beforeMeal = false;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 16.h),
-                              decoration: BoxDecoration(
-                                color: !_beforeMeal ? Color(0xFF0F67FE) : Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                                boxShadow: !_beforeMeal
-                                    ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.25),
-                                    blurRadius: 0,
-                                    spreadRadius: 5,
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.watch_later_outlined,
-                                      color: !_beforeMeal ? Colors.white : Colors.black,
-                                      size: 20.r,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      'After',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: !_beforeMeal ? Colors.white : Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: 24.h),
-
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'Set Auto Reminder?',
+                      child: Center(
+                        child: Text(
+                          value.toString(),
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w900,
-                            color: Color(0xFF242E49),
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.bold,
+                            color: isSelected ? Colors.white : Colors.grey.shade600,
                           ),
                         ),
-                        Switch(
-                          value: _autoReminder,
-                          onChanged: (value) {
-                            setState(() {
-                              _autoReminder = value;
-                            });
-                          },
-                          activeColor: Colors.white,
-                          activeTrackColor: Color(0xFF0F67FE),
-                        ),
-                      ],
+                      ),
                     ),
+                  );
+                }),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
 
-                    SizedBox(height: 24.h),
+  Widget _buildFrequencySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('How many times per day?'),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+            children: _frequencyOptions.map((frequency) {
+              final isSelected = _dailyFrequency == frequency;
+              return GestureDetector(
+                onTap: () => _updateFrequency(frequency),
+                child: Container(
+                  width: 60.w,
+                  height: 60.w,
+                  decoration: BoxDecoration(
+                    color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade300,
+                    ),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        frequency.toString(),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 20.sp,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : Colors.grey.shade600,
+                        ),
+                      ),
+                      Text(
+                        'time${frequency > 1 ? 's' : ''}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.sp,
+                          fontWeight: FontWeight.w500,
+                          color: isSelected ? Colors.white.withOpacity(0.8) : Colors.grey.shade500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+        ),
+      ],
+    );
+  }
 
-                    _buildAddButton(),
+  Widget _buildScheduleSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Daily Schedule'),
+        SizedBox(height: 8.h),
+        Text(
+          'Set specific times and meal preferences for each dose',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: Colors.grey.shade600,
+          ),
+        ),
+        SizedBox(height: 16.h),
+        ...List.generate(_dailyFrequency, (index) {
+          return _buildDoseScheduleCard(index);
+        }),
+      ],
+    );
+  }
+
+  Widget _buildDoseScheduleCard(int index) {
+    final dose = _doses[index];
+    final doseLabels = ['First', 'Second', 'Third', 'Fourth'];
+    final doseLabel = index < doseLabels.length ? doseLabels[index] : '${index + 1}th';
+
+    return Container(
+      margin: EdgeInsets.only(bottom: 16.h),
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 8.w,
+                height: 8.w,
+                decoration: BoxDecoration(
+                  color: _getDoseColor(index),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                '$doseLabel Dose',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF242E49),
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+
+          // Time Selection
+          Row(
+            children: [
+              Icon(
+                Icons.access_time_outlined,
+                color: Colors.grey.shade600,
+                size: 20.r,
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                'Time',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => _selectDoseTime(context, index),
+                child: Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade100,
+                    borderRadius: BorderRadius.circular(12.r),
+                    border: Border.all(color: Colors.grey.shade300),
+                  ),
+                  child: Text(
+                    _formatTime(dose.time),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF242E49),
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 20.h),
+
+          // Meal Timing Selection
+          Row(
+            children: [
+              Icon(
+                Icons.restaurant_outlined,
+                color: Colors.grey.shade600,
+                size: 20.r,
+              ),
+              SizedBox(width: 12.w),
+              Text(
+                'Meal timing',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+            ],
+          ),
+
+          SizedBox(height: 12.h),
+
+          Row(
+            children: [
+              Expanded(
+                child: _buildMealOption(index, 'before', 'Before meal'),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _buildMealOption(index, 'after', 'After meal'),
+              ),
+              SizedBox(width: 8.w),
+              Expanded(
+                child: _buildMealOption(index, 'none', 'No meal'),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMealOption(int doseIndex, String mealTiming, String label) {
+    final isSelected = _doses[doseIndex].mealTiming == mealTiming;
+
+    return GestureDetector(
+      onTap: () => _updateDoseMealTiming(doseIndex, mealTiming),
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade200,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF242E49),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Color _getDoseColor(int index) {
+    final colors = [
+      const Color(0xFF0F67FE), // Blue
+      const Color(0xFF10B981), // Green
+      const Color(0xFFF59E0B), // Orange
+      const Color(0xFF8B5CF6), // Purple
+    ];
+    return colors[index % colors.length];
+  }
+
+  Widget _buildDurationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildSectionTitle('Duration'),
+        SizedBox(height: 12.h),
+        Container(
+          padding: EdgeInsets.all(20.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+            border: Border.all(color: Colors.grey.shade200),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.calendar_today_outlined,
+                    color: Colors.grey.shade600,
+                    size: 20.r,
+                  ),
+                  SizedBox(width: 12.w),
+                  Text(
+                    'Start Date',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: () => _selectStartDate(context),
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                      decoration: BoxDecoration(
+                        color: Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Text(
+                        DateFormat('MMM d, yyyy').format(_startDate),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF242E49),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: 24.h),
+              Text(
+                'Duration',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14.sp,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              SizedBox(height: 12.h),
+              Wrap(
+                spacing: 12.w,
+                runSpacing: 12.h,
+                children: _durationOptions.map((days) {
+                  final isSelected = _durationDays == days;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        _durationDays = days;
+                      });
+                    },
+                    child: Container(
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade100,
+                        borderRadius: BorderRadius.circular(20.r),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade300,
+                        ),
+                      ),
+                      child: Text(
+                        '$days days',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w600,
+                          color: isSelected ? Colors.white : const Color(0xFF242E49),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              SizedBox(height: 16.h),
+              Container(
+                padding: EdgeInsets.all(12.w),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8.r),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      color: Colors.blue.shade600,
+                      size: 16.r,
+                    ),
+                    SizedBox(width: 8.w),
+                    Expanded(
+                      child: Text(
+                        'End date: ${DateFormat('MMM d, yyyy').format(_startDate.add(Duration(days: _durationDays)))}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.blue.shade700,
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildReminderSection() {
+    return Container(
+      padding: EdgeInsets.all(20.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        border: Border.all(color: Colors.grey.shade200),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            Icons.notifications_outlined,
+            color: Colors.grey.shade600,
+            size: 24.r,
+          ),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Auto Reminder',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF242E49),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Text(
+                  'Get notified at scheduled times',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12.sp,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+              ],
             ),
+          ),
+          Switch(
+            value: _autoReminder,
+            onChanged: (value) {
+              setState(() {
+                _autoReminder = value;
+              });
+            },
+            activeColor: Colors.white,
+            activeTrackColor: const Color(0xFF0F67FE),
+            inactiveThumbColor: Colors.grey.shade400,
+            inactiveTrackColor: Colors.grey.shade300,
           ),
         ],
       ),
@@ -459,184 +739,44 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
     return Text(
       title,
       style: GoogleFonts.plusJakartaSans(
-        fontSize: 16.sp,
-        fontWeight: FontWeight.w900,
-        color: Color(0xFF242E49),
+        fontSize: 18.sp,
+        fontWeight: FontWeight.bold,
+        color: const Color(0xFF242E49),
       ),
     );
   }
 
-  Widget _buildMedicationNameInput() {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: TextField(
-        controller: _medicationNameController,
-        decoration: InputDecoration(
-          hintText: 'Medication Name',
-          prefixIcon: const Icon(Icons.medical_information_outlined),
-          border: InputBorder.none,
-          contentPadding: EdgeInsets.symmetric(
-            horizontal: 16.w,
-            vertical: 16.h,
-          ),
-        ),
-        onChanged: (value) {
-          setState(() {});
-        },
-      ),
+  Widget _buildAddButton() {
+    return CustomButton(
+      text: _isLoading ? "Adding..." : "Add Medication",
+      iconPath: 'images/SignInAddIcon.png',
+      onPressed: _isLoading ? null : _saveMedication,
+      height: 50.h,
     );
   }
 
-  Widget _buildDosageSlider() {
-    return Column(
-      children: [
-        Container(
-          height: 40.h,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20.r),
-          ),
-          child: Slider(
-            value: _dosage,
-            min: 1,
-            max: 5,
-            divisions: 4,
-            activeColor: Color(0xFF0F67FE),
-            inactiveColor: Colors.grey.shade300,
-            onChanged: (value) {
-              setState(() {
-                _dosage = value;
-              });
-            },
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 8.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [1, 2, 3, 4, 5]
-                .map(
-                  (e) => Text(
-                e.toString(),
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12.sp,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-            )
-                .toList(),
-          ),
-        ),
-      ],
-    );
+  String _formatTime(TimeOfDay time) {
+    final hour = time.hourOfPeriod == 0 ? 12 : time.hourOfPeriod;
+    final minute = time.minute.toString().padLeft(2, '0');
+    final period = time.period == DayPeriod.am ? 'AM' : 'PM';
+    return '$hour:$minute $period';
   }
 
-  void _showFrequencyDialog() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (BuildContext context) {
-        return Container(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Select Frequency',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: frequencyOptions.length,
-                  itemBuilder: (context, index) {
-                    bool isSelected = _frequency == frequencyOptions[index];
-                    return Container(
-                      margin: EdgeInsets.symmetric(vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: isSelected ? Color(0xFF0F67FE) : Colors.grey.shade200,
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          frequencyOptions[index],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: Colors.black,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? Icon(
-                          Icons.check_circle,
-                          color: Color(0xFF0F67FE),
-                        )
-                            : null,
-                        onTap: () {
-                          setState(() {
-                            _frequency = frequencyOptions[index];
-                          });
-                          Navigator.pop(context);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  final List<String> frequencyOptions = [
-    "1x Per Day",
-    "2x Per Day",
-    "3x Per Day",
-    "1x Per Week",
-    "2x Per Week",
-    "3x Per Week",
-    "As Needed",
-  ];
-
-  Future<void> _selectTime(BuildContext context) async {
+  Future<void> _selectDoseTime(BuildContext context, int doseIndex) async {
     final TimeOfDay? selectedTime = await showTimePicker(
       context: context,
-      initialTime: _reminderTime,
+      initialTime: _doses[doseIndex].time,
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: Color(0xFF0F67FE),
               onPrimary: Colors.white,
             ),
             timePickerTheme: TimePickerThemeData(
               dayPeriodColor: MaterialStateColor.resolveWith((states) {
                 if (states.contains(MaterialState.selected)) {
-                  return Color(0xFF0F67FE);
+                  return const Color(0xFF0F67FE);
                 }
                 return Colors.transparent;
               }),
@@ -644,7 +784,7 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
                 if (states.contains(MaterialState.selected)) {
                   return Colors.white;
                 }
-                return Color(0xFF242E49);
+                return const Color(0xFF242E49);
               }),
               dayPeriodShape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(8),
@@ -660,55 +800,40 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
     );
 
     if (selectedTime != null) {
-      setState(() {
-        _reminderTime = selectedTime;
-
-        final hour = selectedTime.hourOfPeriod == 0 ? 12 : selectedTime.hourOfPeriod;
-        final minute = selectedTime.minute.toString().padLeft(2, '0');
-        final period = selectedTime.period == DayPeriod.am ? 'AM' : 'PM';
-        _time = '$hour:$minute $period';
-      });
+      _updateDoseTime(doseIndex, selectedTime);
     }
   }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final DateTime initialDate = isStartDate ? _startDate : _endDate;
-    final DateTime firstDate = isStartDate
-        ? DateTime.now().subtract(const Duration(days: 30))
-        : _startDate;
-    final DateTime lastDate = isStartDate
-        ? _endDate
-        : DateTime.now().add(const Duration(days: 365));
-
+  Future<void> _selectStartDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: initialDate,
-      firstDate: firstDate,
-      lastDate: lastDate,
+      initialDate: _startDate,
+      firstDate: DateTime.now(),
+      lastDate: DateTime.now().add(const Duration(days: 365)),
       builder: (BuildContext context, Widget? child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: Color(0xFF0F67FE),
               onPrimary: Colors.white,
               onSurface: Color(0xFF242E49),
             ),
             textButtonTheme: TextButtonThemeData(
-              style: TextButton.styleFrom(foregroundColor: Color(0xFF0F67FE)),
+              style: TextButton.styleFrom(foregroundColor: const Color(0xFF0F67FE)),
             ),
             datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: Color(0xFF0F67FE),
+              headerBackgroundColor: const Color(0xFF0F67FE),
               headerForegroundColor: Colors.white,
-              weekdayStyle: TextStyle(color: Color(0xFF242E49)),
+              weekdayStyle: const TextStyle(color: Color(0xFF242E49)),
               dayForegroundColor: MaterialStateProperty.resolveWith((states) {
                 if (states.contains(MaterialState.selected)) {
                   return Colors.white;
                 }
-                return Color(0xFF242E49);
+                return const Color(0xFF242E49);
               }),
               dayBackgroundColor: MaterialStateProperty.resolveWith((states) {
                 if (states.contains(MaterialState.selected)) {
-                  return Color(0xFF0F67FE);
+                  return const Color(0xFF0F67FE);
                 }
                 return null;
               }),
@@ -721,26 +846,9 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
 
     if (picked != null) {
       setState(() {
-        if (isStartDate) {
-          _startDate = picked;
-
-          if (_endDate.isBefore(_startDate)) {
-            _endDate = _startDate.add(const Duration(days: 30));
-          }
-        } else {
-          _endDate = picked;
-        }
+        _startDate = picked;
       });
     }
-  }
-
-  Widget _buildAddButton() {
-    return CustomButton(
-      text: _isLoading ? "Adding..." : "Add Medication",
-      iconPath: 'images/SignInAddIcon.png',
-      onPressed: _isLoading ? null : _saveMedication,
-      height: 45.h,
-    );
   }
 
   Future<void> _saveMedication() async {
@@ -756,30 +864,28 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
     try {
       final actions = ref.read(medicationActionsProvider);
 
-      // Convert time to 24-hour format for API
-      final timeParts = _time.split(' ');
-      final hourMinute = timeParts[0].split(':');
-      int hour = int.parse(hourMinute[0]);
-      final minute = hourMinute[1];
-      final period = timeParts[1];
+      // Convert times to 24-hour format for API
+      final timings = _doses.map((dose) {
+        final hour = dose.time.hour.toString().padLeft(2, '0');
+        final minute = dose.time.minute.toString().padLeft(2, '0');
+        return '$hour:$minute';
+      }).toList();
 
-      if (period == 'PM' && hour < 12) {
-        hour += 12;
-      } else if (period == 'AM' && hour == 12) {
-        hour = 0;
-      }
+      final endDate = _startDate.add(Duration(days: _durationDays));
 
-      final timeForApi = '${hour.toString().padLeft(2, '0')}:$minute';
+      // For API compatibility, use the first dose's meal timing
+      final firstDoseMealTiming = _doses.isNotEmpty ? _doses[0].mealTiming : 'none';
+      final afterFood = firstDoseMealTiming == 'after';
 
       final params = CreateMedicationParams(
         medicationName: _medicationNameController.text.trim(),
-        afterFood: !_beforeMeal, // Inverted because UI shows "before meal" but API expects "after food"
-        frequency: _frequency.toLowerCase(),
-        timings: [timeForApi],
+        afterFood: afterFood,
+        frequency: '${_dailyFrequency}x per day',
+        timings: timings,
         reminder: _autoReminder,
-        dose: '${_dosage.toInt()} unit${_dosage.toInt() > 1 ? 's' : ''}',
+        dose: '${_dosage} unit${_dosage > 1 ? 's' : ''}',
         startDate: DateFormat('yyyy-MM-dd').format(_startDate),
-        endDate: DateFormat('yyyy-MM-dd').format(_endDate),
+        endDate: DateFormat('yyyy-MM-dd').format(endDate),
       );
 
       final result = await actions.createMedication(params);
@@ -787,12 +893,15 @@ class _AddMedicationPageState extends ConsumerState<AddMedicationPage> {
       if (result != null) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Medication added successfully'),
+            content: Text(
+              'Medication added successfully',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
             backgroundColor: Colors.green,
           ),
         );
 
-        Navigator.pop(context, true); // Return true to indicate success
+        Navigator.pop(context, true);
       } else {
         _showErrorSnackBar('Failed to add medication. Please try again.');
       }
