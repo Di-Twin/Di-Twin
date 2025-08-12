@@ -1,130 +1,49 @@
 import 'package:client/widgets/CustomActivityHeaderWidget.dart';
 import 'package:client/features/medication_management/presentation/pages/medication_management_day.dart';
+import 'package:client/features/medication_management/presentation/pages/medication_management_edit.dart';
+import 'package:client/features/medication_management/presentation/providers/medication_api_provider.dart';
+import 'package:client/features/medication_management/data/models/api_medication_model.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-class MedicationManagementListPage extends StatefulWidget {
+class MedicationManagementListPage extends ConsumerStatefulWidget {
   const MedicationManagementListPage({Key? key}) : super(key: key);
 
   @override
-  State<MedicationManagementListPage> createState() => _MedicationManagementListPageState();
+  ConsumerState<MedicationManagementListPage> createState() => _MedicationManagementListPageState();
 }
 
-class _MedicationManagementListPageState extends State<MedicationManagementListPage> {
+class _MedicationManagementListPageState extends ConsumerState<MedicationManagementListPage> {
   final TextEditingController _searchController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   final FocusNode _searchFocusNode = FocusNode();
   String _searchQuery = '';
   bool _isSearchFocused = false;
 
-  // Sample medications data - replace with actual data from provider
-  final List<Medication> _allMedications = [
-    Medication(
-      id: "1",
-      name: 'Aspirin',
-      timing: 'After Food',
-      dosage: '100mg',
-      frequency: 'daily',
-      timings: ['08:00', '20:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFF4285F4),
-    ),
-    Medication(
-      id: "2",
-      name: 'Metformin',
-      timing: 'After meals',
-      dosage: '850mg',
-      frequency: 'daily',
-      timings: ['08:00', '14:00', '20:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFF34A853),
-    ),
-    Medication(
-      id: "3",
-      name: 'Lisinopril',
-      timing: 'Before Food',
-      dosage: '10mg',
-      frequency: 'daily',
-      timings: ['08:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: false,
-      color: const Color(0xFFEA4335),
-    ),
-    Medication(
-      id: "4",
-      name: 'Atorvastatin',
-      timing: 'After Food',
-      dosage: '20mg',
-      frequency: 'daily',
-      timings: ['20:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFFFBBC04),
-    ),
-    Medication(
-      id: "5",
-      name: 'Omeprazole',
-      timing: 'Before Food',
-      dosage: '20mg',
-      frequency: 'daily',
-      timings: ['08:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFF9C27B0),
-    ),
-    Medication(
-      id: "6",
-      name: 'Vitamin D3',
-      timing: 'After Food',
-      dosage: '1000IU',
-      frequency: 'daily',
-      timings: ['09:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFF00BCD4),
-    ),
-    Medication(
-      id: "7",
-      name: 'Calcium',
-      timing: 'Before Food',
-      dosage: '500mg',
-      frequency: 'twice daily',
-      timings: ['08:00', '20:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: false,
-      color: const Color(0xFF795548),
-    ),
-    Medication(
-      id: "8",
-      name: 'Iron Supplement',
-      timing: 'After Food',
-      dosage: '65mg',
-      frequency: 'daily',
-      timings: ['12:00'],
-      startDate: '2023-01-01',
-      endDate: '2023-12-31',
-      reminder: true,
-      color: const Color(0xFF607D8B),
-    ),
+  // Color palette for medications
+  final List<Color> _medicationColors = [
+    const Color(0xFF4285F4),
+    const Color(0xFF34A853),
+    const Color(0xFFEA4335),
+    const Color(0xFFFBBC04),
+    const Color(0xFF9C27B0),
+    const Color(0xFF00BCD4),
+    const Color(0xFF795548),
+    const Color(0xFF607D8B),
+    const Color(0xFFFF5722),
+    const Color(0xFF3F51B5),
   ];
 
-  List<Medication> get _filteredMedications {
+  List<ApiMedicationModel> _getFilteredMedications(List<ApiMedicationModel> medications) {
     if (_searchQuery.isEmpty) {
-      return _allMedications;
+      return medications;
     }
-    return _allMedications.where((medication) =>
-    medication.name.toLowerCase().contains(_searchQuery.toLowerCase()) ||
-        medication.timing.toLowerCase().contains(_searchQuery.toLowerCase())
+    return medications.where((medication) =>
+    medication.medicationName.toLowerCase().contains(_searchQuery.toLowerCase()) ||
+        (medication.afterFood ? 'After Food' : 'Before Food').toLowerCase().contains(_searchQuery.toLowerCase())
     ).toList();
   }
 
@@ -155,9 +74,18 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
     );
   }
 
+  Color _getMedicationColor(int index) {
+    return _medicationColors[index % _medicationColors.length];
+  }
+
+  String _getTimingText(bool afterFood) {
+    return afterFood ? 'After Food' : 'Before Food';
+  }
+
   @override
   Widget build(BuildContext context) {
     final double headerHeight = 400.0;
+    final medicationsAsync = ref.watch(userMedicationsProvider);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
@@ -171,7 +99,13 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
 
               // Content Section
               Expanded(
-                child: _isSearchFocused ? _buildSearchView() : _buildNormalView(),
+                child: medicationsAsync.when(
+                  data: (medications) => _isSearchFocused
+                      ? _buildSearchView(medications)
+                      : _buildNormalView(medications),
+                  loading: () => _buildLoadingState(),
+                  error: (error, stack) => _buildErrorState(error.toString()),
+                ),
               ),
             ],
           ),
@@ -183,30 +117,82 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
             right: 0,
             child: SizedBox(
               height: headerHeight.h,
-              child: CustomActivityHeader(
-                title: 'Medications',
-                score: _allMedications.length.toString(),
-                subtitle: 'Medications',
-                badgeText: 'Active',
-                buttonImage: 'images/SignInAddIcon.png',
-                onButtonTap: _onAddMedicationTap,
-                backgroundColor: const Color(0xFF4285F4),
-                backgroundImagePath: 'images/activity_header_background.png',
-                titleTextColor: Colors.white,
-                scoreTextColor: Colors.white,
-                subtitleTextColor: Colors.white,
-                backButtonBorderColor: Colors.white,
-                badgeBackgroundColor: Colors.white,
-                badgeTextColor: const Color(0xFF4285F4),
-                buttonColor: const Color(0xFF1E293B),
-                buttonShadowColor: const Color(0xFF1E293B),
-                backButtonBorderWidth: 1.0,
-                bottomLeftRadius: 30,
-                bottomRightRadius: 30,
-                buttonShadowSpread: 0,
-                headerHeight: headerHeight,
-                showBadge: true,
-                showMenu: false,
+              child: medicationsAsync.when(
+                data: (medications) => CustomActivityHeader(
+                  title: 'Medications',
+                  score: medications.length.toString(),
+                  subtitle: 'Medications',
+                  badgeText: 'Active',
+                  buttonImage: 'images/SignInAddIcon.png',
+                  onButtonTap: _onAddMedicationTap,
+                  backgroundColor: const Color(0xFF4285F4),
+                  backgroundImagePath: 'images/activity_header_background.png',
+                  titleTextColor: Colors.white,
+                  scoreTextColor: Colors.white,
+                  subtitleTextColor: Colors.white,
+                  backButtonBorderColor: Colors.white,
+                  badgeBackgroundColor: Colors.white,
+                  badgeTextColor: const Color(0xFF4285F4),
+                  buttonColor: const Color(0xFF1E293B),
+                  buttonShadowColor: const Color(0xFF1E293B),
+                  backButtonBorderWidth: 1.0,
+                  bottomLeftRadius: 30,
+                  bottomRightRadius: 30,
+                  buttonShadowSpread: 0,
+                  headerHeight: headerHeight,
+                  showBadge: true,
+                  showMenu: false,
+                ),
+                loading: () => CustomActivityHeader(
+                  title: 'Medications',
+                  score: '0',
+                  subtitle: 'Medications',
+                  badgeText: 'Active',
+                  buttonImage: 'images/SignInAddIcon.png',
+                  onButtonTap: _onAddMedicationTap,
+                  backgroundColor: const Color(0xFF4285F4),
+                  backgroundImagePath: 'images/activity_header_background.png',
+                  titleTextColor: Colors.white,
+                  scoreTextColor: Colors.white,
+                  subtitleTextColor: Colors.white,
+                  backButtonBorderColor: Colors.white,
+                  badgeBackgroundColor: Colors.white,
+                  badgeTextColor: const Color(0xFF4285F4),
+                  buttonColor: const Color(0xFF1E293B),
+                  buttonShadowColor: const Color(0xFF1E293B),
+                  backButtonBorderWidth: 1.0,
+                  bottomLeftRadius: 30,
+                  bottomRightRadius: 30,
+                  buttonShadowSpread: 0,
+                  headerHeight: headerHeight,
+                  showBadge: true,
+                  showMenu: false,
+                ),
+                error: (error, stack) => CustomActivityHeader(
+                  title: 'Medications',
+                  score: '0',
+                  subtitle: 'Medications',
+                  badgeText: 'Error',
+                  buttonImage: 'images/SignInAddIcon.png',
+                  onButtonTap: _onAddMedicationTap,
+                  backgroundColor: const Color(0xFF4285F4),
+                  backgroundImagePath: 'images/activity_header_background.png',
+                  titleTextColor: Colors.white,
+                  scoreTextColor: Colors.white,
+                  subtitleTextColor: Colors.white,
+                  backButtonBorderColor: Colors.white,
+                  badgeBackgroundColor: Colors.white,
+                  badgeTextColor: const Color(0xFF4285F4),
+                  buttonColor: const Color(0xFF1E293B),
+                  buttonShadowColor: const Color(0xFF1E293B),
+                  backButtonBorderWidth: 1.0,
+                  bottomLeftRadius: 30,
+                  bottomRightRadius: 30,
+                  buttonShadowSpread: 0,
+                  headerHeight: headerHeight,
+                  showBadge: true,
+                  showMenu: false,
+                ),
               ),
             ),
           ),
@@ -215,7 +201,7 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
     );
   }
 
-  Widget _buildNormalView() {
+  Widget _buildNormalView(List<ApiMedicationModel> medications) {
     return Column(
       children: [
         // Fixed Section Title and Search Bar
@@ -235,6 +221,26 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
                       fontSize: 20.sp,
                       fontWeight: FontWeight.w600,
                       color: const Color(0xFF1E293B),
+                    ),
+                  ),
+                  TextButton.icon(
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Edit mode')),
+                      );
+                    },
+                    icon: Icon(
+                      Icons.edit,
+                      size: 18.sp,
+                      color: const Color(0xFF4285F4),
+                    ),
+                    label: Text(
+                      'Edit',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF4285F4),
+                      ),
                     ),
                   ),
                 ],
@@ -292,32 +298,20 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
                 ),
               ),
 
-              SizedBox(height: 8.h),
+              SizedBox(height: 16.h),
             ],
           ),
         ),
 
         // Scrollable Medications List Only
         Expanded(
-          child: _filteredMedications.isEmpty
-              ? _buildEmptyState()
-              : ListView.separated(
-            padding: EdgeInsets.symmetric(horizontal: 20.w),
-            itemCount: _filteredMedications.length,
-            separatorBuilder: (context, index) => SizedBox(height: 12.h),
-            itemBuilder: (context, index) {
-              return _MedicationCard(
-                medication: _filteredMedications[index],
-                onTap: () => _showMedicationDetails(_filteredMedications[index]),
-              );
-            },
-          ),
+          child: _buildMedicationsList(medications),
         ),
       ],
     );
   }
 
-  Widget _buildSearchView() {
+  Widget _buildSearchView(List<ApiMedicationModel> medications) {
     return SingleChildScrollView(
       controller: _scrollController,
       child: Padding(
@@ -335,6 +329,26 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
                     fontSize: 20.sp,
                     fontWeight: FontWeight.w600,
                     color: const Color(0xFF1E293B),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Edit mode')),
+                    );
+                  },
+                  icon: Icon(
+                    Icons.edit,
+                    size: 18.sp,
+                    color: const Color(0xFF4285F4),
+                  ),
+                  label: Text(
+                    'Edit',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF4285F4),
+                    ),
                   ),
                 ),
               ],
@@ -399,7 +413,7 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
               Padding(
                 padding: EdgeInsets.only(bottom: 12.h),
                 child: Text(
-                  '${_filteredMedications.length} result${_filteredMedications.length != 1 ? 's' : ''} found',
+                  '${_getFilteredMedications(medications).length} result${_getFilteredMedications(medications).length != 1 ? 's' : ''} found',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14.sp,
                     fontWeight: FontWeight.w500,
@@ -409,22 +423,128 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
               ),
 
             // Search Results
-            _filteredMedications.isEmpty
-                ? _buildEmptyState()
-                : ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredMedications.length,
-              separatorBuilder: (context, index) => SizedBox(height: 12.h),
-              itemBuilder: (context, index) {
-                return _MedicationCard(
-                  medication: _filteredMedications[index],
-                  onTap: () => _showMedicationDetails(_filteredMedications[index]),
-                );
-              },
-            ),
+            _buildMedicationsList(medications),
 
             SizedBox(height: 100.h), // Bottom padding
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildMedicationsList(List<ApiMedicationModel> medications) {
+    final filteredMedications = _getFilteredMedications(medications);
+
+    if (filteredMedications.isEmpty) {
+      return _buildEmptyState();
+    }
+
+    return _isSearchFocused
+        ? ListView.separated(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: filteredMedications.length,
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
+      itemBuilder: (context, index) {
+        return _MedicationCard(
+          medication: filteredMedications[index],
+          color: _getMedicationColor(index),
+          onTap: () => _showMedicationDetails(filteredMedications[index], index),
+        );
+      },
+    )
+        : ListView.separated(
+      padding: EdgeInsets.symmetric(horizontal: 20.w),
+      itemCount: filteredMedications.length,
+      separatorBuilder: (context, index) => SizedBox(height: 12.h),
+      itemBuilder: (context, index) {
+        return _MedicationCard(
+          medication: filteredMedications[index],
+          color: _getMedicationColor(index),
+          onTap: () => _showMedicationDetails(filteredMedications[index], index),
+        );
+      },
+    );
+  }
+
+  Widget _buildLoadingState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              color: const Color(0xFF4285F4),
+              strokeWidth: 3.w,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Loading medications...',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.grey[600],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildErrorState(String errorMessage) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.sp,
+              color: Colors.red[300],
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              'Failed to load medications',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18.sp,
+                fontWeight: FontWeight.w600,
+                color: Colors.red[600],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              errorMessage,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 20.h),
+            ElevatedButton.icon(
+              onPressed: () {
+                ref.invalidate(userMedicationsProvider);
+              },
+              icon: Icon(Icons.refresh, size: 20.sp),
+              label: Text(
+                'Retry',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF4285F4),
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -489,24 +609,309 @@ class _MedicationManagementListPageState extends State<MedicationManagementListP
     );
   }
 
-  void _showMedicationDetails(Medication medication) {
+  void _showMedicationDetails(ApiMedicationModel medication, int index) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => _CompactMedicationDetailSheet(medication: medication),
+      builder: (context) => _CompactMedicationDetailSheet(
+        medication: medication,
+        color: _getMedicationColor(index),
+        onDelete: () => _deleteMedication(medication),
+        onEdit: () => _editMedication(medication),
+      ),
     );
+  }
+
+  Future<void> _deleteMedication(ApiMedicationModel medication) async {
+    final medicationActions = ref.read(medicationActionsProvider);
+
+    // Show enhanced confirmation dialog
+    final confirmed = await _showEnhancedDeleteDialog(medication);
+
+    if (confirmed == true) {
+      // Show loading indicator
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => const Center(
+          child: CircularProgressIndicator(
+            color: Color(0xFF4285F4),
+          ),
+        ),
+      );
+
+      final success = await medicationActions.deleteMedication(medication.id);
+
+      // Hide loading indicator
+      Navigator.pop(context);
+
+      if (success) {
+        // Add haptic feedback
+        HapticFeedback.lightImpact();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    '${medication.medicationName} deleted successfully',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      } else {
+        // Add haptic feedback for error
+        HapticFeedback.heavyImpact();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Icon(Icons.error, color: Colors.white, size: 20.sp),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    'Failed to delete ${medication.medicationName}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12.r),
+            ),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<bool?> _showEnhancedDeleteDialog(ApiMedicationModel medication) {
+    return showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            margin: EdgeInsets.symmetric(horizontal: 20.w),
+            padding: EdgeInsets.all(20.w),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(24.r),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated Warning Icon
+                Container(
+                  width: 60.w,
+                  height: 60.h,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        const Color(0xFFFF6B6B).withOpacity(0.1),
+                        const Color(0xFFEE5A52).withOpacity(0.2),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(40.r),
+                  ),
+                  child: Icon(
+                    Icons.warning_rounded,
+                    color: const Color(0xFFEE5A52),
+                    size: 28.sp,
+                  ),
+                ),
+                SizedBox(height: 16.h),
+
+                // Title
+                Text(
+                  'Delete Medication?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+
+                // Medication Name Highlight
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Text(
+                    medication.medicationName,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF4285F4),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 12.h),
+
+                // Warning Message
+                Text(
+                  'This action cannot be undone. All medication data, schedules, and history will be permanently removed.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                    height: 1.5,
+                  ),
+                ),
+                SizedBox(height: 24.h),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    // Cancel Button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.lightImpact();
+                          Navigator.of(context).pop(false);
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(
+                              color: const Color(0xFFE2E8F0),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Text(
+                            'Cancel',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 16.w),
+
+                    // Delete Button
+                    Expanded(
+                      child: GestureDetector(
+                        onTap: () {
+                          HapticFeedback.mediumImpact();
+                          Navigator.of(context).pop(true);
+                        },
+                        child: Container(
+                          padding: EdgeInsets.symmetric(vertical: 12.h),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [
+                                Color(0xFFFF6B6B),
+                                Color(0xFFEE5A52),
+                              ],
+                            ),
+                            borderRadius: BorderRadius.circular(16.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFFEE5A52).withOpacity(0.3),
+                                blurRadius: 8,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'Delete',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14.sp,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _editMedication(ApiMedicationModel medication) async {
+    // Navigate to edit medication page
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MedicationManagementEdit(medication: medication),
+      ),
+    );
+
+    // If medication was updated successfully, refresh the list
+    if (result == true) {
+      ref.invalidate(userMedicationsProvider);
+    }
   }
 }
 
 class _MedicationCard extends StatelessWidget {
-  final Medication medication;
+  final ApiMedicationModel medication;
+  final Color color;
   final VoidCallback onTap;
 
   const _MedicationCard({
     required this.medication,
+    required this.color,
     required this.onTap,
   });
+
+  String _getTimingText(bool afterFood) {
+    return afterFood ? 'After Food' : 'Before Food';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -529,8 +934,8 @@ class _MedicationCard extends StatelessWidget {
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
                   colors: [
-                    medication.color.withOpacity(0.7),
-                    medication.color,
+                    color.withOpacity(0.7),
+                    color,
                   ],
                 ),
                 borderRadius: BorderRadius.circular(12.r),
@@ -553,7 +958,7 @@ class _MedicationCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          medication.name,
+                          medication.medicationName,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 16.sp,
                             fontWeight: FontWeight.w600,
@@ -571,7 +976,7 @@ class _MedicationCard extends StatelessWidget {
                   ),
                   SizedBox(height: 4.h),
                   Text(
-                    '${medication.timings.join(', ')} • ${medication.timing}',
+                    '${medication.timings.join(', ')} • ${_getTimingText(medication.afterFood)}',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13.sp,
                       fontWeight: FontWeight.w500,
@@ -587,15 +992,15 @@ class _MedicationCard extends StatelessWidget {
                           vertical: 3.h,
                         ),
                         decoration: BoxDecoration(
-                          color: medication.color.withOpacity(0.1),
+                          color: color.withOpacity(0.1),
                           borderRadius: BorderRadius.circular(6.r),
                         ),
                         child: Text(
-                          medication.dosage,
+                          medication.dose,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11.sp,
                             fontWeight: FontWeight.w500,
-                            color: medication.color,
+                            color: color,
                           ),
                         ),
                       ),
@@ -638,9 +1043,21 @@ class _MedicationCard extends StatelessWidget {
 }
 
 class _CompactMedicationDetailSheet extends StatelessWidget {
-  final Medication medication;
+  final ApiMedicationModel medication;
+  final Color color;
+  final VoidCallback onDelete;
+  final VoidCallback onEdit;
 
-  const _CompactMedicationDetailSheet({required this.medication});
+  const _CompactMedicationDetailSheet({
+    required this.medication,
+    required this.color,
+    required this.onDelete,
+    required this.onEdit,
+  });
+
+  String _getTimingText(bool afterFood) {
+    return afterFood ? 'After Food' : 'Before Food';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -679,8 +1096,8 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                       colors: [
-                        medication.color.withOpacity(0.7),
-                        medication.color,
+                        color.withOpacity(0.7),
+                        color,
                       ],
                     ),
                     borderRadius: BorderRadius.circular(16.r),
@@ -697,7 +1114,7 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        medication.name,
+                        medication.medicationName,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 20.sp,
                           fontWeight: FontWeight.w700,
@@ -710,15 +1127,15 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                           Container(
                             padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
                             decoration: BoxDecoration(
-                              color: medication.color.withOpacity(0.1),
+                              color: color.withOpacity(0.1),
                               borderRadius: BorderRadius.circular(8.r),
                             ),
                             child: Text(
-                              medication.dosage,
+                              medication.dose,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w600,
-                                color: medication.color,
+                                color: color,
                               ),
                             ),
                           ),
@@ -747,12 +1164,12 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.all(16.w),
                     decoration: BoxDecoration(
-                      color: medication.color.withOpacity(0.05),
+                      color: color.withOpacity(0.05),
                       borderRadius: BorderRadius.circular(12.r),
                     ),
                     child: Row(
                       children: [
-                        Icon(Icons.schedule, color: medication.color, size: 20.sp),
+                        Icon(Icons.schedule, color: color, size: 20.sp),
                         SizedBox(width: 12.w),
                         Expanded(
                           child: Column(
@@ -763,12 +1180,12 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14.sp,
                                   fontWeight: FontWeight.w600,
-                                  color: medication.color,
+                                  color: color,
                                 ),
                               ),
                               SizedBox(height: 4.h),
                               Text(
-                                '${medication.timings.join(', ')} • ${medication.timing}',
+                                '${medication.timings.join(', ')} • ${_getTimingText(medication.afterFood)}',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.sp,
                                   color: const Color(0xFF1E293B),
@@ -851,9 +1268,7 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                   child: OutlinedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Edit ${medication.name}')),
-                      );
+                      onEdit();
                     },
                     icon: Icon(Icons.edit, size: 18.sp),
                     label: Text(
@@ -865,8 +1280,8 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                     ),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 12.h),
-                      side: BorderSide(color: medication.color, width: 1.5),
-                      foregroundColor: medication.color,
+                      side: BorderSide(color: color, width: 1.5),
+                      foregroundColor: color,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(10.r),
                       ),
@@ -878,7 +1293,7 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
                   child: ElevatedButton.icon(
                     onPressed: () {
                       Navigator.pop(context);
-                      _showDeleteConfirmation(context, medication);
+                      onDelete();
                     },
                     icon: Icon(Icons.delete, size: 18.sp),
                     label: Text(
@@ -943,92 +1358,4 @@ class _CompactMedicationDetailSheet extends StatelessWidget {
       ),
     );
   }
-
-  void _showDeleteConfirmation(BuildContext context, Medication medication) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16.r),
-          ),
-          title: Text(
-            'Delete Medication',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 18.sp,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          content: Text(
-            'Are you sure you want to delete ${medication.name}?',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 14.sp,
-              color: Colors.grey[600],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[600],
-                ),
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${medication.name} deleted')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-              ),
-              child: Text(
-                'Delete',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14.sp,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-}
-
-class Medication {
-  final String id;
-  final String name;
-  final String timing;
-  final String dosage;
-  final String frequency;
-  final List<String> timings;
-  final String startDate;
-  final String endDate;
-  final bool reminder;
-  final Color color;
-
-  const Medication({
-    required this.id,
-    required this.name,
-    required this.timing,
-    required this.dosage,
-    required this.frequency,
-    required this.timings,
-    required this.startDate,
-    required this.endDate,
-    required this.reminder,
-    required this.color,
-  });
 }

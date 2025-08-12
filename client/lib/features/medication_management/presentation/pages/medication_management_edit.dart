@@ -1,5 +1,6 @@
 import 'package:client/widgets/CustomButton.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -27,9 +28,16 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
   late DateTime endDate;
   late String frequency;
   late String time;
-  late bool beforeMeal;
+  late String mealTiming; // 'before', 'after', 'none'
   late bool autoReminder;
+  late String frequencyType; // 'daily', 'weekly'
+  late double dailyFrequency;
+  late int durationDays;
+  late List<bool> selectedWeekDays;
   bool _isLoading = false;
+
+  final List<String> _weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  final List<int> _durationOptions = [7, 14, 30, 60, 90];
 
   @override
   void initState() {
@@ -39,10 +47,26 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
 
   void _initializeFromMedication() {
     medicationName = widget.medication.medicationName;
-    startDate = DateTime.parse(widget.medication.startDate);
-    endDate = DateTime.parse(widget.medication.endDate);
-    frequency = _formatFrequencyForDisplay(widget.medication.frequency);
-    beforeMeal = !widget.medication.afterFood; // Inverted logic
+
+    // Use current date as start date instead of medication's start date
+    startDate = DateTime.now();
+
+    // Calculate original duration from medication data
+    final originalStartDate = DateTime.parse(widget.medication.startDate);
+    final originalEndDate = DateTime.parse(widget.medication.endDate);
+    final originalDuration = originalEndDate.difference(originalStartDate).inDays;
+
+    // Set duration based on original duration, defaulting to 30 if not in options
+    durationDays = _durationOptions.contains(originalDuration) ? originalDuration : 30;
+
+    // Calculate end date based on current date + duration
+    endDate = startDate.add(Duration(days: durationDays));
+
+    // Parse frequency
+    _parseFrequency(widget.medication.frequency);
+
+    // Set meal timing
+    mealTiming = widget.medication.afterFood ? 'after' : 'before';
     autoReminder = widget.medication.reminder;
 
     // Convert first timing to display format
@@ -51,26 +75,42 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
     } else {
       time = "9:00 AM";
     }
+
+    // Initialize week days (default to Monday selected)
+    selectedWeekDays = List.filled(7, false);
+    selectedWeekDays[0] = true;
   }
 
-  String _formatFrequencyForDisplay(String apiFrequency) {
-    switch (apiFrequency.toLowerCase()) {
-      case 'daily':
-        return '1x Per Day';
-      case '2x per day':
-        return '2x Per Day';
-      case '3x per day':
-        return '3x Per Day';
-      case 'weekly':
-        return '1x Per Week';
-      case '2x per week':
-        return '2x Per Week';
-      case '3x per week':
-        return '3x Per Week';
-      case 'as needed':
-        return 'As Needed';
-      default:
-        return '1x Per Day';
+  void _parseFrequency(String apiFrequency) {
+    final lowerFreq = apiFrequency.toLowerCase();
+
+    if (lowerFreq.contains('daily')) {
+      frequencyType = 'daily';
+      if (lowerFreq.contains('1x') || lowerFreq == 'daily') {
+        dailyFrequency = 1.0;
+      } else if (lowerFreq.contains('2x')) {
+        dailyFrequency = 2.0;
+      } else if (lowerFreq.contains('3x')) {
+        dailyFrequency = 3.0;
+      } else if (lowerFreq.contains('4x')) {
+        dailyFrequency = 4.0;
+      } else {
+        dailyFrequency = 1.0;
+      }
+    } else if (lowerFreq.contains('week')) {
+      frequencyType = 'weekly';
+      if (lowerFreq.contains('1x')) {
+        dailyFrequency = 1.0;
+      } else if (lowerFreq.contains('2x')) {
+        dailyFrequency = 2.0;
+      } else if (lowerFreq.contains('3x')) {
+        dailyFrequency = 3.0;
+      } else {
+        dailyFrequency = 1.0;
+      }
+    } else {
+      frequencyType = 'daily';
+      dailyFrequency = 1.0;
     }
   }
 
@@ -109,82 +149,58 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
     }
   }
 
-  String _formatFrequencyForApi(String displayFrequency) {
-    switch (displayFrequency) {
-      case '1x Per Day':
-        return 'daily';
-      case '2x Per Day':
-        return '2x per day';
-      case '3x Per Day':
-        return '3x per day';
-      case '1x Per Week':
-        return 'weekly';
-      case '2x Per Week':
-        return '2x per week';
-      case '3x Per Week':
-        return '3x per week';
-      case 'As Needed':
-        return 'as needed';
-      default:
-        return 'daily';
+  String _formatFrequencyForApi() {
+    if (frequencyType == 'daily') {
+      return '${dailyFrequency.toInt()}x per day';
+    } else {
+      final selectedDays = selectedWeekDays.asMap().entries
+          .where((entry) => entry.value)
+          .map((entry) => _weekDays[entry.key])
+          .join(', ');
+      return '${dailyFrequency.toInt()}x per day on $selectedDays';
     }
   }
 
-  final List<String> frequencyOptions = [
-    "1x Per Day",
-    "2x Per Day",
-    "3x Per Day",
-    "1x Per Week",
-    "2x Per Week",
-    "3x Per Week",
-    "As Needed",
-  ];
+  void _updateFrequencyType(String type) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      frequencyType = type;
+      if (type == 'daily') {
+        dailyFrequency = 1.0;
+      } else if (type == 'weekly') {
+        dailyFrequency = 1.0;
+        // Reset week days selection
+        selectedWeekDays = List.filled(7, false);
+        selectedWeekDays[0] = true; // Default to Monday
+      }
+    });
+  }
 
-  Future<void> _selectDate(BuildContext context, bool isStartDate) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: isStartDate ? startDate : endDate,
-      firstDate: DateTime(2024),
-      lastDate: DateTime(2026),
-      builder: (BuildContext context, Widget? child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
-              primary: Color(0xFF0F67FE),
-              onPrimary: Colors.white,
-              onSurface: Color(0xFF242E49),
-            ),
-            datePickerTheme: DatePickerThemeData(
-              headerBackgroundColor: Color(0xFF0F67FE),
-              headerForegroundColor: Colors.white,
-              dayBackgroundColor: MaterialStateColor.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return Color(0xFF0F67FE);
-                }
-                return Colors.transparent;
-              }),
-              dayForegroundColor: MaterialStateColor.resolveWith((states) {
-                if (states.contains(MaterialState.selected)) {
-                  return Colors.white;
-                }
-                return Color(0xFF242E49);
-              }),
-            ),
-          ),
-          child: child!,
-        );
-      },
-    );
+  void _updateFrequency(double frequency) {
+    HapticFeedback.lightImpact();
+    setState(() {
+      dailyFrequency = frequency;
+    });
+  }
 
-    if (picked != null) {
-      setState(() {
-        if (isStartDate) {
-          startDate = picked;
-        } else {
-          endDate = picked;
-        }
-      });
-    }
+  void _toggleWeekDay(int index) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      selectedWeekDays[index] = !selectedWeekDays[index];
+      // Ensure at least one day is selected
+      if (!selectedWeekDays.any((selected) => selected)) {
+        selectedWeekDays[index] = true;
+      }
+    });
+  }
+
+  void _updateDuration(int days) {
+    HapticFeedback.selectionClick();
+    setState(() {
+      durationDays = days;
+      // Update end date based on current start date + new duration
+      endDate = startDate.add(Duration(days: durationDays));
+    });
   }
 
   Future<void> _selectTime(BuildContext context) async {
@@ -245,77 +261,6 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
         time = '$hour:${picked.minute.toString().padLeft(2, '0')} $period';
       });
     }
-  }
-
-  void _showFrequencyDialog() {
-    showModalBottomSheet(
-      context: context,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20.r)),
-      ),
-      backgroundColor: Colors.white,
-      builder: (BuildContext context) {
-        return Container(
-          padding: EdgeInsets.all(20.w),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Select Frequency',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black,
-                ),
-              ),
-              SizedBox(height: 16.h),
-              Expanded(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: frequencyOptions.length,
-                  itemBuilder: (context, index) {
-                    bool isSelected = frequency == frequencyOptions[index];
-                    return Container(
-                      margin: EdgeInsets.symmetric(vertical: 4.h),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(10.r),
-                        border: Border.all(
-                          color: isSelected ? Color(0xFF0F67FE) : Colors.grey.shade200,
-                          width: isSelected ? 2 : 1,
-                        ),
-                      ),
-                      child: ListTile(
-                        title: Text(
-                          frequencyOptions[index],
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                            color: Colors.black,
-                          ),
-                        ),
-                        trailing: isSelected
-                            ? Icon(
-                          Icons.check_circle,
-                          color: Color(0xFF0F67FE),
-                        )
-                            : null,
-                        onTap: () {
-                          setState(() {
-                            frequency = frequencyOptions[index];
-                          });
-                          Navigator.pop(context);
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
@@ -401,217 +346,386 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
 
                 SizedBox(height: 32.h),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Medication Frequency',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
-                      ),
-                    ),
-                    SizedBox(height: 12.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: _showFrequencyDialog,
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 12.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.calendar_today,
-                                    color: Colors.black,
-                                    size: 20.r,
-                                  ),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    frequency,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF242E49),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
+                // Updated Frequency Section
+                _buildSection(
+                  title: 'Frequency',
+                  child: Column(
+                    children: [
+                      // Frequency Type Selection
+                      Container(
+                        padding: EdgeInsets.all(4.w),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade100,
+                          borderRadius: BorderRadius.circular(12.r),
                         ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () => _selectTime(context),
-                            child: Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: 16.w,
-                                vertical: 12.h,
-                              ),
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(
-                                    Icons.access_time,
-                                    color: Colors.black,
-                                    size: 20.r,
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _updateFrequencyType('daily'),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                                  decoration: BoxDecoration(
+                                    color: frequencyType == 'daily' ? const Color(0xFF0F67FE) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8.r),
                                   ),
-                                  SizedBox(width: 8.w),
-                                  Text(
-                                    time,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14.sp,
-                                      fontWeight: FontWeight.bold,
-                                      color: Color(0xFF242E49),
+                                  child: Center(
+                                    child: Text(
+                                      'Daily',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: frequencyType == 'daily' ? Colors.white : Colors.grey.shade600,
+                                      ),
                                     ),
                                   ),
-                                ],
+                                ),
                               ),
                             ),
+                            Expanded(
+                              child: GestureDetector(
+                                onTap: () => _updateFrequencyType('weekly'),
+                                child: Container(
+                                  padding: EdgeInsets.symmetric(vertical: 12.h),
+                                  decoration: BoxDecoration(
+                                    color: frequencyType == 'weekly' ? const Color(0xFF0F67FE) : Colors.transparent,
+                                    borderRadius: BorderRadius.circular(8.r),
+                                  ),
+                                  child: Center(
+                                    child: Text(
+                                      'Weekly',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                        color: frequencyType == 'weekly' ? Colors.white : Colors.grey.shade600,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      SizedBox(height: 20.h),
+
+                      // Frequency Slider
+                      Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  frequencyType == 'daily' ? 'Times per day' : 'Times per selected days',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  '${dailyFrequency.toInt()} ${dailyFrequency.toInt() == 1 ? 'time' : 'times'}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF242E49),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            SizedBox(height: 20.h),
+                            SliderTheme(
+                              data: SliderTheme.of(context).copyWith(
+                                activeTrackColor: const Color(0xFF0F67FE),
+                                inactiveTrackColor: Colors.grey.shade300,
+                                thumbColor: const Color(0xFF0F67FE),
+                                overlayColor: const Color(0xFF0F67FE).withOpacity(0.2),
+                                thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 12),
+                                trackHeight: 4,
+                              ),
+                              child: Slider(
+                                value: dailyFrequency,
+                                min: 1.0,
+                                max: 4.0,
+                                divisions: 3,
+                                onChanged: _updateFrequency,
+                              ),
+                            ),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  '1',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                                Text(
+                                  '4',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey.shade500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+
+                      // Week Days Selection (only show if weekly)
+                      if (frequencyType == 'weekly') ...[
+                        SizedBox(height: 20.h),
+                        Container(
+                          padding: EdgeInsets.all(20.w),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16.r),
+                            border: Border.all(color: Colors.grey.shade200),
+                          ),
+                          child: Column(
+                            children: [
+                              Text(
+                                'Choose which days of the week to take medication',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14.sp,
+                                  color: Colors.grey.shade600,
+                                ),
+                              ),
+                              SizedBox(height: 16.h),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: List.generate(7, (index) {
+                                  final isSelected = selectedWeekDays[index];
+                                  return GestureDetector(
+                                    onTap: () => _toggleWeekDay(index),
+                                    child: Container(
+                                      width: 40.w,
+                                      height: 40.w,
+                                      decoration: BoxDecoration(
+                                        color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade100,
+                                        borderRadius: BorderRadius.circular(12.r),
+                                        border: Border.all(
+                                          color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          _weekDays[index],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: isSelected ? Colors.white : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                }),
+                              ),
+                            ],
                           ),
                         ),
                       ],
-                    ),
-                  ],
-                ),
 
-                SizedBox(height: 24.h),
+                      SizedBox(height: 20.h),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Medication Duration',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
-                      ),
-                    ),
-                    SizedBox(height: 8.h),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'From',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  color: Colors.black,
-                                  fontWeight: FontWeight.w700,
+                      // Time Selection
+                      Container(
+                        padding: EdgeInsets.all(20.w),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16.r),
+                          border: Border.all(color: Colors.grey.shade200),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.access_time_outlined,
+                              color: Colors.grey.shade600,
+                              size: 20.r,
+                            ),
+                            SizedBox(width: 12.w),
+                            Text(
+                              'Time',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            GestureDetector(
+                              onTap: () => _selectTime(context),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                                decoration: BoxDecoration(
+                                  color: Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(12.r),
+                                  border: Border.all(color: Colors.grey.shade300),
+                                ),
+                                child: Text(
+                                  time,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF242E49),
+                                  ),
                                 ),
                               ),
-                              SizedBox(height: 4.h),
-                              GestureDetector(
-                                onTap: () => _selectDate(context, true),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 12.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.black,
-                                            size: 20.r,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            DateFormat('MMM d').format(startDate),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF242E49),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: Colors.black.withOpacity(0.5),
-                                        size: 20.r,
-                                      ),
-                                    ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                SizedBox(height: 32.h),
+
+                // Updated Duration Section
+                _buildSection(
+                  title: 'Duration',
+                  child: Container(
+                    padding: EdgeInsets.all(20.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: Colors.grey.shade200),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.calendar_today_outlined,
+                              color: Colors.grey.shade600,
+                              size: 20.r,
+                            ),
+                            SizedBox(width: 12.w),
+                            Text(
+                              'Start Date',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                            const Spacer(),
+                            Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                              decoration: BoxDecoration(
+                                color: Colors.grey.shade100,
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Text(
+                                DateFormat('MMM d, yyyy').format(startDate),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14.sp,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF242E49),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: 12.h),
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.blue.shade50,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                color: Colors.blue.shade600,
+                                size: 16.r,
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  'Start date is set to today for updated medication schedule',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.blue.shade700,
                                   ),
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'To',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12.sp,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.black,
+                        SizedBox(height: 24.h),
+                        Text(
+                          'Duration',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                        SizedBox(height: 12.h),
+                        Wrap(
+                          spacing: 12.w,
+                          runSpacing: 12.h,
+                          children: _durationOptions.map((days) {
+                            final isSelected = durationDays == days;
+                            return GestureDetector(
+                              onTap: () => _updateDuration(days),
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 10.h),
+                                decoration: BoxDecoration(
+                                  color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade100,
+                                  borderRadius: BorderRadius.circular(20.r),
+                                  border: Border.all(
+                                    color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade300,
+                                  ),
+                                ),
+                                child: Text(
+                                  '$days days',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w600,
+                                    color: isSelected ? Colors.white : const Color(0xFF242E49),
+                                  ),
                                 ),
                               ),
-                              SizedBox(height: 4.h),
-                              GestureDetector(
-                                onTap: () => _selectDate(context, false),
-                                child: Container(
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 16.w,
-                                    vertical: 12.h,
-                                  ),
-                                  decoration: BoxDecoration(
-                                    color: Colors.white,
-                                    borderRadius: BorderRadius.circular(8.r),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          Icon(
-                                            Icons.calendar_today,
-                                            color: Colors.black,
-                                            size: 20.r,
-                                          ),
-                                          SizedBox(width: 8.w),
-                                          Text(
-                                            DateFormat('MMM d').format(endDate),
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 14.sp,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF242E49),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                      Icon(
-                                        Icons.keyboard_arrow_down,
-                                        color: Colors.blueGrey.shade600,
-                                        size: 20.r,
-                                      ),
-                                    ],
+                            );
+                          }).toList(),
+                        ),
+                        SizedBox(height: 16.h),
+                        Container(
+                          padding: EdgeInsets.all(12.w),
+                          decoration: BoxDecoration(
+                            color: Colors.green.shade50,
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(
+                                Icons.check_circle_outline,
+                                color: Colors.green.shade600,
+                                size: 16.r,
+                              ),
+                              SizedBox(width: 8.w),
+                              Expanded(
+                                child: Text(
+                                  'End date: ${DateFormat('MMM d, yyyy').format(endDate)}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: Colors.green.shade700,
                                   ),
                                 ),
                               ),
@@ -620,149 +734,122 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 32.h),
 
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Take with Meal?',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
-                      ),
+                // Updated Take with Meal Section
+                _buildSection(
+                  title: 'Take with Meal?',
+                  child: Container(
+                    padding: EdgeInsets.all(20.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(16.r),
+                      border: Border.all(color: Colors.grey.shade200),
                     ),
-                    SizedBox(height: 12.h),
-                    Row(
+                    child: Column(
                       children: [
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                beforeMeal = true;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 16.h),
-                              decoration: BoxDecoration(
-                                color: beforeMeal ? Color(0xFF0F67FE) : Colors.white,
-                                borderRadius: BorderRadius.circular(10.r),
-                                boxShadow: beforeMeal
-                                    ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.25),
-                                    blurRadius: 0,
-                                    spreadRadius: 5,
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.watch_later_outlined,
-                                      color: beforeMeal ? Colors.white : Colors.black,
-                                      size: 20.r,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      'Before',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: beforeMeal ? Colors.white : Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.restaurant_outlined,
+                              color: Colors.grey.shade600,
+                              size: 20.r,
+                            ),
+                            SizedBox(width: 12.w),
+                            Text(
+                              'Meal timing',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.grey.shade600,
                               ),
                             ),
-                          ),
+                          ],
                         ),
-                        SizedBox(width: 16.w),
-                        Expanded(
-                          child: GestureDetector(
-                            onTap: () {
-                              setState(() {
-                                beforeMeal = false;
-                              });
-                            },
-                            child: Container(
-                              padding: EdgeInsets.symmetric(vertical: 16.h),
-                              decoration: BoxDecoration(
-                                color: !beforeMeal ? Color(0xFF0F67FE) : Colors.white,
-                                borderRadius: BorderRadius.circular(8.r),
-                                boxShadow: !beforeMeal
-                                    ? [
-                                  BoxShadow(
-                                    color: Colors.blue.withOpacity(0.25),
-                                    blurRadius: 0,
-                                    spreadRadius: 5,
-                                  ),
-                                ]
-                                    : null,
-                              ),
-                              child: Center(
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.watch_later_outlined,
-                                      color: !beforeMeal ? Colors.white : Colors.black,
-                                      size: 20.r,
-                                    ),
-                                    SizedBox(width: 8.w),
-                                    Text(
-                                      'After',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 14.sp,
-                                        fontWeight: FontWeight.bold,
-                                        color: !beforeMeal ? Colors.white : Colors.grey,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
+                        SizedBox(height: 16.h),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _buildMealOption('before', 'Before meal'),
                             ),
-                          ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: _buildMealOption('after', 'After meal'),
+                            ),
+                            SizedBox(width: 8.w),
+                            Expanded(
+                              child: _buildMealOption('none', 'No meal'),
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ],
+                  ),
                 ),
-                SizedBox(height: 24.h),
 
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      'Set Auto Reminder?',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 16.sp,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF242E49),
+                SizedBox(height: 32.h),
+
+                // Updated Auto Reminder Section
+                Container(
+                  padding: EdgeInsets.all(20.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(color: Colors.grey.shade200),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.grey.shade600,
+                        size: 24.r,
                       ),
-                    ),
-                    Switch(
-                      value: autoReminder,
-                      onChanged: (value) {
-                        setState(() {
-                          autoReminder = value;
-                        });
-                      },
-                      activeColor: Colors.white,
-                      activeTrackColor: Color(0xFF0F67FE),
-                    ),
-                  ],
+                      SizedBox(width: 16.w),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Auto Reminder',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF242E49),
+                              ),
+                            ),
+                            SizedBox(height: 4.h),
+                            Text(
+                              'Get notified at scheduled times',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Switch(
+                        value: autoReminder,
+                        onChanged: (value) {
+                          HapticFeedback.lightImpact();
+                          setState(() {
+                            autoReminder = value;
+                          });
+                        },
+                        activeColor: Colors.white,
+                        activeTrackColor: const Color(0xFF0F67FE),
+                        inactiveThumbColor: Colors.grey.shade400,
+                        inactiveTrackColor: Colors.grey.shade300,
+                      ),
+                    ],
+                  ),
                 ),
 
-                SizedBox(height: 24.h),
+                SizedBox(height: 32.h),
 
                 CustomButton(
                   text: _isLoading ? "Updating..." : "Update Medication",
@@ -771,6 +858,60 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
                   height: 45.h,
                 ),
               ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSection({
+    required String title,
+    required Widget child,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 18.sp,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF242E49),
+          ),
+        ),
+        SizedBox(height: 12.h),
+        child,
+      ],
+    );
+  }
+
+  Widget _buildMealOption(String mealTiming, String label) {
+    final isSelected = this.mealTiming == mealTiming;
+
+    return GestureDetector(
+      onTap: () {
+        HapticFeedback.selectionClick();
+        setState(() {
+          this.mealTiming = mealTiming;
+        });
+      },
+      child: Container(
+        padding: EdgeInsets.symmetric(vertical: 12.h),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade50,
+          borderRadius: BorderRadius.circular(10.r),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF0F67FE) : Colors.grey.shade200,
+          ),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12.sp,
+              fontWeight: FontWeight.w600,
+              color: isSelected ? Colors.white : const Color(0xFF242E49),
             ),
           ),
         ),
@@ -789,8 +930,8 @@ class _MedicationManagementEditState extends ConsumerState<MedicationManagementE
       final params = UpdateMedicationParams(
         id: widget.medication.id,
         medicationName: medicationName,
-        afterFood: !beforeMeal, // Inverted because UI shows "before meal" but API expects "after food"
-        frequency: _formatFrequencyForApi(frequency),
+        afterFood: mealTiming == 'after',
+        frequency: _formatFrequencyForApi(),
         timings: [_formatTimeForApi(time)],
         reminder: autoReminder,
         dose: widget.medication.dose, // Keep existing dose

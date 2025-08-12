@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
@@ -252,9 +253,23 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
                 ),
                 SizedBox(width: 12.w),
                 Expanded(
-                  child: Text(
-                    'Medication marked as skipped',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Medication skipped',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                      ),
+                      if (reason != null && reason.isNotEmpty)
+                        Text(
+                          'Reason: $reason',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.sp,
+                            fontWeight: FontWeight.w400,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
               ],
@@ -269,7 +284,7 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'Failed to update medication status',
+              'Failed to skip medication',
               style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
             ),
             backgroundColor: const Color(0xFFEF4444),
@@ -297,6 +312,368 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
         _loadingMedications.remove(medicationKey);
       });
     }
+  }
+
+  void _showSkipReasonBottomSheet(String medicationId, String time) {
+    final TextEditingController customReasonController = TextEditingController();
+    String selectedReason = '';
+    bool showCustomInput = false;
+
+    final List<Map<String, dynamic>> skipOptions = [
+      {
+        'title': 'Feeling unwell',
+        'subtitle': 'Not feeling good today',
+        'icon': Icons.sick_outlined,
+        'color': const Color(0xFFEF4444),
+        'bgColor': const Color(0xFFFEF2F2),
+      },
+      {
+        'title': 'Forgot to take',
+        'subtitle': 'Missed the scheduled time',
+        'icon': Icons.schedule_outlined,
+        'color': const Color(0xFFF59E0B),
+        'bgColor': const Color(0xFFFEF3C7),
+      },
+      {
+        'title': 'Side effects',
+        'subtitle': 'Experiencing adverse effects',
+        'icon': Icons.warning_amber_outlined,
+        'color': const Color(0xFFDC2626),
+        'bgColor': const Color(0xFFFEE2E2),
+      },
+      {
+        'title': 'Other reason',
+        'subtitle': 'Specify your own reason',
+        'icon': Icons.edit_outlined,
+        'color': const Color(0xFF6366F1),
+        'bgColor': const Color(0xFFF0F0FF),
+      },
+    ];
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24.r),
+                  topRight: Radius.circular(24.r),
+                ),
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  bottom: MediaQuery.of(context).viewInsets.bottom,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Handle bar
+                    Container(
+                      width: 40.w,
+                      height: 4.h,
+                      margin: EdgeInsets.only(top: 12.h, bottom: 20.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE2E8F0),
+                        borderRadius: BorderRadius.circular(2.r),
+                      ),
+                    ),
+
+                    // Header
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 48.w,
+                            height: 48.h,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFEF3C7),
+                              borderRadius: BorderRadius.circular(16.r),
+                            ),
+                            child: Icon(
+                              Icons.pause_circle_outline,
+                              color: const Color(0xFFF59E0B),
+                              size: 24.sp,
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Skip Medication',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 20.sp,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1E293B),
+                                  ),
+                                ),
+                                Text(
+                                  'Why are you skipping this dose?',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14.sp,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    SizedBox(height: 32.h),
+
+                    // Skip options
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 24.w),
+                      child: Column(
+                        children: skipOptions.map((option) {
+                          final isSelected = selectedReason == option['title'];
+                          final isOther = option['title'] == 'Other reason';
+
+                          return GestureDetector(
+                            onTap: () {
+                              HapticFeedback.lightImpact();
+                              setModalState(() {
+                                selectedReason = option['title'];
+                                showCustomInput = isOther;
+                                if (!isOther) {
+                                  customReasonController.clear();
+                                }
+                              });
+                            },
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              margin: EdgeInsets.only(bottom: 16.h),
+                              padding: EdgeInsets.all(20.w),
+                              decoration: BoxDecoration(
+                                color: isSelected ? option['bgColor'] : const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(16.r),
+                                border: Border.all(
+                                  color: isSelected ? option['color'] : const Color(0xFFE2E8F0),
+                                  width: isSelected ? 2.w : 1.w,
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 44.w,
+                                    height: 44.h,
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? option['color'].withOpacity(0.1)
+                                          : const Color(0xFFE2E8F0),
+                                      borderRadius: BorderRadius.circular(12.r),
+                                    ),
+                                    child: Icon(
+                                      option['icon'],
+                                      color: isSelected ? option['color'] : const Color(0xFF64748B),
+                                      size: 20.sp,
+                                    ),
+                                  ),
+                                  SizedBox(width: 16.w),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          option['title'],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 16.sp,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF1E293B),
+                                          ),
+                                        ),
+                                        SizedBox(height: 2.h),
+                                        Text(
+                                          option['subtitle'],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13.sp,
+                                            fontWeight: FontWeight.w500,
+                                            color: const Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  AnimatedScale(
+                                    scale: isSelected ? 1.0 : 0.0,
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Container(
+                                      width: 24.w,
+                                      height: 24.h,
+                                      decoration: BoxDecoration(
+                                        color: option['color'],
+                                        borderRadius: BorderRadius.circular(12.r),
+                                      ),
+                                      child: Icon(
+                                        Icons.check,
+                                        color: Colors.white,
+                                        size: 14.sp,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+
+                    // Custom reason input
+                    if (showCustomInput) ...[
+                      SizedBox(height: 8.h),
+                      Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 24.w),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Please specify your reason:',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14.sp,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                            SizedBox(height: 12.h),
+                            Container(
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF8FAFC),
+                                borderRadius: BorderRadius.circular(12.r),
+                                border: Border.all(color: const Color(0xFFE2E8F0)),
+                              ),
+                              child: TextField(
+                                controller: customReasonController,
+                                maxLines: 3,
+                                maxLength: 200,
+                                decoration: InputDecoration(
+                                  hintText: 'Enter your reason for skipping...',
+                                  hintStyle: GoogleFonts.plusJakartaSans(
+                                    color: const Color(0xFF94A3B8),
+                                    fontSize: 14.sp,
+                                  ),
+                                  border: InputBorder.none,
+                                  contentPadding: EdgeInsets.all(16.w),
+                                  counterStyle: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.sp,
+                                    color: const Color(0xFF94A3B8),
+                                  ),
+                                ),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14.sp,
+                                  color: const Color(0xFF1E293B),
+                                ),
+                                onChanged: (value) {
+                                  setModalState(() {});
+                                },
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+
+                    SizedBox(height: 32.h),
+
+                    // Action buttons
+                    Padding(
+                      padding: EdgeInsets.fromLTRB(24.w, 0, 24.w, 32.h),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                HapticFeedback.lightImpact();
+                                Navigator.of(context).pop();
+                              },
+                              child: Container(
+                                height: 52.h,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF1F5F9),
+                                  borderRadius: BorderRadius.circular(16.r),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Cancel',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16.sp,
+                                      fontWeight: FontWeight.w600,
+                                      color: const Color(0xFF64748B),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: 16.w),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: selectedReason.isEmpty ||
+                                  (showCustomInput && customReasonController.text.trim().isEmpty)
+                                  ? null
+                                  : () {
+                                HapticFeedback.mediumImpact();
+                                Navigator.of(context).pop();
+                                final reason = showCustomInput
+                                    ? customReasonController.text.trim()
+                                    : selectedReason;
+                                _skipMedication(medicationId, time, reason: reason);
+                              },
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 200),
+                                height: 52.h,
+                                decoration: BoxDecoration(
+                                  color: selectedReason.isEmpty ||
+                                      (showCustomInput && customReasonController.text.trim().isEmpty)
+                                      ? const Color(0xFF94A3B8)
+                                      : const Color(0xFFF59E0B),
+                                  borderRadius: BorderRadius.circular(16.r),
+                                ),
+                                child: Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.pause_circle_outline,
+                                        color: Colors.white,
+                                        size: 20.sp,
+                                      ),
+                                      SizedBox(width: 8.w),
+                                      Text(
+                                        'Skip Medication',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16.sp,
+                                          fontWeight: FontWeight.w600,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
   }
 
   void _generateDateRange() {
@@ -1261,37 +1638,66 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
             ),
           ),
           SizedBox(width: 12.w),
-          // Action button
+          // Action buttons section
           if (!isCompleted && !isMissed)
-            GestureDetector(
-              onTap: isLoading ? null : () => _takeMedication(medication.id, medication.time),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 200),
-                width: 36.w,
-                height: 36.h,
-                decoration: BoxDecoration(
-                  color: isLoading
-                      ? const Color(0xFFF1F5F9)
-                      : (isCurrent
-                      ? const Color(0xFF3B82F6)
-                      : const Color(0xFFF1F5F9)),
-                  borderRadius: BorderRadius.circular(10.r),
-                ),
-                child: isLoading
-                    ? SizedBox(
-                  width: 16.w,
-                  height: 16.h,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2.w,
-                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+            Row(
+              children: [
+                // Skip button with reason
+                GestureDetector(
+                  onTap: isLoading ? null : () {
+                    HapticFeedback.lightImpact();
+                    _showSkipReasonBottomSheet(medication.id, medication.time);
+                  },
+                  child: Container(
+                    width: 36.w,
+                    height: 36.h,
+                    margin: EdgeInsets.only(right: 8.w),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: Icon(
+                      Icons.pause_circle_outline,
+                      color: const Color(0xFFF59E0B),
+                      size: 18.sp,
+                    ),
                   ),
-                )
-                    : Icon(
-                  Icons.check,
-                  color: isCurrent ? Colors.white : const Color(0xFF64748B),
-                  size: 18.sp,
                 ),
-              ),
+                // Take button (existing)
+                GestureDetector(
+                  onTap: isLoading ? null : () {
+                    HapticFeedback.mediumImpact();
+                    _takeMedication(medication.id, medication.time);
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    width: 36.w,
+                    height: 36.h,
+                    decoration: BoxDecoration(
+                      color: isLoading
+                          ? const Color(0xFFF1F5F9)
+                          : (isCurrent
+                          ? const Color(0xFF3B82F6)
+                          : const Color(0xFFF1F5F9)),
+                      borderRadius: BorderRadius.circular(10.r),
+                    ),
+                    child: isLoading
+                        ? SizedBox(
+                      width: 16.w,
+                      height: 16.h,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.w,
+                        valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                      ),
+                    )
+                        : Icon(
+                      Icons.check,
+                      color: isCurrent ? Colors.white : const Color(0xFF64748B),
+                      size: 18.sp,
+                    ),
+                  ),
+                ),
+              ],
             )
           else
             Container(

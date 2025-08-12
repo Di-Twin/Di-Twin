@@ -14,6 +14,7 @@ import 'package:client/features/medication_management/domain/usecases/get_user_m
 import 'package:client/features/medication_management/data/models/api_medication_model.dart';
 import 'package:http/http.dart' as http;
 import 'package:internet_connection_checker/internet_connection_checker.dart';
+import 'package:intl/intl.dart';
 
 // API Client Provider
 final medicationApiClientProvider = Provider<ApiClient>((ref) {
@@ -187,8 +188,11 @@ class MedicationActionsNotifier {
           return false;
         },
             (success) {
-          // Refresh the user medications list
+          // Refresh both user medications list and daily medication data
           ref.invalidate(userMedicationsProvider);
+          // Invalidate all daily medication providers
+          final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+          ref.invalidate(dailyMedicationProvider(today));
           return success;
         },
       );
