@@ -3,10 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../features/medication_management/presentation/pages/medication_management_add.dart';
-import '../../features/medication_management/presentation/pages/medication_management_day.dart';
+import '../../features/medication_management/presentation/pages/medication_management_screen.dart';
 import '../../features/medication_management/presentation/pages/medication_management_list_page.dart';
 import '../../features/medication_management/presentation/providers/medication_monthly_provider.dart';
 import '../../features/medication_management/data/models/monthly_medication_model.dart';
+import '../../features/medication_management/presentation/pages/medication_management_screen.dart';
 
 class MedicationSection extends ConsumerWidget {
   const MedicationSection({super.key});
@@ -387,7 +388,7 @@ class MedicationSection extends ConsumerWidget {
             final isToday = _isToday(selectedDate.year, selectedDate.month, dayNumber);
 
             return GestureDetector(
-              onTap: dayData != null ? () => _showDayDetails(context, dayData) : null,
+              onTap: dayData != null ? () => _navigateToDay(context, selectedDate.year, selectedDate.month, dayNumber) : null,
               child: Container(
                 decoration: BoxDecoration(
                   color: color,
@@ -458,76 +459,13 @@ class MedicationSection extends ConsumerWidget {
     return today.year == year && today.month == month && today.day == day;
   }
 
-  void _showDayDetails(BuildContext context, MedicationDayModel dayData) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      builder: (context) => Container(
-        padding: const EdgeInsets.all(20),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              DateFormat('MMMM dd, yyyy').format(DateTime.parse(dayData.date)),
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 18,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF1E293B),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _buildDetailItem('Total', dayData.total, const Color(0xFF64748B)),
-                _buildDetailItem('Taken', dayData.taken, const Color(0xFF10B981)),
-                _buildDetailItem('Missed', dayData.missed, const Color(0xFFEF4444)),
-                _buildDetailItem('Pending', dayData.pending, const Color(0xFFFBBF24)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Center(
-              child: Text(
-                'Adherence Rate: ${dayData.adherenceRate}%',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: _getAdherenceColor(double.tryParse(dayData.adherenceRate) ?? 0),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-          ],
-        ),
+  void _navigateToDay(BuildContext context, int year, int month, int day) {
+    final selectedDate = DateTime(year, month, day);
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => MedicationsManagementDay(initialDate: selectedDate),
       ),
-    );
-  }
-
-  Widget _buildDetailItem(String label, int value, Color color) {
-    return Column(
-      children: [
-        Text(
-          value.toString(),
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 24,
-            fontWeight: FontWeight.w800,
-            color: color,
-          ),
-        ),
-        Text(
-          label,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF64748B),
-          ),
-        ),
-      ],
     );
   }
 

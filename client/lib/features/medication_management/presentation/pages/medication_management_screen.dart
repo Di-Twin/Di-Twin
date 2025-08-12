@@ -9,7 +9,9 @@ import 'package:client/features/medication_management/presentation/widgets/medic
 import 'package:client/features/medication_management/data/models/api_medication_model.dart';
 
 class MedicationsManagementDay extends ConsumerStatefulWidget {
-  const MedicationsManagementDay({Key? key}) : super(key: key);
+  const MedicationsManagementDay({Key? key, this.initialDate}) : super(key: key);
+
+  final DateTime? initialDate;
 
   @override
   ConsumerState<MedicationsManagementDay> createState() =>
@@ -32,7 +34,7 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
   @override
   void initState() {
     super.initState();
-    _currentDate = DateTime.now();
+    _currentDate = widget.initialDate ?? DateTime.now();
     _selectedDate = _currentDate;
     _generateDateRange();
 
