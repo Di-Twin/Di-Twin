@@ -1,3 +1,4 @@
+import 'package:client/features/sleep_management/sleep_management_stats_page.dart';
 import 'package:client/features/sleep_management/sleep_my_stats.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -34,13 +35,14 @@ class HealthMetricCard extends StatelessWidget {
         page = const SPO2Page();
         break;
       case 'Sleep':
-        page = MySleepScreen(
-          userJoinDate: DateTime(
-            2023,
-            1,
-            15,
-          ), // Replace with actual user join date
-        );
+        // page = MySleepScreen(
+        //   userJoinDate: DateTime(
+        //     2023,
+        //     1,
+        //     15,
+        //   ), // Replace with actual user join date
+        // );
+        page = const SleepManagementStats();
         break;
       default:
         return;
