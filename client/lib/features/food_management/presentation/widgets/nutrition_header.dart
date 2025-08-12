@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 class NutritionHeader extends StatelessWidget {
   final VoidCallback onBack;
-  
+
   const NutritionHeader({
     super.key,
     required this.onBack,
@@ -18,41 +19,19 @@ class NutritionHeader extends StatelessWidget {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            // Back button with shadow and animation
-            Hero(
-              tag: 'back_button',
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onBack,
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    width: 44,
-                    height: 44,
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [Colors.white, Color(0xFFF8FAFC)],
-                      ),
-                      border: Border.all(
-                        color: const Color(0xFF1E293B).withOpacity(0.1),
-                        width: 1.5,
-                      ),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.chevron_left,
-                      color: Color(0xFF1E293B),
-                    ),
-                  ),
+            GestureDetector(
+              onTap: onBack,
+              child: Container(
+                width: 44.w,
+                height: 44.h,
+                decoration: BoxDecoration(
+                  border: Border.all(color: const Color(0xFFD1D5DB)),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Icon(
+                  Icons.chevron_left,
+                  size: 20.sp,
+                  color: const Color(0xFF1E293B),
                 ),
               ),
             ),

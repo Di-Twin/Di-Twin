@@ -5,6 +5,8 @@ import 'package:intl/intl.dart';
 import 'package:client/widgets/CustomCalander.dart';
 import 'package:client/widgets/CustomDrawer.dart';
 import 'package:client/data/providers/sleep_provider.dart';
+import 'package:client/features/sleep_management/presentation/widgets/month_year_picker.dart';
+import 'package:client/features/sleep_management/presentation/widgets/monthly_sleep_score_card.dart';
 
 class MySleepScreen extends StatefulWidget {
   final DateTime userJoinDate;
@@ -16,7 +18,7 @@ class MySleepScreen extends StatefulWidget {
 }
 
 class _MySleepScreenState extends State<MySleepScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin { // Changed from SingleTickerProviderStateMixin to TickerProviderStateMixin to support multiple AnimationControllers
   // Class variables
   List<int> _availableYears = [];
   List<DateTime> _availableMonths = [];
@@ -32,6 +34,11 @@ class _MySleepScreenState extends State<MySleepScreen>
   late Animation<double> _fadeAnimation;
   late Animation<Offset> _slideAnimation;
   Offset _slideDirection = const Offset(1.0, 0.0);
+
+  late AnimationController _scoreAnimationController;
+  late Animation<double> _scoreScaleAnimation;
+  late Animation<double> _scoreOpacityAnimation;
+  late Animation<double> _scoreRotationAnimation;
 
   @override
   void initState() {
@@ -62,12 +69,46 @@ class _MySleepScreenState extends State<MySleepScreen>
       CurvedAnimation(parent: _pageTransitionController, curve: Curves.easeOut),
     );
 
+    _scoreAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+
+    _scoreScaleAnimation = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween<double>(begin: 0.0, end: 1.2), weight: 40),
+      TweenSequenceItem(tween: Tween<double>(begin: 1.2, end: 1.0), weight: 60),
+    ]).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
+    _scoreOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+      ),
+    );
+
+    _scoreRotationAnimation = Tween<double>(begin: -0.1, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _scoreAnimationController,
+        curve: Curves.elasticOut,
+      ),
+    );
+
     _pageTransitionController.forward();
+
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scoreAnimationController.forward();
+    });
   }
 
   @override
   void dispose() {
     _pageTransitionController.dispose();
+    _scoreAnimationController.dispose();
     super.dispose();
   }
 
@@ -78,23 +119,22 @@ class _MySleepScreenState extends State<MySleepScreen>
   }
 
   List<Map<String, dynamic>> _getFilteredSleepRecords(WidgetRef ref) {
-  final monthlySleepData = ref.watch(MonthlyuniqueSleepDaysProvider);
-  debugPrint('[UI] Retrieved ${monthlySleepData.length} sleep days');
+    final monthlySleepData = ref.watch(MonthlyuniqueSleepDaysProvider);
+    debugPrint('[UI] Retrieved ${monthlySleepData.length} sleep days');
 
-  return monthlySleepData.map((session) {
-    final dateTime = DateTime.parse(session.date);
-    debugPrint('[UI] Session on ${session.date}: duration=${session.duration}, efficiency=${session.efficiencyScore}');
+    return monthlySleepData.map((session) {
+      final dateTime = DateTime.parse(session.date);
+      debugPrint('[UI] Session on ${session.date}: duration=${session.duration}, efficiency=${session.efficiencyScore}');
 
-    return {
-      'day': dateTime.day,
-      'month': dateTime.month,
-      'duration': session.getDurationInHours(),
-      'quality': session.getSleepQuality(),
-      'date': dateTime,
-    };
-  }).toList();
-}
-
+      return {
+        'day': dateTime.day,
+        'month': dateTime.month,
+        'duration': session.getDurationInHours(),
+        'quality': session.getSleepQuality(),
+        'date': dateTime,
+      };
+    }).toList();
+  }
 
   void _generateAvailableYears() {
     _availableYears = [];
@@ -138,258 +178,68 @@ class _MySleepScreenState extends State<MySleepScreen>
   void _showMonthYearPicker() {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setState) {
-            return Container(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Title
-                  Text(
-                    'Select Month & Year',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+            return SleepMonthYearPicker(
+              selectedMonth: _selectedMonth,
+              selectedYear: _selectedYear,
+              availableYears: _availableYears,
+              availableMonths: _availableMonths,
+              today: _today,
+              userJoinDate: widget.userJoinDate,
+              onApply: (DateTime newMonth) {
+                // Determine slide direction based on month comparison
+                DateTime oldMonth = _selectedMonth;
+
+                if (newMonth.isBefore(oldMonth)) {
+                  _slideDirection = const Offset(
+                    -1.0,
+                    0.0,
+                  ); // Right slide (newer to older)
+                } else if (newMonth.isAfter(oldMonth)) {
+                  _slideDirection = const Offset(
+                    1.0,
+                    0.0,
+                  ); // Left slide (older to newer)
+                } else {
+                  // Same month, no animation needed
+                  this.setState(() {
+                    _selectedMonth = newMonth;
+                  });
+                  return;
+                }
+
+                // Update the slide animation with new direction
+                _slideAnimation = Tween<Offset>(
+                  begin: _slideDirection,
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: _pageTransitionController,
+                    curve: Curves.easeOut,
                   ),
-                  const SizedBox(height: 16),
+                );
 
-                  // Year selector
-                  Text(
-                    'Year',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
+                // Reset animation
+                _pageTransitionController.reset();
 
-                  SizedBox(
-                    height: 50,
-                    child: ListView.builder(
-                      scrollDirection: Axis.horizontal,
-                      itemCount: _availableYears.length,
-                      itemBuilder: (context, index) {
-                        final year = _availableYears[index];
-                        final isSelected = year == _selectedYear;
-                        final isFutureYear = year > _today.year;
+                // Update state with the new selected month
+                this.setState(() {
+                  _selectedMonth = newMonth;
+                  _selectedYear = newMonth.year;
+                });
 
-                        return GestureDetector(
-                          onTap: isFutureYear
-                              ? null // Disable future years
-                              : () {
-                                  setState(() {
-                                    _selectedYear = year;
+                // Start animation
+                _pageTransitionController.forward();
 
-                                    // Get months available in the selected year
-                                    List<DateTime> monthsInYear = _availableMonths
-                                        .where(
-                                          (month) => month.year == year,
-                                        )
-                                        .toList();
-
-                                    if (monthsInYear.isNotEmpty) {
-                                      // If current year, default to current month; otherwise, use first available
-                                      _selectedMonth = (year == _today.year)
-                                          ? DateTime(
-                                              year,
-                                              _today.month,
-                                              1,
-                                            )
-                                          : monthsInYear.first;
-                                    }
-                                  });
-                                },
-                          child: Container(
-                            margin: const EdgeInsets.only(right: 8),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Theme.of(context).primaryColor
-                                  : (isFutureYear
-                                      ? Colors.grey.shade300
-                                      : Colors.grey.shade200),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Text(
-                                year.toString(),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : (isFutureYear
-                                          ? Colors.grey
-                                          : Colors.black87),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Month selector
-                  Text(
-                    'Month',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-
-                  Expanded(
-                    child: GridView.builder(
-                      shrinkWrap: true,
-                      physics: const BouncingScrollPhysics(),
-                      gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                        crossAxisCount: 3,
-                        childAspectRatio: 2.5,
-                        crossAxisSpacing: 8,
-                        mainAxisSpacing: 8,
-                      ),
-                      itemCount: 12,
-                      itemBuilder: (context, index) {
-                        final monthNum = index + 1;
-                        final monthDate = DateTime(_selectedYear, monthNum, 1);
-
-                        // Check if the month should be disabled
-                        bool isAvailable = _isMonthAvailable(monthDate);
-                        bool isSelected = _selectedMonth.month == monthNum &&
-                            _selectedMonth.year == _selectedYear;
-
-                        return GestureDetector(
-                          onTap: isAvailable
-                              ? () {
-                                  setState(() {
-                                    _selectedMonth = DateTime(
-                                      _selectedYear,
-                                      monthNum,
-                                      1,
-                                    );
-                                  });
-                                }
-                              : null,
-                          child: Container(
-                            decoration: BoxDecoration(
-                              color: isSelected
-                                  ? Theme.of(context).primaryColor
-                                  : (isAvailable
-                                      ? Colors.grey.shade200
-                                      : Colors.grey.shade100),
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Center(
-                              child: Text(
-                                DateFormat('MMM').format(monthDate),
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: isSelected
-                                      ? Colors.white
-                                      : (isAvailable
-                                          ? Colors.black87
-                                          : Colors.grey.shade400),
-                                ),
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-
-                  const SizedBox(height: 20),
-
-                  // Confirm button
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Theme.of(context).primaryColor,
-                        padding: const EdgeInsets.symmetric(vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                      ),
-                      onPressed: () {
-                        Navigator.pop(context);
-                        // Determine slide direction based on month comparison
-                        DateTime oldMonth = _selectedMonth;
-                        DateTime newMonth = DateTime(
-                          _selectedYear,
-                          _selectedMonth.month,
-                          1,
-                        );
-
-                        if (newMonth.isBefore(oldMonth)) {
-                          _slideDirection = const Offset(
-                            -1.0,
-                            0.0,
-                          ); // Right slide (newer to older)
-                        } else if (newMonth.isAfter(oldMonth)) {
-                          _slideDirection = const Offset(
-                            1.0,
-                            0.0,
-                          ); // Left slide (older to newer)
-                        } else {
-                          // Same month, no animation needed
-                          this.setState(() {
-                            _selectedMonth = newMonth;
-                          });
-                          return;
-                        }
-
-                        // Update the slide animation with new direction
-                        _slideAnimation = Tween<Offset>(
-                          begin: _slideDirection,
-                          end: Offset.zero,
-                        ).animate(
-                          CurvedAnimation(
-                            parent: _pageTransitionController,
-                            curve: Curves.easeOut,
-                          ),
-                        );
-
-                        // Reset animation
-                        _pageTransitionController.reset();
-
-                        // Update state with the new selected month
-                        this.setState(() {
-                          _selectedMonth = newMonth;
-                          _selectedYear = newMonth.year;
-                        });
-
-                        // Start animation
-                        _pageTransitionController.forward();
-                      },
-                      child: Text(
-                        'Confirm',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
+                _scoreAnimationController.reset();
+                Future.delayed(Duration(milliseconds: 300), () {
+                  _scoreAnimationController.forward();
+                });
+              },
             );
           },
         );
@@ -443,6 +293,11 @@ class _MySleepScreenState extends State<MySleepScreen>
 
     // Start animation
     _pageTransitionController.forward();
+
+    _scoreAnimationController.reset();
+    Future.delayed(Duration(milliseconds: 300), () {
+      _scoreAnimationController.forward();
+    });
   }
 
   @override
@@ -496,74 +351,67 @@ class _MySleepScreenState extends State<MySleepScreen>
 
                       const SizedBox(height: 24),
 
-                      // Header with year selector
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          GestureDetector(
+                          Expanded(
+                            child: Text(
+                              'Sleep Tracking',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: MediaQuery.of(context).size.width < 400 ? 20 : 28,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E293B),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+
+                          InkWell(
                             onTap: _showMonthYearPicker,
-                            child: Row(
-                              children: [
-                                Text(
-                                  DateFormat('MMMM yyyy').format(_selectedMonth),
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 28,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1E293B),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: MediaQuery.of(context).size.width < 400 ? 8 : 16,
+                                vertical: MediaQuery.of(context).size.width < 400 ? 6 : 12,
+                              ),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Colors.grey.shade300),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.calendar_today,
+                                    size: MediaQuery.of(context).size.width < 400 ? 14 : 20,
                                   ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.keyboard_arrow_down,
-                                  size: 24,
-                                  color: const Color(0xFF1E293B),
-                                ),
-                              ],
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    DateFormat('MMM d, yyyy').format(_selectedMonth),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: MediaQuery.of(context).size.width < 400 ? 12 : 16,
+                                      fontWeight: FontWeight.w600,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 2),
+                                  Icon(
+                                    Icons.keyboard_arrow_down,
+                                    size: MediaQuery.of(context).size.width < 400 ? 14 : 20,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ],
                       ),
 
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
 
-                      // Sleep score this month card
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.symmetric(vertical: 24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text('😴', style: TextStyle(fontSize: 40)),
-                                const SizedBox(width: 8),
-                                Text(
-                                  monthlySummary?.averageScore
-                                          
-                                          .toString() ??
-                                      '--',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 40,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Your Sleep Score this month',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                color: Colors.white,
-                              ),
-                            ),
-                          ],
-                        ),
+                      MonthlySleepScoreCard(
+                        isSmallScreen: MediaQuery.of(context).size.width < 400,
+                        selectedMonth: _selectedMonth.month,
+                        selectedYear: _selectedMonth.year,
+                        scoreScaleAnimation: _scoreScaleAnimation,
+                        scoreOpacityAnimation: _scoreOpacityAnimation,
+                        scoreRotationAnimation: _scoreRotationAnimation,
                       ),
 
                       const SizedBox(height: 24),
