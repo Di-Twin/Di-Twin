@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import '../../features/medication_management/presentation/pages/medication_management_add.dart';
 import '../../features/medication_management/presentation/pages/medication_management_day.dart';
+import '../../features/medication_management/presentation/pages/medication_management_list_page.dart';
 import '../../features/medication_management/presentation/providers/medication_monthly_provider.dart';
 import '../../features/medication_management/data/models/monthly_medication_model.dart';
 
@@ -34,7 +35,7 @@ class MedicationSection extends ConsumerWidget {
               onPressed: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (context) => MedicationsManagementDay()),
+                  MaterialPageRoute(builder: (context) => MedicationManagementListPage()),
                 );
               },
               child: Text(
@@ -234,23 +235,25 @@ class MedicationSection extends ConsumerWidget {
   }
 
   Widget _buildLoadingState() {
-    return Column(
-      children: [
-        const SizedBox(height: 40),
-        const CircularProgressIndicator(
-          color: Color(0xFF3B82F6),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          'Loading medication data...',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF64748B),
+    return SizedBox(
+      height: 600,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
           ),
-        ),
-        const SizedBox(height: 40),
-      ],
+          const SizedBox(height: 16),
+          Text(
+            'Loading medication data...',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
     );
   }
 

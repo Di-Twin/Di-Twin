@@ -2,6 +2,104 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+class MedicationManagementListPage extends StatelessWidget {
+  const MedicationManagementListPage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    // Sample medications data - replace with actual data from provider
+    final medications = [
+      Medication(name: 'Aspirin', timing: 'Morning, 8:00 AM'),
+      Medication(name: 'Vitamin D', timing: 'Evening, 6:00 PM'),
+      Medication(name: 'Metformin', timing: 'After meals'),
+    ];
+
+    return Scaffold(
+      backgroundColor: const Color(0xFFF0F1F5),
+      body: Column(
+        children: [
+          // Custom Header
+          Container(
+            width: double.infinity,
+            decoration: const BoxDecoration(
+              color: Color(0xFF1E2639),
+              borderRadius: BorderRadius.only(
+                bottomLeft: Radius.circular(30),
+                bottomRight: Radius.circular(30),
+              ),
+            ),
+            child: SafeArea(
+              child: Padding(
+                padding: EdgeInsets.all(20.w),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: Colors.white),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: IconButton(
+                        icon: const Icon(
+                          Icons.arrow_back_ios_new,
+                          color: Colors.white,
+                        ),
+                        onPressed: () => Navigator.pop(context),
+                      ),
+                    ),
+                    SizedBox(height: 16.h),
+                    Text(
+                      'All Medications',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontSize: 26.sp,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      'Manage all your medications and schedules',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white70,
+                        fontSize: 16.sp,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Content
+          Expanded(
+            child: SingleChildScrollView(
+              child: Padding(
+                padding: EdgeInsets.symmetric(vertical: 20.h),
+                child: MedicationsList(
+                  medications: medications,
+                  isEditMode: true,
+                  onEdit: (medication) {
+                    // Handle edit
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Edit ${medication.name}')),
+                    );
+                  },
+                  onDelete: (medication) {
+                    // Handle delete
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(content: Text('Delete ${medication.name}')),
+                    );
+                  },
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class MedicationsList extends StatelessWidget {
   final List<Medication> medications;
   final bool isEditMode;
