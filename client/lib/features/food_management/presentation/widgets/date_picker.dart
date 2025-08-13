@@ -40,6 +40,7 @@ class _DatePickerDrawerState extends State<DatePicker> {
         ),
       ),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           // Drawer handle
           Container(
@@ -51,7 +52,7 @@ class _DatePickerDrawerState extends State<DatePicker> {
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          
+
           // Title
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 16),
@@ -64,51 +65,53 @@ class _DatePickerDrawerState extends State<DatePicker> {
               ),
             ),
           ),
-          
-          // Calendar
-          TableCalendar(
-            firstDay: DateTime.now().subtract(const Duration(days: 365)),
-            lastDay: DateTime.now(),
-            focusedDay: _focusedDay,
-            selectedDayPredicate: (day) {
-              return isSameDay(_selectedDay, day);
-            },
-            onDaySelected: (selectedDay, focusedDay) {
-              if (!isSameDay(_selectedDay, selectedDay)) {
-                setState(() {
-                  _selectedDay = selectedDay;
-                  _focusedDay = focusedDay;
-                });
-                
-                widget.onDateSelected(selectedDay);
-              }
-            },
-            calendarStyle: CalendarStyle(
-              outsideDaysVisible: false,
-              todayDecoration: BoxDecoration(
-                color: Colors.blue.shade100,
-                shape: BoxShape.circle,
-              ),
-              selectedDecoration: const BoxDecoration(
-                color: Color(0xFF3B82F6),
-                shape: BoxShape.circle,
-              ),
-              selectedTextStyle: const TextStyle(color: Colors.white),
-            ),
-            headerStyle: HeaderStyle(
-              formatButtonVisible: false,
-              titleCentered: true,
-              titleTextStyle: GoogleFonts.plusJakartaSans(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFF1E293B),
+
+          // Calendar - wrapped in Expanded to prevent overflow
+          Expanded(
+            child: SingleChildScrollView(
+              child: TableCalendar(
+                firstDay: DateTime.now().subtract(const Duration(days: 365)),
+                lastDay: DateTime.now(),
+                focusedDay: _focusedDay,
+                selectedDayPredicate: (day) {
+                  return isSameDay(_selectedDay, day);
+                },
+                onDaySelected: (selectedDay, focusedDay) {
+                  if (!isSameDay(_selectedDay, selectedDay)) {
+                    setState(() {
+                      _selectedDay = selectedDay;
+                      _focusedDay = focusedDay;
+                    });
+
+                    widget.onDateSelected(selectedDay);
+                  }
+                },
+                calendarStyle: CalendarStyle(
+                  outsideDaysVisible: false,
+                  todayDecoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    shape: BoxShape.circle,
+                  ),
+                  selectedDecoration: const BoxDecoration(
+                    color: Color(0xFF3B82F6),
+                    shape: BoxShape.circle,
+                  ),
+                  selectedTextStyle: const TextStyle(color: Colors.white),
+                ),
+                headerStyle: HeaderStyle(
+                  formatButtonVisible: false,
+                  titleCentered: true,
+                  titleTextStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
               ),
             ),
           ),
-          
-          const Spacer(),
-          
-          // Done Button
+
+          // Done Button - fixed at bottom
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: ElevatedButton(
