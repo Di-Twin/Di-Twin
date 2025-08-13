@@ -2,7 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../../data/providers/water_intake_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+// import '../../data/providers/water_intake_provider.dart';
+import '../../data/providers/water_intake_api_provider.dart';
+// import 'package:flutter/material.dart';
+// import 'package:flutter_screenutil/flutter_screenutil.dart';
+// import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class WaterIntakeDrawer extends StatefulWidget {
   final String currentSlot;
@@ -20,7 +27,8 @@ class WaterIntakeDrawer extends StatefulWidget {
   State<WaterIntakeDrawer> createState() => _WaterIntakeDrawerState();
 }
 
-class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProviderStateMixin {
+class _WaterIntakeDrawerState extends State<WaterIntakeDrawer>
+    with TickerProviderStateMixin {
   late AnimationController _slideController;
   late AnimationController _dragController;
   late Animation<Offset> _slideAnimation;
@@ -36,10 +44,15 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
   final double _dragThreshold = 100.0;
 
   final List<double> _quickAmounts = [150, 250, 350, 500];
+  // final String _baseUrl =
+  //     'https://test-prod-f427.onrender.com/api/health-metrics';
+  // late SharedPreferences _prefs;
+  // bool _isPrefsInitialized = false;
 
   @override
   void initState() {
     super.initState();
+    // _initSharedPreferences();
 
     _slideController = AnimationController(
       duration: const Duration(milliseconds: 300),
@@ -54,18 +67,14 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
     _slideAnimation = Tween<Offset>(
       begin: const Offset(0, 1),
       end: Offset.zero,
-    ).animate(CurvedAnimation(
-      parent: _slideController,
-      curve: Curves.easeOutCubic,
-    ));
+    ).animate(
+      CurvedAnimation(parent: _slideController, curve: Curves.easeOutCubic),
+    );
 
     _dragAnimation = Tween<double>(
       begin: 0.0,
       end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _dragController,
-      curve: Curves.easeOut,
-    ));
+    ).animate(CurvedAnimation(parent: _dragController, curve: Curves.easeOut));
 
     _slideController.forward();
   }
@@ -76,6 +85,101 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
     _dragController.dispose();
     super.dispose();
   }
+
+  // Future<void> _initSharedPreferences() async {
+  //   try {
+  //     _prefs = await SharedPreferences.getInstance();
+  //     setState(() => _isPrefsInitialized = true);
+  //   } catch (e) {
+  //     debugPrint('Error initializing SharedPreferences: $e');
+  //     _showErrorSnackBar('Error loading app data');
+  //   }
+  // }
+
+  // Future<String?> _getAuthToken() async {
+  //   if (!_isPrefsInitialized || _prefs == null) {
+  //     await _initSharedPreferences();
+  //   }
+  //   return _prefs?.getString('access_token');
+  // }
+
+  Future<void> _submitWaterIntake() async {
+    if (_isSubmitting) return;
+
+    final amount = _selectedAmount;
+    if (amount <= 0) {
+      _showErrorSnackBar('Please enter a valid amount');
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    try {
+      final now = DateTime.now();
+      final date =
+          '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
+
+      final apiProvider = Provider.of<WaterIntakeApiProvider>(context, listen: false);
+      final success = await apiProvider.submitWaterIntake(amount, date);
+
+      if (success) {
+        widget.onWaterAdded(amount);
+        _showSuccessAnimation(amount);
+        await Future.delayed(const Duration(milliseconds: 1500));
+        _closeDrawer();
+      } else {
+        _showErrorSnackBar('Failed to update water intake');
+      }
+    } catch (e) {
+      debugPrint('Error in _submitWaterIntake: $e');
+      _showErrorSnackBar(e.toString());
+    } finally {
+      if (mounted) setState(() => _isSubmitting = false);
+    }
+  }
+
+
+  // Future<Map<String, dynamic>> _getCurrentWaterData(
+  //   String date,
+  //   String token,
+  // ) async {
+  //   try {
+  //     final response = await http.get(
+  //       Uri.parse('$_baseUrl?date=$date'),
+  //       headers: {'Authorization': 'Bearer $token'},
+  //     );
+
+  //     if (response.statusCode == 200) {
+  //       final data = json.decode(response.body);
+  //       return data['data'] ?? {};
+  //     }
+  //     return {};
+  //   } catch (e) {
+  //     debugPrint('Error fetching current water data: $e');
+  //     return {};
+  //   }
+  // }
+
+  // void _handleApiError(http.Response response) {
+  //   final status = response.statusCode;
+  //   String message = 'Failed to update water intake';
+
+  //   try {
+  //     final errorData = json.decode(response.body);
+  //     message = errorData['message'] ?? message;
+  //   } catch (_) {}
+
+  //   if (status == 404) {
+  //     message = 'API endpoint not found. Please contact support';
+  //   } else if (status == 401) {
+  //     message = 'Session expired. Please login again';
+  //   } else if (status >= 500) {
+  //     message = 'Server error. Please try again later';
+  //   }
+
+  //   _showErrorSnackBar(message);
+  //   debugPrint('API Error ${response.statusCode}: ${response.body}');
+  // }
 
   void _handleDragStart(DragStartDetails details) {
     setState(() {
@@ -334,43 +438,49 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
     }
   }
 
-  Future<void> _submitWaterIntake() async {
-    if (_isSubmitting) return;
+  // Future<void> _submitWaterIntake() async {
+  //   if (_isSubmitting) return;
 
-    final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
-    final amount = _selectedAmount;
+  //   final waterProvider = Provider.of<WaterIntakeProvider>(
+  //     context,
+  //     listen: false,
+  //   );
+  //   final amount = _selectedAmount;
 
-    if (amount <= 0) {
-      _showErrorSnackBar('Please enter a valid amount');
-      return;
-    }
+  //   if (amount <= 0) {
+  //     _showErrorSnackBar('Please enter a valid amount');
+  //     return;
+  //   }
 
-    setState(() {
-      _isSubmitting = true;
-    });
+  //   setState(() {
+  //     _isSubmitting = true;
+  //   });
 
-    try {
-      final success = await waterProvider.addWaterIntake(amount, slot: widget.currentSlot);
+  //   try {
+  //     final success = await waterProvider.addWaterIntake(
+  //       amount,
+  //       slot: widget.currentSlot,
+  //     );
 
-      if (success) {
-        widget.onWaterAdded(amount);
-        _showSuccessAnimation(amount);
+  //     if (success) {
+  //       widget.onWaterAdded(amount);
+  //       _showSuccessAnimation(amount);
 
-        await Future.delayed(const Duration(milliseconds: 1500));
-        _closeDrawer();
-      } else {
-        _showErrorSnackBar('Failed to add water intake. Please try again.');
-      }
-    } catch (e) {
-      _showErrorSnackBar('Error: ${e.toString()}');
-    } finally {
-      if (mounted) {
-        setState(() {
-          _isSubmitting = false;
-        });
-      }
-    }
-  }
+  //       await Future.delayed(const Duration(milliseconds: 1500));
+  //       _closeDrawer();
+  //     } else {
+  //       _showErrorSnackBar('Failed to add water intake. Please try again.');
+  //     }
+  //   } catch (e) {
+  //     _showErrorSnackBar('Error: ${e.toString()}');
+  //   } finally {
+  //     if (mounted) {
+  //       setState(() {
+  //         _isSubmitting = false;
+  //       });
+  //     }
+  //   }
+  // }
 
   void _showSuccessAnimation(double amount) {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -383,11 +493,7 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                 color: Colors.white.withOpacity(0.2),
                 borderRadius: BorderRadius.circular(12.r),
               ),
-              child: Icon(
-                Icons.check_circle,
-                color: Colors.white,
-                size: 20.sp,
-              ),
+              child: Icon(Icons.check_circle, color: Colors.white, size: 20.sp),
             ),
             SizedBox(width: 12.w),
             Expanded(
@@ -471,7 +577,8 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
+            color:
+                isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
           ),
           borderRadius: BorderRadius.circular(8.r),
         ),
@@ -502,11 +609,14 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
           return Transform.translate(
             offset: Offset(
               _slideAnimation.value.dx * MediaQuery.of(context).size.width,
-              _slideAnimation.value.dy * MediaQuery.of(context).size.height + _dragOffset,
+              _slideAnimation.value.dy * MediaQuery.of(context).size.height +
+                  _dragOffset,
             ),
             child: Container(
               constraints: BoxConstraints(
-                maxHeight: MediaQuery.of(context).size.height * 0.5, // Reduced from 0.6
+                maxHeight:
+                    MediaQuery.of(context).size.height *
+                    0.5, // Reduced from 0.6
               ),
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -535,9 +645,10 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                           width: 40.w,
                           height: 4.h,
                           decoration: BoxDecoration(
-                            color: _isDragging
-                                ? slotInfo['color'].withOpacity(0.6)
-                                : Colors.grey[300],
+                            color:
+                                _isDragging
+                                    ? slotInfo['color'].withOpacity(0.6)
+                                    : Colors.grey[300],
                             borderRadius: BorderRadius.circular(2.r),
                           ),
                         ),
@@ -551,9 +662,10 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12.sp,
                                 fontWeight: FontWeight.w500,
-                                color: _dragOffset > _dragThreshold
-                                    ? const Color(0xFFF59E0B)
-                                    : const Color(0xFF64748B),
+                                color:
+                                    _dragOffset > _dragThreshold
+                                        ? const Color(0xFFF59E0B)
+                                        : const Color(0xFF64748B),
                               ),
                             ),
                           ),
@@ -715,10 +827,7 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                     decoration: BoxDecoration(
                       color: Colors.white,
                       border: Border(
-                        top: BorderSide(
-                          color: Colors.grey[200]!,
-                          width: 1,
-                        ),
+                        top: BorderSide(color: Colors.grey[200]!, width: 1),
                       ),
                     ),
                     child: Row(
@@ -728,9 +837,7 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                             onPressed: _showCloseConfirmation,
                             style: OutlinedButton.styleFrom(
                               padding: EdgeInsets.symmetric(vertical: 14.h),
-                              side: BorderSide(
-                                color: Colors.grey[300]!,
-                              ),
+                              side: BorderSide(color: Colors.grey[300]!),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12.r),
                               ),
@@ -749,7 +856,8 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                         Expanded(
                           flex: 2,
                           child: ElevatedButton(
-                            onPressed: _isSubmitting ? null : _submitWaterIntake,
+                            onPressed:
+                                _isSubmitting ? null : _submitWaterIntake,
                             style: ElevatedButton.styleFrom(
                               backgroundColor: slotInfo['color'],
                               foregroundColor: Colors.white,
@@ -759,24 +867,26 @@ class _WaterIntakeDrawerState extends State<WaterIntakeDrawer> with TickerProvid
                               ),
                               elevation: 0,
                             ),
-                            child: _isSubmitting
-                                ? SizedBox(
-                              width: 18.w,
-                              height: 18.w,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  Colors.white,
-                                ),
-                              ),
-                            )
-                                : Text(
-                              'Add Water Intake',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14.sp,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
+                            child:
+                                _isSubmitting
+                                    ? SizedBox(
+                                      width: 18.w,
+                                      height: 18.w,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        valueColor:
+                                            AlwaysStoppedAnimation<Color>(
+                                              Colors.white,
+                                            ),
+                                      ),
+                                    )
+                                    : Text(
+                                      'Add Water Intake',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14.sp,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
                           ),
                         ),
                       ],
