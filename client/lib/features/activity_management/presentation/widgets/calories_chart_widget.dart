@@ -1,120 +1,3 @@
-// import 'package:flutter/material.dart';
-// import 'package:flutter_screenutil/flutter_screenutil.dart';
-// import 'package:google_fonts/google_fonts.dart';
-
-// class CaloriesChartWidget extends StatelessWidget {
-//   const CaloriesChartWidget({super.key});
-
-//   @override
-//   Widget build(BuildContext context) {
-//     return Column(
-//       children: [
-//         _buildCaloriesChart(),
-//         SizedBox(height: 8.h),
-//         _buildChartLegend(),
-//       ],
-//     );
-//   }
-
-//   Widget _buildCaloriesChart() {
-//     return Container(
-//       height: 48.h,
-//       decoration: BoxDecoration(
-//         borderRadius: BorderRadius.circular(8.r),
-//         boxShadow: [
-//           BoxShadow(
-//             color: Colors.black.withOpacity(0.05),
-//             blurRadius: 4,
-//             offset: const Offset(0, 2),
-//           ),
-//         ],
-//       ),
-//       child: Row(
-//         children: [
-//           // Target section
-//           Expanded(
-//             flex: 3,
-//             child: Padding(
-//               padding: EdgeInsets.only(right: 5.w),
-//               child: Container(
-//                 decoration: BoxDecoration(
-//                   color: const Color(0xFFD9E4F5),
-//                   borderRadius: BorderRadius.circular(8.r),
-//                 ),
-//               ),
-//             ),
-//           ),
-//           // Taken section
-//           Expanded(
-//             flex: 2,
-//             child: Padding(
-//               padding: EdgeInsets.symmetric(horizontal: 2.w),
-//               child: Container(
-//                 decoration: BoxDecoration(
-//                   color: const Color(0xFFFF5A5F),
-//                   borderRadius: BorderRadius.circular(8.r),
-//                 ),
-//               ),
-//             ),
-//           ),
-//           // Burned section
-//           Expanded(
-//             flex: 3,
-//             child: Padding(
-//               padding: EdgeInsets.only(left: 5.w),
-//               child: Container(
-//                 decoration: BoxDecoration(
-//                   color: const Color(0xFF0066FF),
-//                   borderRadius: BorderRadius.circular(8.r),
-//                 ),
-//               ),
-//             ),
-//           ),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildChartLegend() {
-//     return Padding(
-//       padding: EdgeInsets.symmetric(horizontal: 16.w),
-//       child: Row(
-//         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-//         children: [
-//           _buildLegendItem(const Color(0xFFD9E4F5), 'Target'),
-//           _buildLegendItem(const Color(0xFFFF5A5F), 'Taken'),
-//           _buildLegendItem(const Color(0xFF0066FF), 'Burned'),
-//         ],
-//       ),
-//     );
-//   }
-
-//   Widget _buildLegendItem(Color color, String label) {
-//     return Row(
-//       children: [
-//         Container(
-//           width: 16.w,
-//           height: 16.w,
-//           decoration: BoxDecoration(
-//             color: color,
-//             borderRadius: BorderRadius.circular(4.r),
-//           ),
-//         ),
-//         SizedBox(width: 8.w),
-//         Text(
-//           label,
-//           style: GoogleFonts.plusJakartaSans(
-//             fontSize: 14.sp,
-//             fontWeight: FontWeight.w500,
-//             color: const Color(0xFF8F9BB3),
-//           ),
-//         ),
-//       ],
-//     );
-//   }
-// }
-
-
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -144,10 +27,10 @@ class FoodData {
     return FoodData(
       id: json['id'],
       sessionTime: DateTime.parse(json['sessionTime']),
-      totalCalories: json['totalCalories'].toDouble(),
-      totalProtein: json['totalProtein'].toDouble(),
-      totalCarbs: json['totalCarbs'].toDouble(),
-      totalFats: json['totalFats'].toDouble(),
+      totalCalories: json['totalCalories']?.toDouble() ?? 0.0,
+      totalProtein: json['totalProtein']?.toDouble() ?? 0.0,
+      totalCarbs: json['totalCarbs']?.toDouble() ?? 0.0,
+      totalFats: json['totalFats']?.toDouble() ?? 0.0,
     );
   }
 }
@@ -166,11 +49,11 @@ class CaloriesData {
 
   double get netCalories => taken - burned;
   double get total => target + taken + burned;
-  
-  // Calculate proportions for chart display
-  double get targetProportion => target / total;
-  double get takenProportion => taken / total;
-  double get burnedProportion => burned / total;
+
+  // Calculate proportions for chart display with safe defaults
+  double get targetProportion => total > 0 ? target / total : 0.4;
+  double get takenProportion => total > 0 ? taken / total : 0.3;
+  double get burnedProportion => total > 0 ? burned / total : 0.3;
 }
 
 class FunctionalCaloriesChartWidget extends StatefulWidget {
@@ -191,7 +74,7 @@ class FunctionalCaloriesChartWidget extends StatefulWidget {
 class _FunctionalCaloriesChartWidgetState
     extends State<FunctionalCaloriesChartWidget> {
   static const String baseUrl = 'https://test-prod-f427.onrender.com';
-  
+
   CaloriesData? _caloriesData;
   bool _isLoading = true;
   String? _error;
@@ -230,7 +113,8 @@ class _FunctionalCaloriesChartWidgetState
 
       // Get today's date in YYYY-MM-DD format
       final today = DateTime.now();
-      final dateString = '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
+      final dateString =
+          '${today.year}-${today.month.toString().padLeft(2, '0')}-${today.day.toString().padLeft(2, '0')}';
 
       // Fetch food data for calories taken
       final foodUrl = Uri.parse('$baseUrl/api/food/daily/$dateString');
@@ -243,10 +127,10 @@ class _FunctionalCaloriesChartWidgetState
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-        
+
         if (jsonData['success'] == true && jsonData['data'] != null) {
           final foodData = FoodData.fromJson(jsonData['data']);
-          
+
           setState(() {
             _caloriesData = CaloriesData(
               target: widget.targetCalories ?? 2000,
@@ -266,6 +150,16 @@ class _FunctionalCaloriesChartWidgetState
             _isLoading = false;
           });
         }
+      } else if (response.statusCode == 404) {
+        // Handle 404 (no data) specifically
+        setState(() {
+          _caloriesData = CaloriesData(
+            target: widget.targetCalories ?? 2000,
+            taken: 0,
+            burned: widget.caloriesBurned ?? 0,
+          );
+          _isLoading = false;
+        });
       } else {
         setState(() {
           _error = 'Failed to fetch food data: ${response.statusCode}';
@@ -290,109 +184,172 @@ class _FunctionalCaloriesChartWidgetState
       return _buildErrorWidget();
     }
 
-    if (_caloriesData == null) {
-      return _buildEmptyWidget();
-    }
-
     return Column(
       children: [
-        // _buildTotalCaloriesSection(),
         SizedBox(height: 16.h),
-        _buildCaloriesChart(),
-        SizedBox(height: 8.h),
-        _buildChartLegend(),
+        _caloriesData != null ? _buildChartLegend() : _buildEmptyLegend(),
         SizedBox(height: 16.h),
-        _buildCaloriesBreakdown(),
+        _caloriesData != null
+            ? _buildCaloriesBreakdown()
+            : _buildEmptyBreakdown(),
       ],
     );
   }
 
-  // Widget _buildTotalCaloriesSection() {
-  //   final netCalories = _caloriesData!.netCalories;
-  //   final isPositive = netCalories >= 0;
-    
-  //   return Container(
-  //     padding: EdgeInsets.all(16.w),
-  //     decoration: BoxDecoration(
-  //       color: Colors.white,
-  //       borderRadius: BorderRadius.circular(12.r),
-  //       boxShadow: [
-  //         BoxShadow(
-  //           color: Colors.black.withOpacity(0.05),
-  //           blurRadius: 8,
-  //           offset: const Offset(0, 2),
-  //         ),
-  //       ],
-  //     ),
-  //     child: Column(
-  //       children: [
-  //         Text(
-  //           'Net Calories Today',
-  //           style: GoogleFonts.plusJakartaSans(
-  //             fontSize: 16.sp,
-  //             fontWeight: FontWeight.w600,
-  //             color: const Color(0xFF8F9BB3),
-  //           ),
-  //         ),
-  //         SizedBox(height: 8.h),
-  //         Row(
-  //           mainAxisAlignment: MainAxisAlignment.center,
-  //           crossAxisAlignment: CrossAxisAlignment.baseline,
-  //           textBaseline: TextBaseline.alphabetic,
-  //           children: [
-  //             Text(
-  //               '${isPositive ? '+' : ''}${netCalories.toStringAsFixed(0)}',
-  //               style: GoogleFonts.plusJakartaSans(
-  //                 fontSize: 32.sp,
-  //                 fontWeight: FontWeight.w700,
-  //                 color: isPositive ? const Color(0xFFFF5A5F) : const Color(0xFF0066FF),
-  //               ),
-  //             ),
-  //             SizedBox(width: 8.w),
-  //             Text(
-  //               'kcal',
-  //               style: GoogleFonts.plusJakartaSans(
-  //                 fontSize: 16.sp,
-  //                 fontWeight: FontWeight.w600,
-  //                 color: const Color(0xFF8F9BB3),
-  //               ),
-  //             ),
-  //           ],
-  //         ),
-  //         SizedBox(height: 4.h),
-  //         Text(
-  //           isPositive ? 'Calories surplus' : 'Calories deficit',
-  //           style: GoogleFonts.plusJakartaSans(
-  //             fontSize: 14.sp,
-  //             fontWeight: FontWeight.w500,
-  //             color: const Color(0xFF8F9BB3),
-  //           ),
-  //         ),
-  //       ],
-  //     ),
-  //   );
-  // }
-
-  Widget _buildCaloriesChart() {
-    final data = _caloriesData!;
-    
+  Widget _buildEmptyChart() {
     return Container(
       height: 48.h,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 4,
-            offset: const Offset(0, 2),
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
+      child: Center(
+        child: Text(
+          'No data available',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            color: const Color(0xFF8F9BB3),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildEmptyLegend() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: 16.w),
+      child: Row(
+        children: [
+          // Empty Target Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9E4F5).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Target',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '--',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // Empty Taken Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5A5F).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Taken',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '--',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          SizedBox(width: 8.w),
+          // Empty Burned Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0066FF).withOpacity(0.3),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Burned',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '--',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black.withOpacity(0.5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildEmptyBreakdown() {
+    return Container(
+      padding: EdgeInsets.all(16.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12.r),
+      ),
+      child: Center(
+        child: Text(
+          'No calories data available',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            color: const Color(0xFF8F9BB3),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCaloriesChart() {
+    final data = _caloriesData!;
+
+    return Container(
+      height: 48.h,
+      decoration: BoxDecoration(borderRadius: BorderRadius.circular(8.r)),
       child: Row(
         children: [
           // Target section
           Expanded(
-            flex: (data.targetProportion * 10).round(),
+            flex: (data.targetProportion * 10).round().clamp(1, 10),
             child: Padding(
               padding: EdgeInsets.only(right: 2.w),
               child: Container(
@@ -444,63 +401,131 @@ class _FunctionalCaloriesChartWidgetState
     return Padding(
       padding: EdgeInsets.symmetric(horizontal: 16.w),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          _buildLegendItem(
-            const Color(0xFFD9E4F5), 
-            'Target', 
-            '${_caloriesData!.target.toStringAsFixed(0)} kcal'
+          // Target Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD9E4F5),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Target',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.black,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '${_caloriesData!.target.toStringAsFixed(0)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.black,
+                    ),
+                  ),
+                  Text(
+                    'kcal',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.black,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          _buildLegendItem(
-            const Color(0xFFFF5A5F), 
-            'Taken', 
-            '${_caloriesData!.taken.toStringAsFixed(0)} kcal'
+          SizedBox(width: 8.w),
+          // Taken Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFF5A5F),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Taken',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '${_caloriesData!.taken.toStringAsFixed(0)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'kcal',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
-          _buildLegendItem(
-            const Color(0xFF0066FF), 
-            'Burned', 
-            '${_caloriesData!.burned.toStringAsFixed(0)} kcal'
+          SizedBox(width: 8.w),
+          // Burned Box
+          Expanded(
+            child: Container(
+              padding: EdgeInsets.all(12.w),
+              decoration: BoxDecoration(
+                color: const Color(0xFF0066FF),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Text(
+                    'Burned',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14.sp,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                  SizedBox(height: 4.h),
+                  Text(
+                    '${_caloriesData!.burned.toStringAsFixed(0)}',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16.sp,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    'kcal',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildLegendItem(Color color, String label, String value) {
-    return Column(
-      children: [
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 16.w,
-              height: 16.w,
-              decoration: BoxDecoration(
-                color: color,
-                borderRadius: BorderRadius.circular(4.r),
-              ),
-            ),
-            SizedBox(width: 8.w),
-            Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 14.sp,
-                fontWeight: FontWeight.w500,
-                color: const Color(0xFF8F9BB3),
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 4.h),
-        Text(
-          value,
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 12.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF1A1F36),
-          ),
-        ),
-      ],
     );
   }
 
@@ -510,13 +535,6 @@ class _FunctionalCaloriesChartWidgetState
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(12.r),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -530,14 +548,28 @@ class _FunctionalCaloriesChartWidgetState
             ),
           ),
           SizedBox(height: 12.h),
-          _buildBreakdownRow('Daily Target', _caloriesData!.target, const Color(0xFFD9E4F5)),
-          _buildBreakdownRow('Calories Consumed', _caloriesData!.taken, const Color(0xFFFF5A5F)),
-          _buildBreakdownRow('Calories Burned', _caloriesData!.burned, const Color(0xFF0066FF)),
+          _buildBreakdownRow(
+            'Daily Target',
+            _caloriesData!.target,
+            const Color(0xFFD9E4F5),
+          ),
+          _buildBreakdownRow(
+            'Calories Consumed',
+            _caloriesData!.taken,
+            const Color(0xFFFF5A5F),
+          ),
+          _buildBreakdownRow(
+            'Calories Burned',
+            _caloriesData!.burned,
+            const Color(0xFF0066FF),
+          ),
           Divider(height: 24.h, color: const Color(0xFFE5E5E5)),
           _buildBreakdownRow(
-            'Net Calories', 
-            _caloriesData!.netCalories, 
-            _caloriesData!.netCalories >= 0 ? const Color(0xFFFF5A5F) : const Color(0xFF0066FF),
+            'Net Calories',
+            _caloriesData!.netCalories,
+            _caloriesData!.netCalories >= 0
+                ? const Color(0xFFFF5A5F)
+                : const Color(0xFF0066FF),
             isNet: true,
           ),
         ],
@@ -545,7 +577,12 @@ class _FunctionalCaloriesChartWidgetState
     );
   }
 
-  Widget _buildBreakdownRow(String label, double value, Color color, {bool isNet = false}) {
+  Widget _buildBreakdownRow(
+    String label,
+    double value,
+    Color color, {
+    bool isNet = false,
+  }) {
     return Padding(
       padding: EdgeInsets.symmetric(vertical: 4.h),
       child: Row(
@@ -588,9 +625,7 @@ class _FunctionalCaloriesChartWidgetState
   Widget _buildLoadingWidget() {
     return Container(
       height: 200.h,
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
+      child: const Center(child: CircularProgressIndicator()),
     );
   }
 
@@ -603,11 +638,7 @@ class _FunctionalCaloriesChartWidgetState
       ),
       child: Column(
         children: [
-          Icon(
-            Icons.error_outline,
-            color: Colors.red,
-            size: 24.w,
-          ),
+          Icon(Icons.error_outline, color: Colors.red, size: 24.w),
           SizedBox(height: 8.h),
           Text(
             'Error loading calories data',
@@ -618,25 +649,8 @@ class _FunctionalCaloriesChartWidgetState
             ),
           ),
           SizedBox(height: 8.h),
-          ElevatedButton(
-            onPressed: _loadCaloriesData,
-            child: Text('Retry'),
-          ),
+          ElevatedButton(onPressed: _loadCaloriesData, child: Text('Retry')),
         ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyWidget() {
-    return Container(
-      padding: EdgeInsets.all(16.w),
-      child: Text(
-        'No calories data available',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 14.sp,
-          fontWeight: FontWeight.w500,
-          color: const Color(0xFF8F9BB3),
-        ),
       ),
     );
   }
