@@ -5,52 +5,65 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 class CustomButton extends StatelessWidget {
   final String text;
   final String iconPath;
-  final VoidCallback? onPressed; // Function for navigation
+  final VoidCallback? onPressed;
+  final double width;
+  final double height;
+  final double fontSize;
+  final double iconSize;
+  final double bottomMargin;
 
   const CustomButton({
     super.key,
     required this.text,
     required this.iconPath,
-    required this.onPressed,
+    this.onPressed,
+    this.width = double.infinity, // Default width
+    this.height = 40, // Default height
+    this.fontSize = 18, // Default font size
+    this.iconSize = 24, // Default icon size
+    this.bottomMargin = 25, // Default bottom margin
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        ElevatedButton(
-          onPressed: onPressed, // Navigation function
-          style: ElevatedButton.styleFrom(
-            minimumSize: Size(double.infinity, 40.h),
-            backgroundColor: const Color(0xFF0F67FE),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12.r),
-            ),
+    // Use a Container instead of Column to avoid overflow
+    return Container(
+      margin: EdgeInsets.only(bottom: bottomMargin.h),
+      child: ElevatedButton(
+        onPressed: onPressed,
+        style: ElevatedButton.styleFrom(
+          minimumSize: Size(width.w, height.h),
+          backgroundColor: const Color(0xFF0F67FE),
+          foregroundColor: Colors.white,
+          elevation: 3,
+          shadowColor: const Color(0xFF0F67FE).withOpacity(0.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(15.r),
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min, // Takes only necessary space
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              Text(
-                text,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18.sp,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-              SizedBox(width: 5.w), // Space between text and icon
-              Image.asset(
-                iconPath,
-                height: 24.h,
-                width: 24.w,
-              ),
-            ],
-          ),
+          padding: EdgeInsets.symmetric(vertical: 12.h),
         ),
-        SizedBox(height: 25.h),
-      ],
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Text(
+              text,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: fontSize.sp,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Image.asset(
+              iconPath,
+              height: iconSize.h,
+              width: iconSize.w,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class SecurityScreen extends StatefulWidget {
   const SecurityScreen({super.key});
@@ -17,6 +20,7 @@ class _SecurityScreenState extends State<SecurityScreen>
   String? email;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _otpController = TextEditingController();
+  String? _accessToken; // Add this line to store the token
 
   // Animation controller for rotating indicator
   late AnimationController _animationController;
@@ -28,6 +32,16 @@ class _SecurityScreenState extends State<SecurityScreen>
       vsync: this,
       duration: const Duration(seconds: 2),
     );
+    _loadAccessToken(); // Add this line to load the token when screen initializes
+  }
+
+  // Add this method to load the access token from SharedPreferences
+  Future<void> _loadAccessToken() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _accessToken = prefs.getString("access_token");
+    });
+    print("Access token loaded: ${_accessToken?.substring(0, 10)}..."); // Print first 10 chars for debugging
   }
 
   @override
@@ -36,6 +50,158 @@ class _SecurityScreenState extends State<SecurityScreen>
     _emailController.dispose();
     _otpController.dispose();
     super.dispose();
+  }
+
+  Future<void> _requestOtp(String email) async {
+    try {
+      if (_accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You need to be logged in to verify your email',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('https://test-prod-f427.onrender.com/api/users/request-otp'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken', // Use the loaded token
+        },
+        body: jsonEncode({'email': email}),
+      );
+
+      // Rest of the method remains the same
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'OTP sent successfully!',
+                style: GoogleFonts.plusJakartaSans(),
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          _showOtpDialog();
+        } else {
+          throw Exception(data['message'] ?? 'Failed to send OTP');
+        }
+      } else {
+        throw Exception('Failed to send OTP: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString(),
+            style: GoogleFonts.plusJakartaSans(),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          isVerificationInProgress = false;
+        });
+        _animationController.stop();
+        _animationController.reset();
+      }
+    }
+  }
+
+  Future<void> _verifyOtp(String email, String otp) async {
+    try {
+      if (_accessToken == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'You need to be logged in to verify your email',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        );
+        return;
+      }
+
+      final response = await http.post(
+        Uri.parse('https://test-prod-f427.onrender.com/api/users/verify-otp'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $_accessToken', // Use the loaded token
+        },
+        body: jsonEncode({
+          'email': email,
+          'otp': otp,
+        }),
+      );
+
+      // Rest of the method remains the same
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        if (data['success'] == true) {
+          setState(() {
+            isEmailVerified = true;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Email verified successfully!',
+                style: GoogleFonts.plusJakartaSans(),
+              ),
+              backgroundColor: Colors.green,
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+          );
+          Navigator.pop(context);
+        } else {
+          throw Exception(data['message'] ?? 'OTP verification failed');
+        }
+      } else {
+        throw Exception('OTP verification failed: ${response.statusCode}');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            e.toString(),
+            style: GoogleFonts.plusJakartaSans(),
+          ),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+      );
+    }
   }
 
   void _startVerification() {
@@ -69,20 +235,8 @@ class _SecurityScreenState extends State<SecurityScreen>
 
     _animationController.repeat();
 
-    // Simulate sending verification email
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        setState(() {
-          isVerificationInProgress = false;
-        });
-
-        _animationController.stop();
-        _animationController.reset();
-
-        // Show OTP dialog
-        _showOtpDialog();
-      }
-    });
+    // Call API to request OTP
+    _requestOtp(email!);
   }
 
   void _showOtpDialog() {
@@ -91,218 +245,201 @@ class _SecurityScreenState extends State<SecurityScreen>
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
-                  ),
-                ],
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(20),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.1),
+                blurRadius: 10,
+                offset: const Offset(0, 5),
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Email icon
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.blue.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.email_outlined,
-                      color: Colors.blue,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Title
-                  Text(
-                    'Verify Your Email',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-
-                  // Description
-                  Text(
-                    'We\'ve sent a 6-digit verification code to $email',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // OTP input field
-                  TextField(
-                    controller: _otpController,
-                    keyboardType: TextInputType.number,
-                    textAlign: TextAlign.center,
-                    maxLength: 6,
-                    inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 8,
-                    ),
-                    decoration: InputDecoration(
-                      counterText: '',
-                      hintText: '000000',
-                      hintStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w300,
-                        color: Colors.grey.shade400,
-                        letterSpacing: 8,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.blue),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      // Cancel button
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1E293B),
-                              side: BorderSide(color: Colors.grey.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              'Cancel',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-
-                      // Verify button
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_otpController.text.length == 6) {
-                                Navigator.pop(context);
-                                setState(() {
-                                  isEmailVerified = true;
-                                });
-
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Email verified successfully',
-                                      style: GoogleFonts.plusJakartaSans(),
-                                    ),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
-                              } else {
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Please enter a valid 6-digit code',
-                                      style: GoogleFonts.plusJakartaSans(),
-                                    ),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.blue,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: Text(
-                              'Verify',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-
-                  // Resend code option
-                  Padding(
-                    padding: const EdgeInsets.only(top: 16.0),
-                    child: TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        _startVerification();
-                      },
-                      child: Text(
-                        'Resend Code',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.blue,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            ],
           ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Email icon
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.email_outlined,
+                  color: Colors.blue,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              Text(
+                'Verify Your Email',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Description
+              Text(
+                'We\'ve sent a 4-digit verification code to $email',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // OTP input field
+              TextField(
+                controller: _otpController,
+                keyboardType: TextInputType.number,
+                textAlign: TextAlign.center,
+                maxLength: 4, // Changed from 6 to 4 digits
+                inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 8,
+                ),
+                decoration: InputDecoration(
+                  counterText: '',
+                  hintText: '0000', // Changed from 6 to 4 zeros
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w300,
+                    color: Colors.grey.shade400,
+                    letterSpacing: 8,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.blue),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Action buttons
+              Row(
+                children: [
+                  // Cancel button
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1E293B),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+
+                  // Verify button
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_otpController.text.length == 4) {
+                            // Changed from 6 to 4
+                            _verifyOtp(email!, _otpController.text);
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Please enter a valid 4-digit code',
+                                  style: GoogleFonts.plusJakartaSans(),
+                                ),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Verify',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+
+              // Resend code option
+              Padding(
+                padding: const EdgeInsets.only(top: 16.0),
+                child: TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                    _startVerification();
+                  },
+                  child: Text(
+                    'Resend Code',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.blue,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 
@@ -388,10 +525,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                                 ? Icons.verified_user
                                 : Icons.shield,
                             size: 120,
-                            color:
-                                isEmailVerified
-                                    ? Colors.green
-                                    : const Color(0xFF1E293B),
+                            color: isEmailVerified
+                                ? Colors.green
+                                : const Color(0xFF1E293B),
                           ),
                         ),
 
@@ -478,18 +614,16 @@ class _SecurityScreenState extends State<SecurityScreen>
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green.shade50
-                                        : Colors.blue.shade50,
+                                color: isEmailVerified
+                                    ? Colors.green.shade50
+                                    : Colors.blue.shade50,
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: Icon(
                                 Icons.email_outlined,
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green
-                                        : Colors.blue,
+                                color: isEmailVerified
+                                    ? Colors.green
+                                    : Colors.blue,
                                 size: 24,
                               ),
                             ),
@@ -513,10 +647,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                                         : 'Email not verified',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
-                                      color:
-                                          isEmailVerified
-                                              ? Colors.green
-                                              : Colors.grey.shade600,
+                                      color: isEmailVerified
+                                          ? Colors.green
+                                          : Colors.grey.shade600,
                                     ),
                                   ),
                                 ],
@@ -526,10 +659,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                               width: 24,
                               height: 24,
                               decoration: BoxDecoration(
-                                color:
-                                    isEmailVerified
-                                        ? Colors.green
-                                        : Colors.grey.shade300,
+                                color: isEmailVerified
+                                    ? Colors.green
+                                    : Colors.grey.shade300,
                                 shape: BoxShape.rectangle,
                                 borderRadius: BorderRadius.circular(4),
                               ),
@@ -590,10 +722,9 @@ class _SecurityScreenState extends State<SecurityScreen>
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed:
-                      isEmailVerified || isVerificationInProgress
-                          ? null
-                          : _startVerification,
+                  onPressed: isEmailVerified || isVerificationInProgress
+                      ? null
+                      : _startVerification,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF1E293B),
                     foregroundColor: Colors.white,
@@ -607,8 +738,8 @@ class _SecurityScreenState extends State<SecurityScreen>
                     isEmailVerified
                         ? 'Email Verified'
                         : isVerificationInProgress
-                        ? 'Sending Code...'
-                        : 'Verify Email',
+                            ? 'Sending Code...'
+                            : 'Verify Email',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -638,11 +769,10 @@ class DottedCirclePainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final Paint paint =
-        Paint()
-          ..color = color
-          ..strokeWidth = 2
-          ..style = PaintingStyle.stroke;
+    final Paint paint = Paint()
+      ..color = color
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke;
 
     final double radius = size.width / 2;
     final Path path = Path();

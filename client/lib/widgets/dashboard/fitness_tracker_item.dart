@@ -120,7 +120,7 @@ class FitnessTrackerItem extends StatelessWidget {
                         Row(
                           children: List.generate(
                             6,
-                            (index) => _buildDot(
+                                (index) => _buildDot(
                               index < 3
                                   ? const Color(0xFF3B82F6)
                                   : const Color(0xFFE2E8F0),

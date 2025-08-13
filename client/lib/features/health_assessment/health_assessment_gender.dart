@@ -42,23 +42,39 @@ class _HealthAssessmentGenderState
   late PageController _pageController;
 
   @override
-  void initState() {
-    super.initState();
-    _pageController = PageController(initialPage: 1, viewportFraction: 0.8);
-
+void initState() {
+  super.initState();
+  // Default to male (index 1)
+  _currentIndex = 1;
+  selectedGender = _genders[_currentIndex]['id'];
+  _pageController = PageController(initialPage: _currentIndex, viewportFraction: 0.8);
+  
+  // Initialize the provider with default gender value
+  WidgetsBinding.instance.addPostFrameCallback((_) {
     final savedGender = ref.read(onboardingProvider).gender;
-
-    if (savedGender.isNotEmpty) {
+    
+    // If no saved gender yet, set the default
+    if (savedGender.isEmpty) {
+      // Get the default gender value from the _genders list
+      final defaultGender = _genders[_currentIndex]['id'];
+      
+      // Update provider with default
+      ref.read(onboardingProvider.notifier).updateGender(defaultGender);
+      print("Default Gender Set: ${ref.read(onboardingProvider).gender}");
+    } 
+    // If there's a saved gender, update the UI to match
+    else {
       final savedIndex = _genders.indexWhere((g) => g['id'] == savedGender);
-      if (savedIndex != -1) {
-        _currentIndex = savedIndex;
-        selectedGender = savedGender;
+      if (savedIndex != -1 && savedIndex != _currentIndex) {
+        setState(() {
+          _currentIndex = savedIndex;
+          selectedGender = savedGender;
+        });
         _pageController.jumpToPage(savedIndex);
       }
-    } else {
-      selectedGender = _genders[_currentIndex]['id'];
     }
-  }
+  });
+}
 
   @override
   void dispose() {

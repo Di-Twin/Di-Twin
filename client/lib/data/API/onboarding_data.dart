@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:client/data/providers/onboarding_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 Future<void> updateUserHealthProfile(WidgetRef ref) async {
   final onboardingState = ref.read(onboardingProvider);
@@ -10,14 +10,14 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
   try {
     // ✅ Retrieve Access Token from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
-    final accessToken = prefs.getString("access_token");
+    final String? accessToken = prefs.getString("access_token");
 
     if (accessToken == null) {
-      print("⚠️ Error: No Access Token Found.");
+      print("⚠️ No access token found. User might be logged out.");
       return;
     }
 
-    // ✅ Prepare request data (Include `medical_conditions`)
+    // ✅ Prepare request data
     final Map<String, dynamic> requestData = {
       "health_goals": onboardingState.goal,
       "gender": onboardingState.gender,
@@ -25,26 +25,20 @@ Future<void> updateUserHealthProfile(WidgetRef ref) async {
       "height_cm": onboardingState.height_cm,
       "age": onboardingState.age,
       "medications": onboardingState.medications ?? [],
-      "medical_conditions":
-          onboardingState.medical_conditions ?? [], // ✅ Allergy Data Sent
+      "medical_conditions": onboardingState.medical_conditions ?? [],
     };
 
-    print("📡 Sending Data: $requestData");
-
-    // ✅ Convert data to JSON
     final String jsonData = jsonEncode(requestData);
 
-    // ✅ Send PATCH request to backend
     final response = await http.patch(
-      Uri.parse("http://192.168.11.196:6000/api/profiles"),
+      Uri.parse("https://test-prod-f427.onrender.com/api/profiles"),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": "Bearer $accessToken", // Attach token
+        "Authorization": "Bearer $accessToken",
       },
       body: jsonData,
     );
 
-    // ✅ Handle API Response
     if (response.statusCode == 200) {
       print("✅ Profile updated successfully: ${response.body}");
     } else {
