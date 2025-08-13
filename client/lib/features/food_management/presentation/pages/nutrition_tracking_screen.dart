@@ -20,7 +20,7 @@ class NutritionTrackingPage extends StatefulWidget {
 }
 
 class _NutritionTrackingPageState extends State<NutritionTrackingPage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   // Date tracking
   DateTime _selectedDate = DateTime.now();
   final DateTime _today = DateTime.now();
@@ -92,6 +92,11 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   double _calendarOffset = 0.0;
   bool _isDragging = false;
 
+  late PageController _nutritionPageController;
+  int _currentNutritionPage = 0;
+  late AnimationController _pageAnimationController;
+  late Animation<Offset> _slideAnimation;
+
   @override
   void initState() {
     super.initState();
@@ -110,19 +115,33 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
       curve: Curves.easeOutQuart,
     );
 
+    _nutritionPageController = PageController();
+    _pageAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+
+    _slideAnimation = Tween<Offset>(
+      begin: Offset.zero,
+      end: const Offset(0.1, 0),
+    ).animate(CurvedAnimation(
+      parent: _pageAnimationController,
+      curve: Curves.easeInOut,
+    ));
+
     // Start the animation
     _animationController.forward();
 
     // Initialize page controller
     _pageController = PageController(initialPage: 1); // Start in the middle
     _currentPage = 1;
-    
+
     // Load daily food data
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadDailyFoodData();
     });
   }
-  
+
   void _loadDailyFoodData() {
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
     final dailyFoodProvider = Provider.of<DailyFoodProvider>(context, listen: false);
@@ -132,7 +151,8 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   @override
   void dispose() {
     _animationController.dispose();
-    _pageController.dispose();
+    _nutritionPageController.dispose();
+    _pageAnimationController.dispose();
     super.dispose();
   }
 
@@ -158,7 +178,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     setState(() {
       _selectedDate = _selectedDate.subtract(const Duration(days: 1));
       _updateDataForSelectedDate();
-      
+
       // Load daily food data for the new date
       _loadDailyFoodData();
     });
@@ -187,7 +207,7 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     setState(() {
       _selectedDate = _selectedDate.add(const Duration(days: 1));
       _updateDataForSelectedDate();
-      
+
       // Load daily food data for the new date
       _loadDailyFoodData();
     });
@@ -226,37 +246,37 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
       // Copy of the data with some random variation
       _currentData = {
         'totalNutrition': (double.parse(
-                  baseData['totalNutrition'].toString().replaceAll(',', '.'),
-                ) *
-                (0.8 +
-                    0.4 *
-                        (DateTime.now().millisecondsSinceEpoch % 1000) /
-                        1000))
+          baseData['totalNutrition'].toString().replaceAll(',', '.'),
+        ) *
+            (0.8 +
+                0.4 *
+                    (DateTime.now().millisecondsSinceEpoch % 1000) /
+                    1000))
             .toStringAsFixed(2)
             .replaceAll('.', ','),
         'proteins':
-            '${(int.parse(baseData['proteins'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        '${(int.parse(baseData['proteins'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
         'macro':
-            '${(int.parse(baseData['macro'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        '${(int.parse(baseData['macro'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
         'fiber':
-            '${(int.parse(baseData['fiber'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
+        '${(int.parse(baseData['fiber'].toString().replaceAll('g', '')) * (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000)).toInt()}g',
         'blueProgress':
-            (baseData['blueProgress'] as double) *
+        (baseData['blueProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'lightBlueProgress':
-            (baseData['lightBlueProgress'] as double) *
+        (baseData['lightBlueProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'redProgress':
-            (baseData['redProgress'] as double) *
+        (baseData['redProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'pinkProgress':
-            (baseData['pinkProgress'] as double) *
+        (baseData['pinkProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'navyProgress':
-            (baseData['navyProgress'] as double) *
+        (baseData['navyProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'grayProgress':
-            (baseData['grayProgress'] as double) *
+        (baseData['grayProgress'] as double) *
             (0.8 + 0.4 * (DateTime.now().millisecondsSinceEpoch % 1000) / 1000),
         'date': _selectedDate,
       };
@@ -369,24 +389,24 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
   Widget _buildNutritionPage(double screenWidth) {
     final dailyFoodProvider = Provider.of<DailyFoodProvider>(context);
     final dailyFood = dailyFoodProvider.dailyFood;
-    
+
     // Use API data if available, otherwise use mock data
-    final totalNutrition = dailyFood != null 
+    final totalNutrition = dailyFood != null
         ? dailyFood.totalCalories.toStringAsFixed(2)
         : _currentData['totalNutrition'];
-        
-    final proteins = dailyFood != null 
+
+    final proteins = dailyFood != null
         ? '${dailyFood.totalProtein.toStringAsFixed(1)}g'
         : _currentData['proteins'];
-        
-    final carbs = dailyFood != null 
+
+    final carbs = dailyFood != null
         ? '${dailyFood.totalCarbs.toStringAsFixed(1)}g'
         : _currentData['macro'];
-        
-    final fats = dailyFood != null 
+
+    final fats = dailyFood != null
         ? '${dailyFood.totalFats.toStringAsFixed(1)}g'
         : _currentData['fiber'];
-    
+
     // Create a data map that combines API and mock data
     final displayData = Map<String, dynamic>.from(_currentData);
     if (dailyFood != null) {
@@ -531,6 +551,30 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
     );
   }
 
+  void _onNutritionPageChanged(int page) {
+    setState(() {
+      _currentNutritionPage = page;
+      // Update data based on page
+      final keys = _nutritionData.keys.toList();
+      if (page < keys.length) {
+        _updateDataForDate(DateTime.now().subtract(Duration(days: keys.length - 1 - page)));
+      }
+    });
+
+    // Trigger slide animation
+    _pageAnimationController.forward().then((_) {
+      _pageAnimationController.reverse();
+    });
+  }
+
+  // Update data based on date
+  void _updateDataForDate(DateTime date) {
+    setState(() {
+      _selectedDate = date;
+      _updateDataForSelectedDate();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     // Set status bar color to match background
@@ -558,26 +602,26 @@ class _NutritionTrackingPageState extends State<NutritionTrackingPage>
                   // Header
                   NutritionHeader(onBack: () => Navigator.pop(context)),
 
-            // Loading indicator or error message
-            Consumer<DailyFoodProvider>(
-              builder: (context, provider, child) {
-                if (provider.isLoading) {
-                  return const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Center(child: CircularProgressIndicator()),
-                  );
-                } else if (provider.error.isNotEmpty) {
-                  return Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    child: Text(
-                      'Error: ${provider.error}',
-                      style: const TextStyle(color: Colors.red),
-                    ),
-                  );
-                }
-                return const SizedBox.shrink();
-              },
-            ),
+                  // Loading indicator or error message
+                  Consumer<DailyFoodProvider>(
+                    builder: (context, provider, child) {
+                      if (provider.isLoading) {
+                        return const Padding(
+                          padding: EdgeInsets.all(8.0),
+                          child: Center(child: CircularProgressIndicator()),
+                        );
+                      } else if (provider.error.isNotEmpty) {
+                        return Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            'Error: ${provider.error}',
+                            style: const TextStyle(color: Colors.red),
+                          ),
+                        );
+                      }
+                      return const SizedBox.shrink();
+                    },
+                  ),
 
                   // Main content with PageView for transitions
                   Expanded(

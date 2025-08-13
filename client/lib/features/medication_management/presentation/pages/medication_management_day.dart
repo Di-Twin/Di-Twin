@@ -16,13 +16,19 @@ class MedicationsManagementDay extends ConsumerStatefulWidget {
       _MedicationsManagementDayState();
 }
 
-class _MedicationsManagementDayState extends ConsumerState<MedicationsManagementDay> {
+class _MedicationsManagementDayState extends ConsumerState<MedicationsManagementDay>
+    with TickerProviderStateMixin {
   late DateTime _currentDate;
   DateTime _selectedDate = DateTime.now();
   List<DateTime> _dateRange = [];
   final ScrollController _scrollController = ScrollController();
   int _selectedDateIndex = 0;
   Timer? _medicationCheckTimer;
+  late AnimationController _progressAnimationController;
+  late AnimationController _completionAnimationController;
+
+  // Track loading states for individual medications
+  final Set<String> _loadingMedications = <String>{};
 
   @override
   void initState() {
@@ -30,6 +36,16 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     _currentDate = DateTime.now();
     _selectedDate = _currentDate;
     _generateDateRange();
+
+    _progressAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 1500),
+      vsync: this,
+    );
+
+    _completionAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
 
     _selectedDateIndex = _dateRange.indexWhere(
           (date) =>
@@ -43,6 +59,7 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
         _scrollToSelectedDate();
       }
       _startMedicationCheckTimer();
+      _progressAnimationController.forward();
     });
   }
 
@@ -57,6 +74,8 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
   void dispose() {
     _medicationCheckTimer?.cancel();
     _scrollController.dispose();
+    _progressAnimationController.dispose();
+    _completionAnimationController.dispose();
     super.dispose();
   }
 
@@ -64,7 +83,6 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     final now = DateTime.now();
     final today = DateFormat('yyyy-MM-dd').format(now);
 
-    // Get daily medication data and check for alerts
     ref.read(dailyMedicationProvider(today).future).then((dailyData) {
       for (var medication in dailyData.medications) {
         if (medication.status == 'pending') {
@@ -77,7 +95,6 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
         }
       }
     }).catchError((error) {
-      // Handle error silently or show appropriate message
       print('Error checking medication alerts: $error');
     });
   }
@@ -114,47 +131,171 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     );
   }
 
-  Future<void> _takeMedication(String medicationId, String time) async {
-    final actions = ref.read(medicationActionsProvider);
-    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+  String _getMedicationKey(String medicationId, String time) {
+    return '${medicationId}_$time';
+  }
 
-    final success = await actions.takeMedication(medicationId, dateStr, time);
-    if (success) {
+  Future<void> _takeMedication(String medicationId, String time) async {
+    final medicationKey = _getMedicationKey(medicationId, time);
+
+    // Prevent multiple clicks
+    if (_loadingMedications.contains(medicationKey)) {
+      return;
+    }
+
+    setState(() {
+      _loadingMedications.add(medicationKey);
+    });
+
+    try {
+      final actions = ref.read(medicationActionsProvider);
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+      final success = await actions.takeMedication(medicationId, dateStr, time);
+
+      if (success) {
+        _completionAnimationController.forward().then((_) {
+          _completionAnimationController.reset();
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Icon(Icons.check, color: Colors.white, size: 16.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    'Great! Medication taken successfully',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update medication status',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      }
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Medication marked as taken'),
-          backgroundColor: Colors.green,
+          content: Text(
+            'An error occurred. Please try again.',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          margin: EdgeInsets.all(16.w),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update medication status'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } finally {
+      setState(() {
+        _loadingMedications.remove(medicationKey);
+      });
     }
   }
 
   Future<void> _skipMedication(String medicationId, String time, {String? reason}) async {
-    final actions = ref.read(medicationActionsProvider);
-    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final medicationKey = _getMedicationKey(medicationId, time);
 
-    final success = await actions.skipMedication(medicationId, dateStr, time, reason: reason);
-    if (success) {
+    // Prevent multiple clicks
+    if (_loadingMedications.contains(medicationKey)) {
+      return;
+    }
+
+    setState(() {
+      _loadingMedications.add(medicationKey);
+    });
+
+    try {
+      final actions = ref.read(medicationActionsProvider);
+      final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+
+      final success = await actions.skipMedication(medicationId, dateStr, time, reason: reason);
+
+      if (success) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                Container(
+                  padding: EdgeInsets.all(4.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Icon(Icons.schedule, color: Colors.white, size: 16.sp),
+                ),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    'Medication marked as skipped',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFFFBBF24),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to update medication status',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+            margin: EdgeInsets.all(16.w),
+          ),
+        );
+      }
+    } catch (error) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Medication marked as skipped'),
-          backgroundColor: Colors.orange,
+          content: Text(
+            'An error occurred. Please try again.',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+          ),
+          backgroundColor: const Color(0xFFEF4444),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12.r)),
+          margin: EdgeInsets.all(16.w),
         ),
       );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update medication status'),
-          backgroundColor: Colors.red,
-        ),
-      );
+    } finally {
+      setState(() {
+        _loadingMedications.remove(medicationKey);
+      });
     }
   }
 
@@ -209,97 +350,71 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
 
   @override
   Widget build(BuildContext context) {
-    final textTheme = GoogleFonts.plusJakartaSansTextTheme(
-      Theme.of(context).textTheme,
-    );
-
-    return Theme(
-      data: Theme.of(context).copyWith(textTheme: textTheme),
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF0F2F5),
-        body: SafeArea(
-          child: Column(
-            children: [
-              _buildHeader(),
-              _buildDaySelector(),
-              _buildDateInfo(),
-              Expanded(child: _buildMedicationTimeline()),
-            ],
-          ),
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8FAFC),
+      body: SafeArea(
+        child: Column(
+          children: [
+            _buildModernHeader(),
+            _buildEnhancedDaySelector(),
+            _buildProgressHeader(),
+            Expanded(child: _buildModernMedicationTimeline()),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeader() {
-    return Padding(
-      padding: EdgeInsets.all(16.0.w),
-      child: Row(
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.black),
-              borderRadius: BorderRadius.circular(8.r),
-            ),
-            child: IconButton(
-              iconSize: 24.w,
-              icon: const Icon(Icons.chevron_left),
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-            ),
-          ),
-          SizedBox(width: 16.w),
-          Text(
-            'My Medications',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 20.sp,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
+  Widget _buildModernHeader() {
+    return Container(
+      padding: EdgeInsets.fromLTRB(20.w, 16.h, 20.w, 16.h),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFF1F5F9), width: 1),
+        ),
       ),
-    );
-  }
-
-  Widget _buildDateInfo() {
-    bool isToday = _selectedDate.year == _currentDate.year &&
-        _selectedDate.month == _currentDate.month &&
-        _selectedDate.day == _currentDate.day;
-
-    String dateText = isToday
-        ? "Today's Medications"
-        : "Medications for ${DateFormat('MMMM d, yyyy').format(_selectedDate)}";
-
-    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
-    final dailyMedicationAsync = ref.watch(dailyMedicationProvider(dateStr));
-
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: 16.0.w, vertical: 8.0.h),
       child: Row(
         children: [
-          Expanded(
-            child: Text(
-              dateText,
-              style: TextStyle(
-                fontSize: 16.sp,
-                fontWeight: FontWeight.w600,
-                color: Colors.black,
+          GestureDetector(
+            onTap: () => Navigator.of(context).pop(),
+            child: Container(
+              width: 44.w,
+              height: 44.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12.r),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Icon(
+                Icons.arrow_back_ios_new,
+                size: 18.sp,
+                color: const Color(0xFF1E293B),
               ),
             ),
           ),
-          dailyMedicationAsync.when(
-            data: (dailyData) => Text(
-              "${dailyData.medications.length} total",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
-            ),
-            loading: () => Text(
-              "Loading...",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
-            ),
-            error: (error, stack) => Text(
-              "No medications",
-              style: TextStyle(fontSize: 14.sp, color: Colors.grey.shade700),
+          SizedBox(width: 16.w),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'My Medications',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 24.sp,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+                Text(
+                  'Stay on track with your health',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF64748B),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -307,29 +422,61 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     );
   }
 
-  Widget _buildDaySelector() {
-    return SizedBox(
-      height: 100.h,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final itemWidth = 72.0.w;
-          final viewableItemCount = 5;
-          final double totalItemsWidth = viewableItemCount * itemWidth;
-          final double sidePadding = (constraints.maxWidth - totalItemsWidth) / 2;
-
-          return ListView.builder(
-            controller: _scrollController,
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.symmetric(horizontal: sidePadding),
-            itemCount: _dateRange.length,
-            itemBuilder: (context, index) => _buildDayItem(index),
-          );
-        },
+  Widget _buildEnhancedDaySelector() {
+    return Container(
+      height: 140.h,
+      color: Colors.white,
+      child: Column(
+        children: [
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Flexible(
+                  child: Text(
+                    DateFormat('MMMM yyyy').format(_selectedDate),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.w700,
+                      color: const Color(0xFF1E293B),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 6.h),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(20.r),
+                  ),
+                  child: Text(
+                    'Today',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12.sp,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF3B82F6),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: ListView.builder(
+              controller: _scrollController,
+              scrollDirection: Axis.horizontal,
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              itemCount: _dateRange.length,
+              itemBuilder: (context, index) => _buildEnhancedDayItem(index),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildDayItem(int index) {
+  Widget _buildEnhancedDayItem(int index) {
     final DateTime date = _dateRange[index];
     final bool isSelected = index == _selectedDateIndex;
     final bool isToday = date.day == DateTime.now().day &&
@@ -340,79 +487,307 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     final String dateNumber = date.day.toString();
 
     return GestureDetector(
-      onTap: () {
-        _selectDate(index);
-      },
-      child: Container(
-        width: 64.w,
-        margin: EdgeInsets.symmetric(horizontal: 4.0.w, vertical: 8.0.h),
+      onTap: () => _selectDate(index),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeInOut,
+        width: 68.w,
+        margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 8.h),
         decoration: BoxDecoration(
-          color: isSelected ? Color(0xFF0F67FE) : Colors.white,
-          borderRadius: BorderRadius.circular(12.r),
+          color: isSelected
+              ? const Color(0xFF3B82F6)
+              : (isToday ? const Color(0xFFF1F5F9) : Colors.transparent),
+          borderRadius: BorderRadius.circular(16.r),
           border: isToday && !isSelected
-              ? Border.all(color: Color(0xFF0F67FE), width: 2.w)
+              ? Border.all(color: const Color(0xFF3B82F6), width: 1.5.w)
               : null,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.1),
-              spreadRadius: 1.r,
-              blurRadius: 2.r,
-              offset: Offset(0, 1.h),
-            ),
-          ],
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Text(
               dayName,
-              style: TextStyle(
-                color: isSelected ? Colors.white : Colors.black,
-                fontWeight: FontWeight.w500,
-                fontSize: 13.sp,
+              style: GoogleFonts.plusJakartaSans(
+                color: isSelected
+                    ? Colors.white
+                    : (isToday ? const Color(0xFF3B82F6) : const Color(0xFF64748B)),
+                fontWeight: FontWeight.w600,
+                fontSize: 12.sp,
               ),
             ),
-            SizedBox(height: 4.h),
+            SizedBox(height: 6.h),
             Text(
               dateNumber,
-              style: TextStyle(
-                fontSize: 22.sp,
-                fontWeight: FontWeight.bold,
-                color: isSelected ? Colors.white : Colors.black,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w800,
+                color: isSelected
+                    ? Colors.white
+                    : (isToday ? const Color(0xFF3B82F6) : const Color(0xFF1E293B)),
               ),
             ),
-            SizedBox(height: 4.h),
+            if (isToday && !isSelected)
+              Container(
+                width: 4.w,
+                height: 4.h,
+                margin: EdgeInsets.only(top: 6.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6),
+                  borderRadius: BorderRadius.circular(2.r),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildMedicationTimeline() {
+  Widget _buildProgressHeader() {
+    final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+    final dailyMedicationAsync = ref.watch(dailyMedicationProvider(dateStr));
+
+    return dailyMedicationAsync.when(
+      data: (dailyData) {
+        final totalMedications = dailyData.medications.length;
+        final takenMedications = dailyData.medications.where((m) => m.status == 'taken').length;
+        final progress = totalMedications > 0 ? takenMedications / totalMedications : 0.0;
+
+        bool isToday = _selectedDate.year == DateTime.now().year &&
+            _selectedDate.month == DateTime.now().month &&
+            _selectedDate.day == DateTime.now().day;
+
+        String dateText = isToday
+            ? "Today's Progress"
+            : DateFormat('MMM dd').format(_selectedDate);
+
+        return Container(
+          margin: EdgeInsets.all(20.w),
+          padding: EdgeInsets.all(24.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          dateText,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 18.sp,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF1E293B),
+                          ),
+                        ),
+                        SizedBox(height: 6.h),
+                        Text(
+                          '$takenMedications of $totalMedications medications taken',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.sp,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  _buildProgressRing(progress, takenMedications, totalMedications),
+                ],
+              ),
+              if (totalMedications > 0) ...[
+                SizedBox(height: 20.h),
+                _buildProgressBar(progress),
+              ],
+            ],
+          ),
+        );
+      },
+      loading: () => Container(
+        margin: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(24.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: 140.w,
+                    height: 18.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(9.r),
+                    ),
+                  ),
+                  SizedBox(height: 12.h),
+                  Container(
+                    width: 200.w,
+                    height: 14.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(7.r),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Container(
+              width: 64.w,
+              height: 64.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(32.r),
+              ),
+            ),
+          ],
+        ),
+      ),
+      error: (error, stack) => Container(
+        margin: EdgeInsets.all(20.w),
+        padding: EdgeInsets.all(24.w),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Text(
+          'Unable to load progress',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF64748B),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildProgressRing(double progress, int taken, int total) {
+    return AnimatedBuilder(
+      animation: _progressAnimationController,
+      builder: (context, child) {
+        return SizedBox(
+          width: 64.w,
+          height: 64.h,
+          child: Stack(
+            children: [
+              SizedBox(
+                width: 64.w,
+                height: 64.h,
+                child: CircularProgressIndicator(
+                  value: 1.0,
+                  strokeWidth: 6.w,
+                  backgroundColor: const Color(0xFFF1F5F9),
+                  valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF1F5F9)),
+                ),
+              ),
+              SizedBox(
+                width: 64.w,
+                height: 64.h,
+                child: CircularProgressIndicator(
+                  value: progress * _progressAnimationController.value,
+                  strokeWidth: 6.w,
+                  backgroundColor: Colors.transparent,
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    progress >= 1.0
+                        ? const Color(0xFF10B981)
+                        : progress >= 0.5
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFFFBBF24),
+                  ),
+                ),
+              ),
+              Center(
+                child: Text(
+                  '${(progress * 100).round()}%',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14.sp,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1E293B),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildProgressBar(double progress) {
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Daily Progress',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF64748B),
+              ),
+            ),
+            Text(
+              '${(progress * 100).round()}% Complete',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.sp,
+                fontWeight: FontWeight.w600,
+                color: progress >= 1.0
+                    ? const Color(0xFF10B981)
+                    : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10.h),
+        AnimatedBuilder(
+          animation: _progressAnimationController,
+          builder: (context, child) {
+            return Container(
+              height: 8.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F5F9),
+                borderRadius: BorderRadius.circular(4.r),
+              ),
+              child: FractionallySizedBox(
+                alignment: Alignment.centerLeft,
+                widthFactor: progress * _progressAnimationController.value,
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: progress >= 1.0
+                        ? const Color(0xFF10B981)
+                        : progress >= 0.5
+                        ? const Color(0xFF3B82F6)
+                        : const Color(0xFFFBBF24),
+                    borderRadius: BorderRadius.circular(4.r),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
+  }
+
+  Widget _buildModernMedicationTimeline() {
     final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
     final dailyMedicationAsync = ref.watch(dailyMedicationProvider(dateStr));
 
     return dailyMedicationAsync.when(
       data: (dailyData) {
         if (dailyData.medications.isEmpty) {
-          return Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.medication_outlined,
-                  size: 48.sp,
-                  color: Colors.grey.shade400,
-                ),
-                SizedBox(height: 16.h),
-                Text(
-                  'No medications scheduled for this day',
-                  style: TextStyle(color: Colors.grey.shade600, fontSize: 16.sp),
-                ),
-              ],
-            ),
-          );
+          return _buildEmptyState();
         }
 
         // Group medications by time
@@ -428,42 +803,60 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
         final sortedTimes = groupedMedications.keys.toList()..sort();
 
         return ListView.builder(
-          padding: EdgeInsets.all(16.w),
+          padding: EdgeInsets.fromLTRB(20.w, 0, 20.w, 20.h),
           itemCount: sortedTimes.length,
           itemBuilder: (context, index) {
             final time = sortedTimes[index];
             final medications = groupedMedications[time]!;
             final bool isLastItem = index == sortedTimes.length - 1;
 
-            return _buildTimeSlot(time, medications, isLastItem);
+            return _buildModernTimeSlot(time, medications, isLastItem, index);
           },
         );
       },
-      loading: () => Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF0F67FE)),
-        ),
-      ),
-      error: (error, stack) => Center(
+      loading: () => _buildLoadingState(),
+      error: (error, stack) => _buildErrorState(),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.error_outline,
-              size: 48.sp,
-              color: Colors.red.shade400,
+            Container(
+              width: 120.w,
+              height: 120.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(60.r),
+              ),
+              child: Icon(
+                Icons.medication_outlined,
+                size: 60.sp,
+                color: const Color(0xFF94A3B8),
+              ),
             ),
-            SizedBox(height: 16.h),
+            SizedBox(height: 32.h),
             Text(
-              'Failed to load medications',
-              style: TextStyle(color: Colors.red.shade600, fontSize: 16.sp),
+              'No medications scheduled',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B),
+              ),
             ),
-            SizedBox(height: 8.h),
-            ElevatedButton(
-              onPressed: () {
-                ref.invalidate(dailyMedicationProvider(dateStr));
-              },
-              child: Text('Retry'),
+            SizedBox(height: 12.h),
+            Text(
+              'Enjoy your medication-free day!',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
             ),
           ],
         ),
@@ -471,178 +864,449 @@ class _MedicationsManagementDayState extends ConsumerState<MedicationsManagement
     );
   }
 
-  Widget _buildTimeSlot(String time, List<DailyMedicationModel> medications, bool isLastItem) {
+  Widget _buildLoadingState() {
+    return ListView.builder(
+      padding: EdgeInsets.all(20.w),
+      itemCount: 3,
+      itemBuilder: (context, index) {
+        return Container(
+          margin: EdgeInsets.only(bottom: 20.h),
+          padding: EdgeInsets.all(18.w),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 40.w,
+                    height: 40.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(12.r),
+                    ),
+                  ),
+                  SizedBox(width: 16.w),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 120.w,
+                          height: 16.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        SizedBox(height: 8.h),
+                        Container(
+                          width: 180.w,
+                          height: 14.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(7.r),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildErrorState() {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(40.w),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 120.w,
+              height: 120.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF2F2),
+                borderRadius: BorderRadius.circular(60.r),
+              ),
+              child: Icon(
+                Icons.error_outline,
+                size: 60.sp,
+                color: const Color(0xFFEF4444),
+              ),
+            ),
+            SizedBox(height: 32.h),
+            Text(
+              'Unable to load medications',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 20.sp,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF1E293B),
+              ),
+            ),
+            SizedBox(height: 12.h),
+            Text(
+              'Please check your connection and try again',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 16.sp,
+                fontWeight: FontWeight.w500,
+                color: const Color(0xFF64748B),
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 32.h),
+            GestureDetector(
+              onTap: () {
+                final dateStr = DateFormat('yyyy-MM-dd').format(_selectedDate);
+                ref.invalidate(dailyMedicationProvider(dateStr));
+              },
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 32.w, vertical: 16.h),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3B82F6),
+                  borderRadius: BorderRadius.circular(12.r),
+                ),
+                child: Text(
+                  'Try Again',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 16.sp,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildModernTimeSlot(String time, List<DailyMedicationModel> medications, bool isLastItem, int timeSlotIndex) {
     final now = DateTime.now();
     final timeSlotDateTime = _parseTimeSlot(DateFormat('yyyy-MM-dd').format(_selectedDate), time);
 
     final bool isPast = timeSlotDateTime.isBefore(now);
     final bool isCurrent = timeSlotDateTime.difference(now).inHours.abs() <= 1;
+    final bool isUpcoming = timeSlotDateTime.isAfter(now);
+
+    final completedCount = medications.where((m) => m.status == 'taken').length;
+    final totalCount = medications.length;
+    final isTimeSlotComplete = completedCount == totalCount;
 
     Color timeColor = isPast
-        ? Colors.grey.shade600
-        : (isCurrent ? Colors.green : Colors.indigo.shade900);
+        ? (isTimeSlotComplete ? const Color(0xFF10B981) : const Color(0xFF94A3B8))
+        : (isCurrent ? const Color(0xFF3B82F6) : const Color(0xFF64748B));
 
     final displayTime = _formatDisplayTime(time);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Container(
-              width: 32.w,
-              height: 32.h,
-              decoration: BoxDecoration(
-                color: timeColor,
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Icon(
-                Icons.access_time_filled,
-                color: Colors.white,
-                size: 16.sp,
-              ),
-            ),
-            SizedBox(width: 12.w),
-            Text(
-              displayTime,
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                fontSize: 16.sp,
-                color: isCurrent ? Colors.green : null,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              '${medications.length} Total',
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 14.sp,
-              ),
-            ),
-          ],
-        ),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 32.w,
-              alignment: Alignment.center,
-              child: Column(
-                children: [
-                  Container(width: 2.w, height: 16.h, color: timeColor),
-                  if (!isLastItem)
-                    Container(
-                      width: 2.w,
-                      height: (medications.length * 80.0.h + 16.h),
-                      color: Colors.indigo.shade300,
-                    ),
-                ],
-              ),
-            ),
-            Expanded(
-              child: Column(
-                children: medications
-                    .map((medication) => _buildMedicationItem(medication, isCurrent))
-                    .toList(),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMedicationItem(DailyMedicationModel medication, bool isCurrent) {
-    final bool isCompleted = medication.status == 'taken';
-    final bool isMissed = medication.status == 'missed';
-
     return Container(
-      margin: EdgeInsets.only(bottom: 16.h),
-      padding: EdgeInsets.all(16.w),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12.r),
-        border: isCurrent && !isCompleted
-            ? Border.all(color: Colors.green.shade400, width: 2.w)
-            : null,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.grey.shade200,
-            blurRadius: 2.r,
-            offset: Offset(0, 1.h),
+      margin: EdgeInsets.only(bottom: 20.h),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Timeline indicator
+          Column(
+            children: [
+              Container(
+                width: 44.w,
+                height: 44.h,
+                decoration: BoxDecoration(
+                  color: timeColor,
+                  borderRadius: BorderRadius.circular(14.r),
+                ),
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Icon(
+                        isCurrent
+                            ? Icons.schedule
+                            : (isTimeSlotComplete ? Icons.check : Icons.access_time),
+                        color: Colors.white,
+                        size: 18.sp,
+                      ),
+                    ),
+                    if (isTimeSlotComplete)
+                      Positioned(
+                        top: 1.h,
+                        right: 1.w,
+                        child: Container(
+                          width: 14.w,
+                          height: 14.h,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(7.r),
+                            border: Border.all(color: Colors.white, width: 1.5.w),
+                          ),
+                          child: Icon(
+                            Icons.check,
+                            color: Colors.white,
+                            size: 8.sp,
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              if (!isLastItem)
+                Container(
+                  width: 2.w,
+                  height: (medications.length * 90.0.h + 16.h),
+                  color: const Color(0xFFE2E8F0),
+                ),
+            ],
+          ),
+          SizedBox(width: 16.w),
+          // Time slot content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Time header
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14.r),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              displayTime,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                fontSize: 18.sp,
+                                color: const Color(0xFF1E293B),
+                              ),
+                            ),
+                            SizedBox(height: 2.h),
+                            Text(
+                              '$completedCount of $totalCount medications',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13.sp,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (isCurrent)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFDF7),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Text(
+                            'Now',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.sp,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF059669),
+                            ),
+                          ),
+                        ),
+                      if (isTimeSlotComplete && !isCurrent)
+                        Container(
+                          padding: EdgeInsets.symmetric(horizontal: 10.w, vertical: 4.h),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDCFDF7),
+                            borderRadius: BorderRadius.circular(10.r),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                Icons.check_circle,
+                                size: 12.sp,
+                                color: const Color(0xFF059669),
+                              ),
+                              SizedBox(width: 3.w),
+                              Text(
+                                'Complete',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11.sp,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF059669),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                SizedBox(height: 12.h),
+                // Medications list
+                ...medications.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final medication = entry.value;
+                  return _buildModernMedicationItem(
+                    medication,
+                    isCurrent,
+                    index == medications.length - 1,
+                  );
+                }).toList(),
+              ],
+            ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildModernMedicationItem(DailyMedicationModel medication, bool isCurrent, bool isLast) {
+    final bool isCompleted = medication.status == 'taken';
+    final bool isMissed = medication.status == 'missed';
+    final bool isPending = medication.status == 'pending';
+    final medicationKey = _getMedicationKey(medication.id, medication.time);
+    final bool isLoading = _loadingMedications.contains(medicationKey);
+
+    Color statusColor = isCompleted
+        ? const Color(0xFF10B981)
+        : (isMissed ? const Color(0xFFEF4444) : const Color(0xFF64748B));
+
+    return Container(
+      margin: EdgeInsets.only(bottom: isLast ? 0 : 12.h),
+      padding: EdgeInsets.all(18.w),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14.r),
+        border: isCurrent && isPending
+            ? Border.all(color: const Color(0xFF3B82F6), width: 1.5.w)
+            : null,
+      ),
       child: Row(
         children: [
+          // Medication icon
           Container(
             width: 40.w,
             height: 40.h,
             decoration: BoxDecoration(
               color: isCompleted
-                  ? Colors.blue.shade100
-                  : (isMissed ? Colors.red.shade100 : Colors.grey.shade200),
-              borderRadius: BorderRadius.circular(8.r),
+                  ? const Color(0xFFDCFDF7)
+                  : (isMissed ? const Color(0xFFFEF2F2) : const Color(0xFFF8FAFC)),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Icon(
               Icons.medication,
-              color: isCompleted
-                  ? Colors.blue
-                  : (isMissed ? Colors.red : Colors.grey),
+              color: statusColor,
               size: 20.sp,
             ),
           ),
           SizedBox(width: 16.w),
+          // Medication details
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   medication.medicationName,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16.sp,
-                    color: isCompleted || isMissed ? Colors.grey.shade700 : null,
-                    decoration: isCompleted || isMissed ? TextDecoration.lineThrough : null,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15.sp,
+                    color: isCompleted || isMissed
+                        ? const Color(0xFF64748B)
+                        : const Color(0xFF1E293B),
+                    decoration: isCompleted || isMissed
+                        ? TextDecoration.lineThrough
+                        : null,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Text(
-                  '${medication.dose} - ${medication.afterFood ? 'After Food' : 'Before Food'}',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 14.sp,
-                  ),
+                SizedBox(height: 6.h),
+                Wrap(
+                  children: [
+                    Text(
+                      medication.dose,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF64748B),
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Container(
+                      width: 3.w,
+                      height: 3.h,
+                      margin: EdgeInsets.symmetric(horizontal: 6.w, vertical: 7.h),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF94A3B8),
+                        borderRadius: BorderRadius.circular(1.5.r),
+                      ),
+                    ),
+                    Text(
+                      medication.afterFood ? 'After Food' : 'Before Food',
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF64748B),
+                        fontSize: 13.sp,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          GestureDetector(
-            onTap: () {
-              if (!isCompleted && !isMissed) {
-                _takeMedication(medication.id, medication.time);
-              }
-            },
-            child: Container(
-              width: 24.w,
-              height: 24.h,
-              decoration: BoxDecoration(
-                color: isCompleted
-                    ? Colors.blue
-                    : (isMissed ? Colors.red : Colors.white),
-                borderRadius: BorderRadius.circular(4.r),
-                border: (!isCompleted && !isMissed)
-                    ? Border.all(color: Colors.grey.shade400)
-                    : null,
+          SizedBox(width: 12.w),
+          // Action button
+          if (!isCompleted && !isMissed)
+            GestureDetector(
+              onTap: isLoading ? null : () => _takeMedication(medication.id, medication.time),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 36.w,
+                height: 36.h,
+                decoration: BoxDecoration(
+                  color: isLoading
+                      ? const Color(0xFFF1F5F9)
+                      : (isCurrent
+                      ? const Color(0xFF3B82F6)
+                      : const Color(0xFFF1F5F9)),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: isLoading
+                    ? SizedBox(
+                  width: 16.w,
+                  height: 16.h,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.w,
+                    valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+                  ),
+                )
+                    : Icon(
+                  Icons.check,
+                  color: isCurrent ? Colors.white : const Color(0xFF64748B),
+                  size: 18.sp,
+                ),
               ),
-              child: (isCompleted || isMissed)
-                  ? Icon(
-                isCompleted ? Icons.check : Icons.close,
-                color: Colors.white,
-                size: 16.sp,
-              )
-                  : null,
+            )
+          else
+            Container(
+              width: 36.w,
+              height: 36.h,
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(10.r),
+              ),
+              child: Icon(
+                isCompleted ? Icons.check_circle : Icons.cancel,
+                color: statusColor,
+                size: 18.sp,
+              ),
             ),
-          ),
         ],
       ),
     );

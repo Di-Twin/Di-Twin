@@ -1,12 +1,14 @@
+import 'package:client/features/sleep_management/sleep_management_score.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:client/widgets/sleep_cycle_bar_graph.dart'; // Adjust import path as needed
+import 'package:client/features/sleep_management/sleep_my_stats.dart';
 
 class SleepManagementStats extends ConsumerStatefulWidget {
   const SleepManagementStats({super.key});
-  
+
   @override
   ConsumerState<SleepManagementStats> createState() =>
       _SleepManagementStatsState();
@@ -27,7 +29,7 @@ class _SleepManagementStatsState extends ConsumerState<SleepManagementStats> {
                 children: [
                   // Header widget defined in this file
                   _buildSleepStatsHeader(),
-                  
+
                   // Sleep cycle section taking all remaining space
                   Expanded(
                     child: _buildSleepCycleSection(constraints),
@@ -66,7 +68,7 @@ class _SleepManagementStatsState extends ConsumerState<SleepManagementStats> {
             ),
           ),
           SizedBox(height: 16.h),
-          
+
           // Title row with score box opposite to text
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -94,35 +96,45 @@ class _SleepManagementStatsState extends ConsumerState<SleepManagementStats> {
                   ),
                 ],
               ),
-              
+
               // Score box - exactly 68x68
-              Container(
-                width: 68.w,
-                height: 68.h,
-                decoration: BoxDecoration(
-                  color: Colors.blue.shade100,
-                  borderRadius: BorderRadius.circular(8.r),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '24',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 32.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.blue,
-                      ),
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => SleepManagementScore()
                     ),
-                    Text(
-                      'Score',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.sp,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.blue,
+                  );
+                },
+                child: Container(
+                  width: 68.w,
+                  height: 68.h,
+                  decoration: BoxDecoration(
+                    color: Colors.blue.shade100,
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '24',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 32.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blue,
+                        ),
                       ),
-                    ),
-                  ],
+                      Text(
+                        'Score',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14.sp,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.blue,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -149,7 +161,7 @@ class _SleepManagementStatsState extends ConsumerState<SleepManagementStats> {
             ),
           ),
           SizedBox(height: 16.h),
-          
+
           // Graph taking all remaining space
           Expanded(
             child: SleepCycleBarGraph(
