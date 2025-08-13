@@ -7,7 +7,6 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 
-// Activity Model (same as before)
 class Activity {
   final String id;
   final String userId;
@@ -43,25 +42,24 @@ class Activity {
 
   factory Activity.fromJson(Map<String, dynamic> json) {
     return Activity(
-      id: json['id'],
-      userId: json['userId'],
-      dayId: json['dayId'],
-      activityType: json['activity_type'],
-      startTime: DateTime.parse(json['start_time']),
-      endTime: DateTime.parse(json['end_time']),
-      sourceDevice: json['source_device'],
-      durationSeconds: json['duration_seconds'],
-      caloriesBurned: json['calories_burned'].toDouble(),
+      id: json['id'] ?? '',
+      userId: json['userId'] ?? '',
+      dayId: json['dayId'] ?? '',
+      activityType: json['activity_type'] ?? 'Unknown',
+      startTime: DateTime.parse(json['start_time'] ?? DateTime.now().toString()),
+      endTime: DateTime.parse(json['end_time'] ?? DateTime.now().toString()),
+      sourceDevice: json['source_device'] ?? 'Unknown device',
+      durationSeconds: json['duration_seconds']?.toInt() ?? 0,
+      caloriesBurned: json['calories_burned']?.toDouble() ?? 0.0,
       distanceMeters: json['distance_meters']?.toDouble(),
-      stepsCount: json['steps_count'],
-      heartRateAvg: json['heart_rate_avg'],
-      heartRateMax: json['heart_rate_max'],
-      createdAt: DateTime.parse(json['created_at']),
+      stepsCount: json['steps_count']?.toInt(),
+      heartRateAvg: json['heart_rate_avg']?.toInt(),
+      heartRateMax: json['heart_rate_max']?.toInt(),
+      createdAt: DateTime.parse(json['created_at'] ?? DateTime.now().toString()),
     );
   }
 }
 
-// Updated API Provider
 class ActivityCaloriesProvider extends ChangeNotifier {
   static const String baseUrl = 'https://test-prod-f427.onrender.com';
 
@@ -91,44 +89,52 @@ class ActivityCaloriesProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final accessToken = await _getAccessToken();
+      final token = accessToken ?? await _getAccessToken();
+      if (token == null) {
+        _error = 'Authentication required';
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
       final targetDate = date ?? DateTime.now();
       final dateString =
           '${targetDate.year}-${targetDate.month.toString().padLeft(2, '0')}-${targetDate.day.toString().padLeft(2, '0')}';
 
-      final url = Uri.parse(
-        '$baseUrl/api/activity/top-activities/$dateString?all=true',
-      );
-
+      final url = Uri.parse('$baseUrl/api/activity/top-activities/$dateString?all=true');
       final headers = <String, String>{
         'Content-Type': 'application/json',
-        'Authorization': 'Bearer $accessToken',
+        'Authorization': 'Bearer $token',
       };
 
       final response = await http.get(url, headers: headers);
 
       if (response.statusCode == 200) {
         final jsonData = json.decode(response.body);
-
         if (jsonData['success'] == true) {
-          final List<dynamic> activitiesData = jsonData['data'];
-          _activities =
-              activitiesData.map((json) => Activity.fromJson(json)).toList();
-
-          _totalCaloriesBurned = _activities.fold(
-            0.0,
-            (sum, activity) => sum + activity.caloriesBurned,
-          );
-
+          final List<dynamic> activitiesData = jsonData['data'] ?? [];
+          _activities = activitiesData.map((json) => Activity.fromJson(json)).toList();
+          _totalCaloriesBurned = _activities.fold(0.0, (sum, activity) => sum + activity.caloriesBurned);
           _error = null;
         } else {
-          _error = jsonData['message'] ?? 'Failed to fetch activities';
+          _error = jsonData['message'] ?? 'No activities found';
+          _activities = [];
+          _totalCaloriesBurned = 0.0;
         }
+      } else if (response.statusCode == 404) {
+        // Handle 404 specifically as no data rather than error
+        _activities = [];
+        _totalCaloriesBurned = 0.0;
+        _error = null;
       } else {
-        _error = 'HTTP Error: ${response.statusCode}';
+        _error = 'Server error: ${response.statusCode}';
+        _activities = [];
+        _totalCaloriesBurned = 0.0;
       }
     } catch (e) {
       _error = 'Network error: $e';
+      _activities = [];
+      _totalCaloriesBurned = 0.0;
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -194,41 +200,13 @@ class _ActivityCaloriesTrackerContentState
             return Column(
               children: [
                 // Fixed header section
-                Container(
-                  color: const Color(0xFFF0F3F8),
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 16.w,
-                    vertical: 16.h,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          IconButton(
-                            onPressed: () => Navigator.of(context).pop(),
-                            icon: const Icon(Icons.arrow_back),
-                          ),
-                          Text(
-                            'Calories',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 18.sp,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF1A1F36),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
+                _buildHeader(),
                 // Scrollable content
                 Expanded(
                   child: RefreshIndicator(
-                    onRefresh:
-                        () => provider.refreshActivities(
-                          accessToken: widget.accessToken,
-                        ),
+                    onRefresh: () => provider.refreshActivities(
+                      accessToken: widget.accessToken,
+                    ),
                     child: SingleChildScrollView(
                       physics: const AlwaysScrollableScrollPhysics(),
                       child: Column(
@@ -240,14 +218,11 @@ class _ActivityCaloriesTrackerContentState
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 SizedBox(height: 8.h),
-                                _buildCaloriesSummary(
-                                  provider.totalCaloriesBurned,
-                                ),
+                                _buildCaloriesSummary(provider.totalCaloriesBurned),
                                 SizedBox(height: 24.h),
                                 FunctionalCaloriesChartWidget(
                                   caloriesBurned: provider.totalCaloriesBurned,
-                                  targetCalories:
-                                      2000, // You can make this configurable
+                                  targetCalories: 2000,
                                 ),
                                 SizedBox(height: 24.h),
                               ],
@@ -264,6 +239,29 @@ class _ActivityCaloriesTrackerContentState
             );
           },
         ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      color: const Color(0xFFF0F3F8),
+      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 16.h),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).pop(),
+            icon: const Icon(Icons.arrow_back),
+          ),
+          Text(
+            'Calories',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18.sp,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF1A1F36),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -298,8 +296,7 @@ class _ActivityCaloriesTrackerContentState
           ),
           SizedBox(height: 16.h),
           ElevatedButton(
-            onPressed:
-                () => provider.loadActivities(accessToken: widget.accessToken),
+            onPressed: () => provider.loadActivities(accessToken: widget.accessToken),
             child: Text('Retry'),
           ),
         ],
@@ -368,7 +365,7 @@ class _ActivityCaloriesTrackerContentState
           Padding(
             padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 16.h),
             child: Text(
-              'Activities',
+              activities.isEmpty ? 'No Activities Today' : 'Activities',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18.sp,
                 fontWeight: FontWeight.w800,
@@ -377,31 +374,48 @@ class _ActivityCaloriesTrackerContentState
             ),
           ),
           Divider(height: 1, thickness: 1, color: const Color(0xFFEEEEEE)),
-          activities.isEmpty
-              ? Container(
-                alignment: Alignment.center,
-                padding: EdgeInsets.symmetric(vertical: 40.h),
-                child: Text(
-                  "No activities found",
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 16.sp,
-                    color: Colors.grey,
-                  ),
-                ),
-              )
-              : Padding(
-                padding: EdgeInsets.all(16.w),
-                child: ListView.separated(
-                  physics: const NeverScrollableScrollPhysics(),
-                  shrinkWrap: true,
-                  itemCount: activities.length,
-                  separatorBuilder: (context, index) => SizedBox(height: 12.h),
-                  itemBuilder: (context, index) {
-                    final activity = activities[index];
-                    return _buildActivityItem(activity);
-                  },
-                ),
+          if (activities.isEmpty)
+            _buildEmptyActivities()
+          else
+            Padding(
+              padding: EdgeInsets.all(16.w),
+              child: ListView.separated(
+                physics: const NeverScrollableScrollPhysics(),
+                shrinkWrap: true,
+                itemCount: activities.length,
+                separatorBuilder: (context, index) => SizedBox(height: 12.h),
+                itemBuilder: (context, index) {
+                  return _buildActivityItem(activities[index]);
+                },
               ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyActivities() {
+    return Container(
+      padding: EdgeInsets.symmetric(vertical: 40.h),
+      child: Column(
+        children: [
+          Icon(Icons.fitness_center, size: 48.w, color: Colors.grey),
+          SizedBox(height: 16.h),
+          Text(
+            "No activities recorded today",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16.sp,
+              color: Colors.grey,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            "Start moving to see your activities here!",
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 14.sp,
+              color: Colors.grey.shade500,
+            ),
+          ),
         ],
       ),
     );
@@ -431,7 +445,7 @@ class _ActivityCaloriesTrackerContentState
                 activity.activityType.isNotEmpty
                     ? activity.activityType[0].toUpperCase() +
                         activity.activityType.substring(1).toLowerCase()
-                    : '',
+                    : 'Activity',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14.sp,
                   fontWeight: FontWeight.w800,
@@ -439,7 +453,6 @@ class _ActivityCaloriesTrackerContentState
                   letterSpacing: 1,
                 ),
               ),
-
               Text(
                 '${activity.caloriesBurned.toStringAsFixed(0)} kcal',
                 style: GoogleFonts.plusJakartaSans(
