@@ -10,6 +10,7 @@ import 'package:client/features/health_assessment/health_assessment_loading.dart
 import 'package:client/features/health_assessment/health_assessment_height.dart';
 import 'package:client/features/health_assessment/health_assessment_score.dart';
 import 'package:client/features/health_assessment/health_assessment_weight.dart';
+import 'package:client/features/water_intake/data/providers/water_intake_api_provider.dart';
 import 'package:client/features/welcome/StartPage.dart';
 import 'package:client/features/welcome/WelcomePage.dart';
 import 'package:client/features/welcome/auth_guard.dart';
@@ -93,6 +94,15 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  SystemChrome.setSystemUIOverlayStyle(
+    SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      systemNavigationBarColor: Colors.transparent,
+      systemNavigationBarIconBrightness: Brightness.dark,
+      statusBarIconBrightness: Brightness.dark,
+    ),
+  );
+
   // Initialize Firebase
   await Firebase.initializeApp();
   developer.log('✅ Firebase Initialized', name: 'Main');
@@ -115,7 +125,10 @@ void main() async {
       }
     };
   } catch (e) {
-    developer.log('❌ Error initializing notification manager: $e', name: 'Main');
+    developer.log(
+      '❌ Error initializing notification manager: $e',
+      name: 'Main',
+    );
   }
 
   // Reset feedback session flag on app start
@@ -203,9 +216,14 @@ void main() async {
   );
 
   // Create medication use cases
-  final getMedicationSchedulesUseCase = GetMedicationSchedulesUseCase(medicationRepository);
-  final getMedicationScheduleForDateUseCase = GetMedicationScheduleForDateUseCase(medicationRepository);
-  final updateMedicationStatusUseCase = UpdateMedicationStatusUseCase(medicationRepository);
+  final getMedicationSchedulesUseCase = GetMedicationSchedulesUseCase(
+    medicationRepository,
+  );
+  final getMedicationScheduleForDateUseCase =
+      GetMedicationScheduleForDateUseCase(medicationRepository);
+  final updateMedicationStatusUseCase = UpdateMedicationStatusUseCase(
+    medicationRepository,
+  );
 
   // Create medication provider
   final medicationProvider = MedicationProvider(
@@ -216,9 +234,7 @@ void main() async {
 
   // Create sleep management dependencies
   final sleepLocalDataSource = SleepLocalDataSourceImpl();
-  final sleepRemoteDataSource = SleepRemoteDataSourceImpl(
-    apiClient: apiClient,
-  );
+  final sleepRemoteDataSource = SleepRemoteDataSourceImpl(apiClient: apiClient);
   final sleepRepository = SleepRepositoryImpl(
     localDataSource: sleepLocalDataSource,
     remoteDataSource: sleepRemoteDataSource,
@@ -245,7 +261,10 @@ void main() async {
   developer.log('🗄️ Initializing cache service...', name: 'Main');
   try {
     final cacheInfo = await CacheService.getCacheInfo();
-    developer.log('✅ Cache service initialized. Info: $cacheInfo', name: 'Main');
+    developer.log(
+      '✅ Cache service initialized. Info: $cacheInfo',
+      name: 'Main',
+    );
   } catch (e) {
     developer.log('❌ Error initializing cache service: $e', name: 'Main');
   }
@@ -269,6 +288,12 @@ void main() async {
         // Add SleepProvider
         provider.ChangeNotifierProvider<SleepProvider>(
           create: (context) => sleepProvider,
+        ),
+        provider.ChangeNotifierProvider<WaterIntakeApiProvider>(
+          create: (context) => WaterIntakeApiProvider(),
+        ),
+        provider.ChangeNotifierProvider<WaterIntakeProvider>(
+          create: (context) => WaterIntakeProvider()..initialize(),
         ),
       ],
       child: ProviderScope(child: const MyApp()),
@@ -310,7 +335,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
         developer.log('📱 App paused', name: 'Main');
         break;
       case AppLifecycleState.detached:
-        developer.log('📱 App detached, stopping background sync', name: 'Main');
+        developer.log(
+          '📱 App detached, stopping background sync',
+          name: 'Main',
+        );
         // Stop background sync when app is detached
         BackgroundSyncService.instance.stopBackgroundSync();
         break;
@@ -353,7 +381,7 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
 
     // Handle app links when the app is already running
     _linkSubscription = _appLinks.uriLinkStream.listen(
-          (Uri uri) {
+      (Uri uri) {
         _handleIncomingLink(uri);
       },
       onError: (Object error) {
@@ -381,7 +409,10 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
       // Extract the authorization code
       final code = uri.queryParameters['code'];
       if (code != null) {
-        developer.log('✅ Received Fitbit authorization code: $code', name: 'Main');
+        developer.log(
+          '✅ Received Fitbit authorization code: $code',
+          name: 'Main',
+        );
 
         // Show a success message
         WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -464,30 +495,42 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                           // Prevent back navigation from dashboard
                           // Show exit confirmation dialog instead
                           return await showDialog(
-                            context: context,
-                            builder: (context) => AlertDialog(
-                              title: const Text('Exit App'),
-                              content: const Text('Are you sure you want to exit the app?'),
-                              actions: [
-                                TextButton(
-                                  onPressed: () => Navigator.of(context).pop(false),
-                                  child: const Text('Cancel'),
-                                ),
-                                TextButton(
-                                  onPressed: () {
-                                    Navigator.of(context).pop(true);
-                                    SystemNavigator.pop(); // Exit the app
-                                  },
-                                  child: const Text('Exit'),
-                                ),
-                              ],
-                            ),
-                          ) ?? false;
+                                context: context,
+                                builder:
+                                    (context) => AlertDialog(
+                                      title: const Text('Exit App'),
+                                      content: const Text(
+                                        'Are you sure you want to exit the app?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed:
+                                              () => Navigator.of(
+                                                context,
+                                              ).pop(false),
+                                          child: const Text('Cancel'),
+                                        ),
+                                        TextButton(
+                                          onPressed: () {
+                                            Navigator.of(context).pop(true);
+                                            SystemNavigator.pop(); // Exit the app
+                                          },
+                                          child: const Text('Exit'),
+                                        ),
+                                      ],
+                                    ),
+                              ) ??
+                              false;
                         },
                         child: AuthGuard(child: const HomeScreen()),
                       );
                     },
-                    transitionsBuilder: (context, animation, secondaryAnimation, child) {
+                    transitionsBuilder: (
+                      context,
+                      animation,
+                      secondaryAnimation,
+                      child,
+                    ) {
                       return FadeTransition(opacity: animation, child: child);
                     },
                   );
@@ -499,21 +542,35 @@ class _MyAppState extends State<MyApp> with WidgetsBindingObserver {
                 '/welcome': (context) => const WelcomePage(),
                 '/signin': (context) => const SignInPage(),
                 '/signup': (context) => const SignUpPage(),
-                '/questions/goal': (context) => AuthGuard(child: const HealthAssessmentGoal()),
-                '/questions/weight': (context) => AuthGuard(child: const WeightInputPage()),
-                '/questions/height': (context) => AuthGuard(child: const HeightInputPage()),
-                '/questions/age': (context) => AuthGuard(child: const HealthAssessmentAge()),
-                '/loading': (context) => AuthGuard(
-                  child: const HealthAssessmentLoading(
-                    loadingDuration: Duration(seconds: 5),
-                    nextScreen: HealthAssessmentScore(),
-                  ),
-                ),
-                '/avatar': (context) => AuthGuard(child: const HealthAssessmentAvatar()),
-                '/questions/gender': (context) => AuthGuard(child: const HealthAssessmentGender()),
-                '/questions/allergy': (context) => AuthGuard(child: const SymptomsSelectionPage()),
-                '/questions/medication': (context) => AuthGuard(child: const HealthAssessmentMedication()),
-                '/feedback': (context) => AuthGuard(child: const FeedbackFormScreen()),
+                '/questions/goal':
+                    (context) => AuthGuard(child: const HealthAssessmentGoal()),
+                '/questions/weight':
+                    (context) => AuthGuard(child: const WeightInputPage()),
+                '/questions/height':
+                    (context) => AuthGuard(child: const HeightInputPage()),
+                '/questions/age':
+                    (context) => AuthGuard(child: const HealthAssessmentAge()),
+                '/loading':
+                    (context) => AuthGuard(
+                      child: const HealthAssessmentLoading(
+                        loadingDuration: Duration(seconds: 5),
+                        nextScreen: HealthAssessmentScore(),
+                      ),
+                    ),
+                '/avatar':
+                    (context) =>
+                        AuthGuard(child: const HealthAssessmentAvatar()),
+                '/questions/gender':
+                    (context) =>
+                        AuthGuard(child: const HealthAssessmentGender()),
+                '/questions/allergy':
+                    (context) =>
+                        AuthGuard(child: const SymptomsSelectionPage()),
+                '/questions/medication':
+                    (context) =>
+                        AuthGuard(child: const HealthAssessmentMedication()),
+                '/feedback':
+                    (context) => AuthGuard(child: const FeedbackFormScreen()),
               },
             );
           },

@@ -1,78 +1,81 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import 'package:provider/provider.dart';
-import '../../data/providers/water_intake_provider.dart';
 
 class WaterStatsCards extends StatelessWidget {
-  const WaterStatsCards({super.key});
+  final int streak;
+  final double weeklyAvg;
+  final double completionRate;
+  final int dailyGoal;
+
+  const WaterStatsCards({
+    super.key,
+    required this.streak,
+    required this.weeklyAvg,
+    required this.completionRate,
+    this.dailyGoal = 2000, // Default value if not provided
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<WaterIntakeProvider>(
-      builder: (context, provider, child) {
-        return Column(
+    return Column(
+      children: [
+        // First row - Current Streak and Weekly Average
+        Row(
           children: [
-            // First row - Current Streak and Weekly Average
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Current Streak',
-                    value: '${provider.currentStreak}',
-                    unit: 'days',
-                    icon: Icons.local_fire_department,
-                    color: const Color(0xFFEF4444),
-                    subtitle: provider.currentStreak > 0
-                        ? 'Keep it up!'
-                        : 'Start today!',
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Weekly Average',
-                    value: '${provider.weeklyAverage.toInt()}',
-                    unit: 'ml',
-                    icon: Icons.trending_up,
-                    color: const Color(0xFF10B981),
-                    subtitle: 'Per day',
-                  ),
-                ),
-              ],
+            Expanded(
+              child: _buildStatCard(
+                title: 'Current Streak',
+                value: '$streak',
+                unit: 'days',
+                icon: Icons.local_fire_department,
+                color: const Color(0xFFEF4444),
+                subtitle: streak > 0 ? 'Keep it up!' : 'Start today!',
+              ),
             ),
-
-            SizedBox(height: 16.h),
-
-            // Second row - Today's Goal and Completion Rate
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Today\'s Goal',
-                    value: '${provider.todayIntake.goalAmount.toInt()}',
-                    unit: 'ml',
-                    icon: Icons.flag,
-                    color: const Color(0xFF3B82F6),
-                    subtitle: 'Target',
-                  ),
-                ),
-                SizedBox(width: 16.w),
-                Expanded(
-                  child: _buildStatCard(
-                    title: 'Weekly Rate',
-                    value: '${provider.weeklyCompletionRate.toInt()}',
-                    unit: '%',
-                    icon: Icons.check_circle,
-                    color: const Color(0xFF8B5CF6),
-                    subtitle: 'Completion',
-                  ),
-                ),
-              ],
+            SizedBox(width: 16.w),
+            Expanded(
+              child: _buildStatCard(
+                title: 'Weekly Average',
+                value: '${weeklyAvg.toInt()}',
+                unit: 'ml',
+                icon: Icons.trending_up,
+                color: const Color(0xFF10B981),
+                subtitle: 'Per day',
+              ),
             ),
           ],
-        );
-      },
+        ),
+
+        SizedBox(height: 16.h),
+
+        // Second row - Today's Goal and Completion Rate
+        Row(
+          children: [
+            Expanded(
+              child: _buildStatCard(
+                title: 'Today\'s Goal',
+                value: '$dailyGoal',
+                unit: 'ml',
+                icon: Icons.flag,
+                color: const Color(0xFF3B82F6),
+                subtitle: 'Target',
+              ),
+            ),
+            SizedBox(width: 16.w),
+            Expanded(
+              child: _buildStatCard(
+                title: 'Weekly Rate',
+                value: '${(completionRate * 100).toInt()}',
+                unit: '%',
+                icon: Icons.check_circle,
+                color: const Color(0xFF8B5CF6),
+                subtitle: 'Completion',
+              ),
+            ),
+          ],
+        ),
+      ],
     );
   }
 

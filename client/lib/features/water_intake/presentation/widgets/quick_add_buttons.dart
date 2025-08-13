@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
-import '../../data/providers/water_intake_provider.dart';
+import 'package:intl/intl.dart';
+import '../../data/providers/water_intake_api_provider.dart';
 
 class QuickAddButtons extends StatelessWidget {
   const QuickAddButtons({super.key});
@@ -14,9 +15,13 @@ class QuickAddButtons extends StatelessWidget {
     {'amount': 1000, 'label': 'Jumbo', 'icon': '🪣'},
   ];
 
+  String get _currentDate {
+    return DateFormat('yyyy-MM-dd').format(DateTime.now());
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<WaterIntakeProvider>(
+    return Consumer<WaterIntakeApiProvider>(
       builder: (context, provider, child) {
         return Container(
           padding: EdgeInsets.all(20.w),
@@ -67,30 +72,24 @@ class QuickAddButtons extends StatelessWidget {
   }
 
   Widget _buildQuickAddButton(
-      BuildContext context,
-      WaterIntakeProvider provider,
-      int amount,
-      String label,
-      String icon,
-      ) {
+    BuildContext context,
+    WaterIntakeApiProvider provider,
+    int amount,
+    String label,
+    String icon,
+  ) {
     return GestureDetector(
       onTap: () => _addWaterIntake(context, provider, amount.toDouble()),
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
           borderRadius: BorderRadius.circular(12.r),
-          border: Border.all(
-            color: const Color(0xFFE2E8F0),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFE2E8F0), width: 1),
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Text(
-              icon,
-              style: TextStyle(fontSize: 24.sp),
-            ),
+            Text(icon, style: TextStyle(fontSize: 24.sp)),
             SizedBox(height: 8.h),
             Text(
               '${amount}ml',
@@ -114,7 +113,10 @@ class QuickAddButtons extends StatelessWidget {
     );
   }
 
-  Widget _buildCustomAmountButton(BuildContext context, WaterIntakeProvider provider) {
+  Widget _buildCustomAmountButton(
+    BuildContext context,
+    WaterIntakeApiProvider provider,
+  ) {
     return GestureDetector(
       onTap: () => _showCustomAmountDialog(context, provider),
       child: Container(
@@ -151,7 +153,10 @@ class QuickAddButtons extends StatelessWidget {
     );
   }
 
-  void _showCustomAmountDialog(BuildContext context, WaterIntakeProvider provider) {
+  void _showCustomAmountDialog(
+    BuildContext context,
+    WaterIntakeApiProvider provider,
+  ) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -161,14 +166,14 @@ class QuickAddButtons extends StatelessWidget {
   }
 
   Future<void> _addWaterIntake(
-      BuildContext context,
-      WaterIntakeProvider provider,
-      double amount,
-      ) async {
+    BuildContext context,
+    WaterIntakeApiProvider provider,
+    double amount,
+  ) async {
     try {
-      await provider.addWaterIntake(amount);
+      final success = await provider.submitWaterIntake(amount, _currentDate);
 
-      if (context.mounted) {
+      if (success && context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
@@ -188,7 +193,7 @@ class QuickAddButtons extends StatelessWidget {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),
@@ -199,12 +204,13 @@ class QuickAddButtons extends StatelessWidget {
 }
 
 class CustomAmountBottomSheet extends StatefulWidget {
-  final WaterIntakeProvider provider;
+  final WaterIntakeApiProvider provider;
 
   const CustomAmountBottomSheet({super.key, required this.provider});
 
   @override
-  State<CustomAmountBottomSheet> createState() => _CustomAmountBottomSheetState();
+  State<CustomAmountBottomSheet> createState() =>
+      _CustomAmountBottomSheetState();
 }
 
 class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
@@ -216,9 +222,7 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
     return Container(
       decoration: const BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(20),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -311,9 +315,13 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
                           textBaseline: TextBaseline.alphabetic,
                           children: [
                             ShaderMask(
-                              shaderCallback: (bounds) => const LinearGradient(
-                                colors: [Color(0xFF3B82F6), Color(0xFF1D4ED8)],
-                              ).createShader(bounds),
+                              shaderCallback:
+                                  (bounds) => const LinearGradient(
+                                    colors: [
+                                      Color(0xFF3B82F6),
+                                      Color(0xFF1D4ED8),
+                                    ],
+                                  ).createShader(bounds),
                               child: Text(
                                 '${_selectedAmount.toInt()}',
                                 style: GoogleFonts.plusJakartaSans(
@@ -466,22 +474,25 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
                             borderRadius: BorderRadius.circular(12.r),
                           ),
                         ),
-                        child: _isLoading
-                            ? SizedBox(
-                          width: 20.w,
-                          height: 20.w,
-                          child: const CircularProgressIndicator(
-                            strokeWidth: 2,
-                            valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                          ),
-                        )
-                            : Text(
-                          'Add Water',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16.sp,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
+                        child:
+                            _isLoading
+                                ? SizedBox(
+                                  width: 20.w,
+                                  height: 20.w,
+                                  child: const CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor: AlwaysStoppedAnimation<Color>(
+                                      Colors.white,
+                                    ),
+                                  ),
+                                )
+                                : Text(
+                                  'Add Water',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 16.sp,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                       ),
                     ),
                   ],
@@ -509,7 +520,8 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF3B82F6) : Colors.transparent,
           border: Border.all(
-            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
+            color:
+                isSelected ? const Color(0xFF3B82F6) : const Color(0xFFE5E7EB),
           ),
           borderRadius: BorderRadius.circular(8.r),
         ),
@@ -531,9 +543,12 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
     });
 
     try {
-      await widget.provider.addWaterIntake(_selectedAmount);
+      final success = await widget.provider.submitWaterIntake(
+        _selectedAmount,
+        DateFormat('yyyy-MM-dd').format(DateTime.now()),
+      );
 
-      if (mounted) {
+      if (success && mounted) {
         Navigator.of(context).pop();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -554,7 +569,7 @@ class _CustomAmountBottomSheetState extends State<CustomAmountBottomSheet> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Error: ${e.toString()}'),
+            content: Text('Error: $e'),
             backgroundColor: Colors.red,
             behavior: SnackBarBehavior.floating,
           ),

@@ -20,7 +20,6 @@ class HealthMetricsProvider {
       }
 
       final url = Uri.parse('$baseUrl/health-metrics?date=$date');
-
       final response = await http.get(
         url,
         headers: {
@@ -29,21 +28,27 @@ class HealthMetricsProvider {
         },
       );
 
-      final jsonData = jsonDecode(response.body);
-
-      // Debug logging
       debugPrint('Response status: ${response.statusCode}');
       debugPrint('Response body: ${response.body}');
       debugPrint("URL: $url");
 
       if (response.statusCode == 200) {
+        final jsonData = jsonDecode(response.body);
+
+        // Add additional debug logging to inspect the response structure
+        debugPrint('Response data type: ${jsonData.runtimeType}');
+        if (jsonData is Map) {
+          debugPrint('Response keys: ${jsonData.keys}');
+        }
+
         return HealthMetricsResponse.fromJson(jsonData);
       } else {
         throw Exception(
-          'Failed to load health metrics: ${response.statusCode}',
+          'Failed to load health metrics: ${response.statusCode} - ${response.body}',
         );
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('Error stack trace: $stackTrace');
       throw Exception('Error fetching health metrics: $e');
     }
   }
