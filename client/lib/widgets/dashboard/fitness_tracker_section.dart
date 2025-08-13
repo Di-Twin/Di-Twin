@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:client/features/activity_management/presentation/pages/activity_calories_tracker_page.dart';
 import 'package:client/features/activity_management/presentation/pages/activity_steps_page.dart';
 import 'package:client/features/activity_management/presentation/pages/my_activities_page.dart';
@@ -8,8 +10,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:client/data/providers/health_metrics_provider.dart';
 import 'package:client/data/API/health_metrics_data.dart';
+import 'package:http/http.dart' as http;
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'fitness_tracker_item.dart';
 
 class FitnessTrackerSection extends StatefulWidget {
@@ -24,6 +28,7 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
   HealthMetrics? _healthMetrics;
   bool _isLoading = true;
   String _errorMessage = '';
+  double _targetCalories = 0.0;
 
   @override
   void initState() {
@@ -31,8 +36,62 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
     _fetchHealthMetrics();
   }
 
+  Future<String?> _getAccessToken() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      return prefs.getString('access_token');
+    } catch (e) {
+      debugPrint('Error getting access token: $e');
+      return null;
+    }
+  }
+
+  // <CHANGE> Added method to fetch target calories from API
+  Future<void> _fetchTargetCalories() async {
+    try {
+      final accessToken = await _getAccessToken();
+
+      if (accessToken == null || accessToken.isEmpty) {
+        debugPrint('No access token found');
+        return;
+      }
+
+      final today = DateTime.now();
+      final dateString = '${today.year}-${today.month}-${today.day}';
+
+      final url = Uri.parse(
+        'https://test-prod-f427.onrender.com/api/health-metrics?date=$dateString',
+      );
+
+      final headers = <String, String>{
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $accessToken',
+      };
+
+      final response = await http.get(url, headers: headers);
+
+      if (response.statusCode == 200) {
+        final jsonData = json.decode(response.body);
+
+        if (jsonData['success'] == true && jsonData['data'] != null) {
+          setState(() {
+            _targetCalories =
+                (jsonData['data']['target_calories'] ?? 2000).toDouble();
+          });
+        }
+      } else {
+        debugPrint('Failed to fetch target calories: ${response.statusCode}');
+      }
+    } catch (e) {
+      debugPrint('Error fetching target calories: $e');
+    }
+  }
+
   Future<void> _fetchHealthMetrics() async {
     try {
+      // <CHANGE> Fetch target calories from API alongside existing health metrics
+      await _fetchTargetCalories();
+
       final String today = DateFormat('yyyy-MM-dd').format(DateTime.now());
       final response = await _healthMetricsProvider.getHealthMetrics(today);
 
@@ -54,12 +113,14 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
   }
 
   double _getCaloriesProgress() {
-    if (_healthMetrics?.targetCalories == null ||
-        _healthMetrics?.totalCaloriesBurnt == null ||
-        _healthMetrics!.targetCalories! <= 0) {
+    // <CHANGE> Use API target calories instead of health metrics target calories
+    if (_targetCalories <= 0 || _healthMetrics?.totalCaloriesBurnt == null) {
       return 0.0;
     }
-    return (_healthMetrics!.totalCaloriesBurnt! / _healthMetrics!.targetCalories!).clamp(0.0, 1.0);
+    return (_healthMetrics!.totalCaloriesBurnt! / _targetCalories).clamp(
+      0.0,
+      1.0,
+    );
   }
 
   double _getStepsProgress() {
@@ -76,12 +137,17 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
 
   double _getWaterProgress() {
     try {
-      final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+      final waterProvider = Provider.of<WaterIntakeProvider>(
+        context,
+        listen: false,
+      );
       final dashboardData = waterProvider.dashboardData;
 
       if (dashboardData != null) {
-        final totalWaterTaken = dashboardData['total_water_taken']?.toDouble() ?? 0.0;
-        final targetWaterMl = dashboardData['target_water_ml']?.toDouble() ?? 2000.0;
+        final totalWaterTaken =
+            dashboardData['total_water_taken']?.toDouble() ?? 0.0;
+        final targetWaterMl =
+            dashboardData['target_water_ml']?.toDouble() ?? 2000.0;
 
         if (targetWaterMl > 0) {
           return (totalWaterTaken / targetWaterMl).clamp(0.0, 1.0);
@@ -98,11 +164,15 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
 
   String _getWaterIntakeSubtitle() {
     try {
-      final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+      final waterProvider = Provider.of<WaterIntakeProvider>(
+        context,
+        listen: false,
+      );
       final dashboardData = waterProvider.dashboardData;
 
       if (dashboardData != null) {
-        final totalWaterTaken = dashboardData['total_water_taken']?.toInt() ?? 0;
+        final totalWaterTaken =
+            dashboardData['total_water_taken']?.toInt() ?? 0;
         return '${totalWaterTaken}ml consumed today';
       }
 
@@ -115,7 +185,10 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
 
   String _getWaterIntakeMaxValue() {
     try {
-      final waterProvider = Provider.of<WaterIntakeProvider>(context, listen: false);
+      final waterProvider = Provider.of<WaterIntakeProvider>(
+        context,
+        listen: false,
+      );
       final dashboardData = waterProvider.dashboardData;
 
       if (dashboardData != null) {
@@ -173,9 +246,14 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => MyActivitiesPage(
-                          userJoinDate: DateTime(2023, 1, 15), // Replace with actual user join date
-                        ),
+                        builder:
+                            (context) => MyActivitiesPage(
+                              userJoinDate: DateTime(
+                                2023,
+                                1,
+                                15,
+                              ), // Replace with actual user join date
+                            ),
                       ),
                     );
                   },
@@ -196,10 +274,12 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                 FitnessTrackerItem(
                   icon: Icons.fitness_center,
                   title: 'Calories Burned',
-                  subtitle: '${_healthMetrics?.totalCaloriesBurnt?.toString() ?? '0'}kcal',
-                  maxValue: '${_healthMetrics?.targetCalories?.toString() ?? '2000'}kcal',
+                  subtitle:
+                      '${_healthMetrics?.totalCaloriesBurnt?.toString() ?? '0'} kcal',
+                  maxValue:
+                      '${_targetCalories > 0 ? _targetCalories.toStringAsFixed(0) : '0'} kcal',
                   progress: _getCaloriesProgress(),
-                  progressColor: const Color(0xFFEF4444),
+                  progressColor: const Color(0xFF3B82F6),
                   onTap: () {
                     Navigator.push(
                       context,
@@ -209,11 +289,16 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                     );
                   },
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E8F0),
+                ),
                 FitnessTrackerItem(
                   icon: Icons.directions_walk,
                   title: 'Steps Taken',
-                  subtitle: 'You\'ve taken ${_healthMetrics?.totalSteps?.toString() ?? '0'} steps.',
+                  subtitle:
+                      'You\'ve taken ${_healthMetrics?.totalSteps?.toString() ?? '0'} steps.',
                   progress: _getStepsProgress(),
                   progressColor: const Color(0xFF3B82F6),
                   onTap: () {
@@ -225,7 +310,11 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                     );
                   },
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E8F0),
+                ),
                 FitnessTrackerItem(
                   icon: Icons.water_drop,
                   title: 'Water Intake',
@@ -242,7 +331,11 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                     );
                   },
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E8F0),
+                ),
                 FitnessTrackerItem(
                   icon: Icons.apple,
                   title: 'Nutrition',
@@ -257,7 +350,11 @@ class _FitnessTrackerSectionState extends State<FitnessTrackerSection> {
                     );
                   },
                 ),
-                const Divider(height: 1, thickness: 1, color: Color(0xFFE2E8F0)),
+                const Divider(
+                  height: 1,
+                  thickness: 1,
+                  color: Color(0xFFE2E8F0),
+                ),
               ],
             ),
           ],

@@ -12,7 +12,7 @@ class HealthMetrics {
   final int? spo2Max;
   final int? totalSteps;
   final double? distanceCovered;
-  final int? waterIntake;
+  final List<dynamic>? waterIntake;
   final int? totalWaterTaken;
   final double? sleepScore;
   final double? sleepHours;
@@ -62,31 +62,34 @@ class HealthMetrics {
       id: json['id'],
       userId: json['userId'],
       dayId: json['dayId'],
-      targetCalories: json['target_calories'],
-      activityScore: json['activity_score']?.toDouble(),
-      foodScore: json['food_score']?.toDouble(),
-      healthScore: json['health_score']?.toDouble(),
-      bp: json['bp'],
-      spo2Avg: json['spo2_avg'],
-      spo2Min: json['spo2_min'],
-      spo2Max: json['spo2_max'],
-      totalSteps: json['total_steps'],
-      distanceCovered: json['distance_covered']?.toDouble(),
-      waterIntake: json['water_intake'],
-      totalWaterTaken: json['total_water_taken'],
-      sleepScore: json['sleep_score']?.toDouble(),
-      sleepHours: json['sleep_hours']?.toDouble(),
-      activityScoreArray: json['activity_score_array'],
-      foodScoreArray: (json['food_score_array'] as List<dynamic>?)
-          ?.map((e) => (e as num).toDouble())
-          .toList(),
-      totalCaloriesBurnt: json['total_calories_burnt'],
+      targetCalories: json['target_calories'] as int?,
+      activityScore: (json['activity_score'] as num?)?.toDouble(),
+      foodScore: (json['food_score'] as num?)?.toDouble(),
+      healthScore: (json['health_score'] as num?)?.toDouble(),
+      bp: json['bp'] as int?,
+      spo2Avg: json['spo2_avg'] as int?,
+      spo2Min: json['spo2_min'] as int?,
+      spo2Max: json['spo2_max'] as int?,
+      totalSteps: json['total_steps'] as int?,
+      distanceCovered: (json['distance_covered'] as num?)?.toDouble(),
+      waterIntake: json['water_intake'] as List<dynamic>?,
+      totalWaterTaken: json['total_water_taken'] as int?,
+      sleepScore: (json['sleep_score'] as num?)?.toDouble(),
+      sleepHours: (json['sleep_hours'] as num?)?.toDouble(),
+      activityScoreArray: json['activity_score_array'] as List<dynamic>?,
+      foodScoreArray:
+          (json['food_score_array'] as List<dynamic>?)
+              ?.where((e) => e != null)
+              ?.map((e) => (e as num).toDouble())
+              .toList(),
+      totalCaloriesBurnt: json['total_calories_burnt'] as int?,
       nutritionTaken: json['nutrition_taken'],
-      metabolicScore: json['metabolic_score']?.toDouble(),
-      vo2Max: json['vo2Max'],
-      medicationData: json['medication_data'],
+      metabolicScore: (json['metabolic_score'] as num?)?.toDouble(),
+      vo2Max: json['vo2Max'] as int?,
+      medicationData:
+          json['medication_data'], // Note: Typo here? Should it be 'medication_data'?
       medicationNotifications: json['medication_notifications'],
-      weight: json['weight']?.toDouble(),
+      weight: (json['weight'] as num?)?.toDouble(),
       createdAt: json['created_at'],
     );
   }

@@ -8,7 +8,6 @@ import 'package:client/widgets/settings/feedback_form_screen.dart';
 import 'package:client/widgets/settings/leaderboard_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-// Add import for AvatarData at the top of the file
 import 'package:client/features/health_assessment/health_assessment_avatar.dart';
 import 'package:client/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -44,203 +43,350 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       setState(() {
         isLoading = false;
       });
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to load user data: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to load user data: $e')),
+      );
     }
   }
 
   void _showDeleteAccountDialog() {
     _nameController.clear();
-
-    // Use the dynamic user data for name verification
     final userName = userData != null ? userData!.firstName : '';
-
-    // Rest of the method remains the same, but replace hardcoded 'Karishma' with userName
-    // ...
 
     showDialog(
       context: context,
-      builder:
-          (context) => Dialog(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(20),
-            ),
-            elevation: 0,
-            backgroundColor: Colors.transparent,
-            child: Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 70,
+                height: 70,
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.red,
+                  size: 40,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Delete Account',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'This action cannot be undone. All your data will be permanently deleted.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  color: Colors.grey.shade700,
+                ),
+              ),
+              const SizedBox(height: 24),
+              TextField(
+                controller: _nameController,
+                decoration: InputDecoration(
+                  hintText: 'Type your name to confirm',
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                    color: Colors.grey.shade400,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey.shade50,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.grey.shade200),
+                  ),
+                  focusedBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(color: Colors.red.shade200),
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 14,
+                  ),
+                ),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
+                children: [
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF1E293B),
+                          side: BorderSide(color: Colors.grey.shade300),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () {
+                          if (_nameController.text.trim() == userName) {
+                            Navigator.pop(context);
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Account deleted successfully',
+                                  style: GoogleFonts.plusJakartaSans(),
+                                ),
+                                backgroundColor: Colors.green,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  'Name does not match',
+                                  style: GoogleFonts.plusJakartaSans(),
+                                ),
+                                backgroundColor: Colors.red,
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.red,
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: Text(
+                          'Delete',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
                 ],
               ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSignOutConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(24),
+        ),
+        elevation: 0,
+        backgroundColor: Colors.transparent,
+        child: Container(
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: const Color(0xFFE2E8F0),
+              width: 1,
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 64,
+                height: 64,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFEF2F2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: const Color(0xFFFECACA),
+                    width: 1,
+                  ),
+                ),
+                child: const Icon(
+                  Icons.logout_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 28,
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Sign Out',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1E293B),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Are you sure you want to sign out of your account?',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  color: const Color(0xFF64748B),
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 24),
+              Row(
                 children: [
-                  // Warning icon
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.red.shade50,
-                      shape: BoxShape.circle,
-                    ),
-                    child: Icon(
-                      Icons.warning_amber_rounded,
-                      color: Colors.red,
-                      size: 40,
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // Title
-                  Text(
-                    'Delete Account',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-
-                  // Warning message
-                  Text(
-                    'This action cannot be undone. All your data will be permanently deleted.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Name confirmation field
-                  TextField(
-                    controller: _nameController,
-                    decoration: InputDecoration(
-                      hintText: 'Type your name to confirm',
-                      hintStyle: GoogleFonts.plusJakartaSans(
-                        color: Colors.grey.shade400,
-                      ),
-                      filled: true,
-                      fillColor: Colors.grey.shade50,
-                      border: OutlineInputBorder(
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF8FAFC),
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
+                        border: Border.all(
+                          color: const Color(0xFFE2E8F0),
+                          width: 1,
+                        ),
                       ),
-                      enabledBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade200),
-                      ),
-                      focusedBorder: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.red.shade200),
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 14,
-                      ),
-                    ),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      color: const Color(0xFF1E293B),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-
-                  // Action buttons
-                  Row(
-                    children: [
-                      // Cancel button
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF1E293B),
-                              side: BorderSide(color: Colors.grey.shade300),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () => Navigator.pop(context),
+                          child: Center(
                             child: Text(
                               'Cancel',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
+                                color: const Color(0xFF475569),
                               ),
                             ),
                           ),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEF4444),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(12),
+                          onTap: () async {
+                            Navigator.pop(context);
 
-                      // Delete button
-                      Expanded(
-                        child: SizedBox(
-                          height: 50,
-                          child: ElevatedButton(
-                            onPressed: () {
-                              if (_nameController.text.trim() == userName) {
-                                Navigator.pop(context);
-                                // Show success message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Account deleted successfully',
-                                      style: GoogleFonts.plusJakartaSans(),
+                            try {
+                              final authService = ref.read(authRemoteDataSourceProvider);
+                              await authService.signOut();
+
+                              if (!mounted) return;
+
+                              Navigator.pushReplacementNamed(context, '/signin');
+
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Signed out successfully',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    backgroundColor: Colors.green,
-                                    behavior: SnackBarBehavior.floating,
                                   ),
-                                );
-                              } else {
-                                // Show error message
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content: Text(
-                                      'Name does not match',
-                                      style: GoogleFonts.plusJakartaSans(),
+                                  backgroundColor: const Color(0xFF10B981),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                ),
+                              );
+                            } catch (e) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    'Failed to sign out: ${e.toString()}',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w500,
                                     ),
-                                    backgroundColor: Colors.red,
-                                    behavior: SnackBarBehavior.floating,
                                   ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
+                                  backgroundColor: const Color(0xFFEF4444),
+                                  behavior: SnackBarBehavior.floating,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  margin: const EdgeInsets.all(16),
+                                ),
+                              );
+                            }
+                          },
+                          child: Center(
                             child: Text(
-                              'Delete',
+                              'Sign Out',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
+                                fontSize: 14,
                                 fontWeight: FontWeight.w600,
+                                color: Colors.white,
                               ),
                             ),
                           ),
                         ),
                       ),
-                    ],
+                    ),
                   ),
                 ],
               ),
-            ),
+            ],
           ),
+        ),
+      ),
     );
   }
 
@@ -255,7 +401,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Back button and title
                 Row(
                   children: [
                     Container(
@@ -280,146 +425,153 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   ],
                 ),
                 const SizedBox(height: 24),
-
-                // Enhanced Profile card
-                // Enhanced Profile card
                 Container(
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: [Colors.blue.shade600, Colors.blue.shade800],
+                      colors: [
+                        const Color(0xFF667EEA),
+                        const Color(0xFF764BA2),
+                      ],
                     ),
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.blue.withOpacity(0.3),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  padding: const EdgeInsets.all(24),
+                  child: isLoading
+                      ? const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                    ),
+                  )
+                      : Row(
+                    children: [
+                      Container(
+                        width: 80,
+                        height: 80,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.3),
+                            width: 2,
+                          ),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(18),
+                          child: AvatarData.getCurrentAvatarWidget(
+                            width: 76,
+                            height: 76,
+                            borderRadius: 18,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Flexible(
+                                  child: Text(
+                                    userData?.firstName ?? 'Loading...',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                      letterSpacing: -0.5,
+                                    ),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  width: 8,
+                                  height: 8,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF4ADE80),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                      color: Colors.white.withOpacity(0.3),
+                                      width: 1,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              userData?.email ?? 'Email not available',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: Colors.white.withOpacity(0.85),
+                                fontWeight: FontWeight.w500,
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 12),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 6,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withOpacity(0.15),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withOpacity(0.2),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Text(
+                                userData?.userPlan ?? 'Basic Plan',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.15),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.2),
+                            width: 1,
+                          ),
+                        ),
+                        child: Material(
+                          color: Colors.transparent,
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(14),
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const PersonalInformationScreen(),
+                                ),
+                              );
+                            },
+                            child: const Icon(
+                              Icons.edit_outlined,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ),
                       ),
                     ],
                   ),
-                  padding: const EdgeInsets.all(20),
-                  child:
-                      isLoading
-                          ? const Center(
-                            child: CircularProgressIndicator(
-                              color: Colors.white,
-                            ),
-                          )
-                          : Row(
-                            children: [
-                              // Profile image with border
-                              Container(
-                                width: 80,
-                                height: 80,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(
-                                    color: Colors.white.withOpacity(0.5),
-                                    width: 2,
-                                  ),
-                                ),
-                                child: AvatarData.getCurrentAvatarWidget(
-                                  width: 80,
-                                  height: 80,
-                                  borderRadius: 16,
-                                ),
-                              ),
-                              const SizedBox(width: 20),
-
-                              // Name and email with status indicator
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Text(
-                                          userData?.firstName ?? 'Loading...',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 24,
-                                            fontWeight: FontWeight.bold,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        Container(
-                                          width: 10,
-                                          height: 10,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.greenAccent,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      userData?.email ?? 'Email not available',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 16,
-                                        color: Colors.white.withOpacity(0.8),
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 10,
-                                        vertical: 4,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.white.withOpacity(0.2),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        userData?.userPlan ?? 'Basic',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w500,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              // Edit button remains the same
-
-                              // Edit button with improved styling
-                              Container(
-                                width: 40,
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: IconButton(
-                                  icon: const Icon(
-                                    Icons.edit,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder:
-                                            (context) =>
-                                                const PersonalInformationScreen(),
-                                      ),
-                                    );
-                                  },
-                                  padding: EdgeInsets.zero,
-                                ),
-                              ),
-                            ],
-                          ),
                 ),
                 const SizedBox(height: 24),
-
-                // General Settings
                 _buildSectionHeader('General Settings'),
                 _buildSettingItem(
                   icon: Icons.person_outline,
@@ -452,52 +604,12 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder:
-                            (context) => const NotificationSettingsScreen(),
+                        builder: (context) => const NotificationSettingsScreen(),
                       ),
                     );
                   },
                 ),
-                // _buildSettingItem(
-                //   icon: Icons.watch_outlined,
-                //   title: 'Linked Device',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const LinkedDeviceScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
-                // _buildSettingItem(
-                //   icon: Icons.lock_outline,
-                //   title: 'Security',
-                //   onTap: () {
-                //     Navigator.push(
-                //       context,
-                //       MaterialPageRoute(
-                //         builder: (context) => const SecurityScreen(),
-                //       ),
-                //     );
-                //   },
-                // ),
-                // const SizedBox(height: 24),
-                // // Help & Support
-                // _buildSectionHeader('Help & Support'),
-                // _buildToggleItem(
-                //   icon: Icons.remove_red_eye_outlined,
-                //   title: 'Dark Mode',
-                //   value: isDarkMode,
-                //   onChanged: (value) {
-                //     setState(() {
-                //       isDarkMode = value;
-                //     });
-                //   },
-                // ),
-                // const SizedBox(height: 24),
-
-                // Help & Support (repeated in the original UI)
+                const SizedBox(height: 24),
                 _buildSectionHeader('Help & Support'),
                 _buildSettingItem(
                   icon: Icons.help_outline,
@@ -536,106 +648,51 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
                   },
                 ),
                 const SizedBox(height: 24),
-
-                // Sign Out
                 _buildSectionHeader('Sign Out'),
                 GestureDetector(
-                  onTap: () async {
-                    try {
-                      final authService = ref.read(
-                        authRemoteDataSourceProvider,
-                      );
-                      await authService.signOut();
-
-                      // Ensure context is still valid after async operation
-                      if (!mounted) return;
-
-                      // Navigate to signin page after successful logout
-                      Navigator.pushReplacementNamed(context, '/signin');
-
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Signed out successfully',
-                            style: GoogleFonts.plusJakartaSans(),
-                          ),
-                          backgroundColor: Colors.green,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      );
-                    } catch (e) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Failed to sign out: ${e.toString()}',
-                            style: GoogleFonts.plusJakartaSans(),
-                          ),
-                          backgroundColor: Colors.red,
-                          behavior: SnackBarBehavior.floating,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                        ),
-                      );
-                    }
-                  },
+                  onTap: () => _showSignOutConfirmationDialog(),
                   child: Container(
                     margin: const EdgeInsets.only(bottom: 12),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFFFEDED),
-                      borderRadius: BorderRadius.circular(12),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.red.withOpacity(0.05),
-                          blurRadius: 10,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
+                      color: const Color(0xFFFEF2F2),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFFECACA),
+                        width: 1,
+                      ),
                     ),
                     child: ListTile(
                       leading: Container(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: const Color(0xFFFF5757),
-                          borderRadius: BorderRadius.circular(8),
+                          color: const Color(0xFFEF4444),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                        child: const Icon(Icons.logout, color: Colors.white),
+                        child: const Icon(
+                          Icons.logout_rounded,
+                          color: Colors.white,
+                          size: 20,
+                        ),
                       ),
                       title: Text(
                         'Sign Out',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFFFF5757),
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFFEF4444),
                         ),
                       ),
-                      trailing: const Icon(
-                        Icons.chevron_right,
-                        color: Color(0xFFFF5757),
+                      trailing: Icon(
+                        Icons.chevron_right_rounded,
+                        color: const Color(0xFFEF4444),
+                        size: 20,
                       ),
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 8,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     ),
                   ),
                 ),
                 const SizedBox(height: 24),
-
-                // Danger Zone
-                // _buildSectionHeader('Danger Zone'),
-                // _buildDangerItem(
-                //   icon: Icons.delete_outline,
-                //   title: 'Delete Account',
-                //   onTap: _showDeleteAccountDialog,
-                // ),
-                // const SizedBox(height: 24),
               ],
             ),
           ),
@@ -673,36 +730,41 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
       ),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: const Color(0xFF1E293B)),
+          child: Icon(
+            icon,
+            color: const Color(0xFF475569),
+            size: 20,
+          ),
         ),
         title: Text(
           title,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: const Color(0xFF1E293B),
           ),
         ),
-        trailing: const Icon(Icons.chevron_right, color: Colors.black45),
+        trailing: Icon(
+          Icons.chevron_right_rounded,
+          color: const Color(0xFF94A3B8),
+          size: 20,
+        ),
         onTap: onTap,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -717,47 +779,46 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.03),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: const Color(0xFFE2E8F0),
+          width: 1,
+        ),
       ),
       child: ListTile(
         leading: Container(
-          padding: const EdgeInsets.all(8),
+          padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9),
-            borderRadius: BorderRadius.circular(8),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
           ),
-          child: Icon(icon, color: const Color(0xFF1E293B)),
+          child: Icon(
+            icon,
+            color: const Color(0xFF475569),
+            size: 20,
+          ),
         ),
         title: Text(
           title,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 16,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
             color: const Color(0xFF1E293B),
           ),
         ),
         trailing: Switch.adaptive(
           value: value,
           onChanged: onChanged,
-          activeColor: Colors.blue,
-          trackColor: WidgetStateProperty.resolveWith<Color>((
-            Set<WidgetState> states,
-          ) {
+          activeColor: const Color(0xFF667EEA),
+          trackColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
             if (states.contains(WidgetState.selected)) {
-              return Colors.blue.withOpacity(0.3);
+              return const Color(0xFF667EEA).withOpacity(0.3);
             }
-            return Colors.grey.withOpacity(0.3);
+            return const Color(0xFFE2E8F0);
           }),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     );
   }
@@ -772,13 +833,10 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFEDED),
         borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.red.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        border: Border.all(
+          color: const Color(0xFFFECACA),
+          width: 1,
+        ),
       ),
       child: ListTile(
         leading: Container(
